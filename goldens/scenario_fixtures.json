@@ -1,0 +1,455 @@
+{
+  "spec_version": "fuse-eval-spec/v1",
+  "observation_class": "synthetic",
+  "baseline": {
+    "tier": "balanced",
+    "bankroll": "50000",
+    "loss": {
+      "drawdown_amount": "0",
+      "session_loss_amount": "0"
+    },
+    "flows": {
+      "deposit_amount": "0",
+      "withdrawal_amount": "0"
+    },
+    "market": {
+      "mwcb_level": 0,
+      "index_session_fall": "0",
+      "clean_session": true
+    },
+    "funds": {
+      "TQQQ": {
+        "tracking_dev_1s_pp": "0.10",
+        "tracking_dev_5s_pp": "0.30",
+        "corporate_action": null,
+        "fund_event": null,
+        "forecast_vol": "0.22",
+        "long_run_vol": "0.24",
+        "decay_shortfall_60s": "0.0050",
+        "decay_predicted_60s": "0.0080",
+        "carrying_cost": {
+          "measured_per_unit": "0.0060",
+          "quarter_shrunk_excess": "0.0130"
+        },
+        "quote": {
+          "stale": false,
+          "spread": "0.0002",
+          "single_stock_pause": false,
+          "in_regular_session": true
+        }
+      },
+      "SOXL": {
+        "tracking_dev_1s_pp": "0.10",
+        "tracking_dev_5s_pp": "0.30",
+        "corporate_action": null,
+        "fund_event": null,
+        "forecast_vol": "0.28",
+        "long_run_vol": "0.32",
+        "decay_shortfall_60s": "0.0050",
+        "decay_predicted_60s": "0.0080",
+        "carrying_cost": {
+          "measured_per_unit": "0.0060",
+          "quarter_shrunk_excess": "0.0130"
+        },
+        "quote": {
+          "stale": false,
+          "spread": "0.0002",
+          "single_stock_pause": false,
+          "in_regular_session": true
+        }
+      }
+    },
+    "data_inputs": {
+      "volatility": {
+        "present": true,
+        "age_sessions": 0,
+        "valid": true,
+        "last_valid": "0.22",
+        "stress_default": "0.70"
+      },
+      "index_returns": {
+        "present": true,
+        "age_sessions": 0,
+        "valid": true
+      },
+      "fund_returns": {
+        "present": true,
+        "age_sessions": 0,
+        "valid": true
+      },
+      "bankroll_ledger": {
+        "present": true,
+        "age_sessions": 0,
+        "valid": true
+      },
+      "broker_snapshot": {
+        "present": true,
+        "age_sessions": 0,
+        "valid": true
+      },
+      "quotes": {
+        "present": true,
+        "age_sessions": 0,
+        "valid": true
+      }
+    },
+    "calendar": {
+      "session_state": "open",
+      "exchange_agrees": true
+    },
+    "broker_record": {
+      "positions_beyond_tolerance": false,
+      "cash_beyond_tolerance": false
+    },
+    "orders": {
+      "pending": null
+    },
+    "pretrade": {
+      "attempted_order": {
+        "symbol": "TQQQ",
+        "whitelisted_symbol": true,
+        "whitelisted_account": true,
+        "long_only": true,
+        "within_settled_cash": true,
+        "size_within_max": true,
+        "session_orders_within_max": true,
+        "turnover_within_max": true
+      },
+      "rejections_this_session": 0
+    },
+    "policy": {
+      "loaded_hash": "b7e23ec29af22b0b4e41da31e868d57226121c84edd645c42c5eb656c86cbd51",
+      "registered_hash": "b7e23ec29af22b0b4e41da31e868d57226121c84edd645c42c5eb656c86cbd51"
+    },
+    "runtime": {
+      "silence_seconds": 0,
+      "scheduled_interval_seconds": 300
+    },
+    "joint": {
+      "joint_exposure": "0.35",
+      "joint_cap": "0.60"
+    },
+    "sizing": {
+      "max_loss_cap": "0.50",
+      "proposed_exposure": "0.35"
+    }
+  },
+  "baseline_prior_row_state": {
+    "L0": {
+      "latched": false
+    },
+    "L1": {
+      "latched": false,
+      "locked_against_loosening": false
+    },
+    "L2": {
+      "latched": false,
+      "latch_reason": null
+    },
+    "L3": {
+      "latched": false,
+      "latch_reason": null,
+      "cooling_off_days_remaining": 0,
+      "locked_flat": false
+    },
+    "L4": {
+      "latched": false,
+      "latch_reason": null,
+      "tripped_session": null
+    },
+    "L5": {
+      "latched": false,
+      "active": false,
+      "clean_sessions_count": 0
+    },
+    "L6": {
+      "latched": false,
+      "latch_reason": null
+    },
+    "V1": {
+      "by_fund": {
+        "TQQQ": {
+          "latched": false,
+          "latch_reason": null
+        },
+        "SOXL": {
+          "latched": false,
+          "latch_reason": null
+        }
+      }
+    },
+    "V2": {
+      "by_fund": {
+        "TQQQ": {
+          "latched": false,
+          "latch_reason": null
+        },
+        "SOXL": {
+          "latched": false,
+          "latch_reason": null
+        }
+      }
+    },
+    "V3": {
+      "by_fund": {
+        "TQQQ": {
+          "latched": false,
+          "latch_reason": null
+        },
+        "SOXL": {
+          "latched": false,
+          "latch_reason": null
+        }
+      }
+    },
+    "V4": {
+      "by_fund": {
+        "TQQQ": {
+          "latched": false,
+          "active": false,
+          "below_threshold_sessions": 0
+        },
+        "SOXL": {
+          "latched": false,
+          "active": false,
+          "below_threshold_sessions": 0
+        }
+      }
+    },
+    "V5": {
+      "by_fund": {
+        "TQQQ": {
+          "latched": false,
+          "persistent_sessions": 0,
+          "escalated_to_v1": false
+        },
+        "SOXL": {
+          "latched": false,
+          "persistent_sessions": 0,
+          "escalated_to_v1": false
+        }
+      }
+    },
+    "V6": {
+      "by_fund": {
+        "TQQQ": {
+          "latched": false
+        },
+        "SOXL": {
+          "latched": false
+        }
+      }
+    },
+    "V7": {
+      "by_fund": {
+        "TQQQ": {
+          "latched": false
+        },
+        "SOXL": {
+          "latched": false
+        }
+      }
+    },
+    "O1": {
+      "latched": false,
+      "active": false,
+      "fresh_sessions_count": 0
+    },
+    "O2": {
+      "latched": false
+    },
+    "O3": {
+      "latched": false,
+      "latch_reason": null
+    },
+    "O4": {
+      "by_symbol": {
+        "TQQQ": {
+          "latched": false,
+          "order_unknown": false,
+          "latch_reason": null
+        },
+        "SOXL": {
+          "latched": false,
+          "order_unknown": false,
+          "latch_reason": null
+        }
+      }
+    },
+    "O5": {
+      "latched": false,
+      "latch_reason": null,
+      "rejections_this_session": 0
+    },
+    "O6": {
+      "latched": false,
+      "latch_reason": null
+    },
+    "O7": {
+      "latched": false,
+      "latch_reason": null
+    },
+    "O8": {
+      "latched": false,
+      "latch_reason": null
+    },
+    "O9": {
+      "latched": false,
+      "latch_reason": null,
+      "prior_tier": "balanced",
+      "prior_joint_cap": "0.60",
+      "prior_max_loss_cap": "0.50"
+    },
+    "J1": {
+      "latched": false
+    }
+  },
+  "baseline_authorized_events": [],
+  "scenarios": {
+    "normal": {
+      "inputs_override": {},
+      "prior_row_state_override": {},
+      "authorized_events": []
+    },
+    "deposit": {
+      "inputs_override": {
+        "flows": {
+          "deposit_amount": "10000"
+        }
+      },
+      "prior_row_state_override": {},
+      "authorized_events": []
+    },
+    "withdrawal": {
+      "inputs_override": {
+        "flows": {
+          "withdrawal_amount": "10000"
+        }
+      },
+      "prior_row_state_override": {},
+      "authorized_events": []
+    },
+    "split": {
+      "inputs_override": {
+        "funds": {
+          "TQQQ": {
+            "corporate_action": {
+              "type": "split",
+              "announced": true,
+              "detected_in_price": true,
+              "ledger_adjusted": false,
+              "reconciles_exactly": false
+            }
+          }
+        }
+      },
+      "prior_row_state_override": {},
+      "authorized_events": []
+    },
+    "reverse_split": {
+      "inputs_override": {
+        "funds": {
+          "SOXL": {
+            "corporate_action": {
+              "type": "reverse_split",
+              "announced": true,
+              "detected_in_price": true,
+              "ledger_adjusted": false,
+              "reconciles_exactly": false
+            }
+          }
+        }
+      },
+      "prior_row_state_override": {},
+      "authorized_events": []
+    },
+    "stale": {
+      "inputs_override": {
+        "data_inputs": {
+          "index_returns": {
+            "age_sessions": 2
+          }
+        }
+      },
+      "prior_row_state_override": {},
+      "authorized_events": []
+    },
+    "missing": {
+      "inputs_override": {
+        "data_inputs": {
+          "volatility": {
+            "present": false,
+            "age_sessions": null,
+            "valid": false
+          }
+        },
+        "funds": {
+          "TQQQ": {
+            "forecast_vol": null
+          },
+          "SOXL": {
+            "forecast_vol": null
+          }
+        }
+      },
+      "prior_row_state_override": {},
+      "authorized_events": []
+    },
+    "restart": {
+      "inputs_override": {},
+      "prior_row_state_override": {
+        "L2": {
+          "latched": true,
+          "latch_reason": "prior_drawdown_reached_2D_over_3"
+        },
+        "V4": {
+          "by_fund": {
+            "TQQQ": {
+              "active": true,
+              "below_threshold_sessions": 4
+            }
+          }
+        }
+      },
+      "authorized_events": []
+    },
+    "tier_change": {
+      "inputs_override": {
+        "tier": "conservative"
+      },
+      "prior_row_state_override": {},
+      "authorized_events": [
+        {
+          "event_type": "owner_card",
+          "action": "tier_change",
+          "card_id": "OC-SYNTH-TIER-001",
+          "field": "tier",
+          "from_value": "balanced",
+          "to_value": "conservative",
+          "signed_by": "owner",
+          "observation_class": "synthetic"
+        }
+      ]
+    },
+    "holiday": {
+      "inputs_override": {
+        "calendar": {
+          "session_state": "holiday",
+          "exchange_agrees": true
+        }
+      },
+      "prior_row_state_override": {},
+      "authorized_events": []
+    },
+    "half_day": {
+      "inputs_override": {
+        "calendar": {
+          "session_state": "half_day_past_cutoff",
+          "exchange_agrees": true
+        }
+      },
+      "prior_row_state_override": {},
+      "authorized_events": []
+    }
+  }
+}
