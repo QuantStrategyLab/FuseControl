@@ -4709,5 +4709,2047 @@
         }
       }
     }
+  },
+  "tier_repetitions": {
+    "bankroll": "50000",
+    "tiers": {
+      "conservative": {
+        "D_fraction": "0.15",
+        "D_amount": "7500",
+        "max_loss_cap": "0.09",
+        "joint_cap": "0.20"
+      },
+      "balanced": {
+        "D_fraction": "0.30",
+        "D_amount": "15000",
+        "max_loss_cap": "0.20",
+        "joint_cap": "0.40"
+      },
+      "aggressive": {
+        "D_fraction": "0.50",
+        "D_amount": "25000",
+        "max_loss_cap": "0.39",
+        "joint_cap": "0.80"
+      }
+    },
+    "rows_covered": [
+      "L0",
+      "L1",
+      "L2",
+      "L3",
+      "L4",
+      "J1"
+    ],
+    "cases_per_tier": 14,
+    "total_repetitions": 42,
+    "cells": [
+      {
+        "repetition_id": "conservative__L0__below_cap",
+        "tier": "conservative",
+        "row_id": "L0",
+        "case": "below_cap",
+        "inputs": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "D_fraction": "0.15",
+          "D_amount": "7500",
+          "max_loss_cap": "0.09",
+          "proposed_exposure": "0.06",
+          "joint_exposure": "0.06"
+        },
+        "inputs_override": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.09",
+            "proposed_exposure": "0.06"
+          },
+          "joint": {
+            "joint_exposure": "0.06",
+            "joint_cap": "0.20"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "conservative",
+            "prior_joint_cap": "0.20",
+            "prior_max_loss_cap": "0.09"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "standing limit: exposure cap 0.09, proposed 0.06, joint 0.06 within cap (tier=conservative, state contribution NONE)",
+        "cap_output": {
+          "exposure_cap": "0.09",
+          "proposed_exposure": "0.06",
+          "joint_exposure": "0.06",
+          "effective_capped_exposure": "0.06",
+          "cap_breached": false
+        }
+      },
+      {
+        "repetition_id": "conservative__L0__above_cap",
+        "tier": "conservative",
+        "row_id": "L0",
+        "case": "above_cap",
+        "inputs": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "D_fraction": "0.15",
+          "D_amount": "7500",
+          "max_loss_cap": "0.09",
+          "proposed_exposure": "0.12",
+          "joint_exposure": "0.12"
+        },
+        "inputs_override": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.09",
+            "proposed_exposure": "0.12"
+          },
+          "joint": {
+            "joint_exposure": "0.12",
+            "joint_cap": "0.20"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "conservative",
+            "prior_joint_cap": "0.20",
+            "prior_max_loss_cap": "0.09"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "cap_breached",
+        "reason": "standing limit: exposure cap 0.09, proposed 0.12, joint 0.12 exceeds cap -> capped to 0.09 (tier=conservative, state contribution NONE)",
+        "cap_output": {
+          "exposure_cap": "0.09",
+          "proposed_exposure": "0.12",
+          "joint_exposure": "0.12",
+          "effective_capped_exposure": "0.09",
+          "cap_breached": true
+        }
+      },
+      {
+        "repetition_id": "conservative__L1__0.2D_no_trip",
+        "tier": "conservative",
+        "row_id": "L1",
+        "case": "0.2D_no_trip",
+        "inputs": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "D_fraction": "0.15",
+          "D_amount": "7500",
+          "threshold_D_over_3": "2500",
+          "drawdown_amount": "1500"
+        },
+        "inputs_override": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "1500",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.09",
+            "proposed_exposure": "0.06"
+          },
+          "joint": {
+            "joint_exposure": "0.06",
+            "joint_cap": "0.20"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "conservative",
+            "prior_joint_cap": "0.20",
+            "prior_max_loss_cap": "0.09"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "drawdown 1500 < D/3 (2500, tier=conservative, D=0.15)",
+        "locked_against_loosening": false,
+        "notify": false
+      },
+      {
+        "repetition_id": "conservative__L1__0.5D_trip",
+        "tier": "conservative",
+        "row_id": "L1",
+        "case": "0.5D_trip",
+        "inputs": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "D_fraction": "0.15",
+          "D_amount": "7500",
+          "threshold_D_over_3": "2500",
+          "drawdown_amount": "3750"
+        },
+        "inputs_override": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "3750",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.09",
+            "proposed_exposure": "0.06"
+          },
+          "joint": {
+            "joint_exposure": "0.06",
+            "joint_cap": "0.20"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "conservative",
+            "prior_joint_cap": "0.20",
+            "prior_max_loss_cap": "0.09"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "drawdown_reached_D_over_3",
+        "reason": "drawdown 3750 >= D/3 (2500, tier=conservative, D=0.15); notify and lock tier, H, and high-water mark against loosening (state contribution NONE)",
+        "locked_against_loosening": true,
+        "notify": true
+      },
+      {
+        "repetition_id": "conservative__L2__0.5D_no_trip",
+        "tier": "conservative",
+        "row_id": "L2",
+        "case": "0.5D_no_trip",
+        "inputs": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "D_fraction": "0.15",
+          "D_amount": "7500",
+          "threshold_2D_over_3": "5000",
+          "drawdown_amount": "3750"
+        },
+        "inputs_override": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "3750",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.09",
+            "proposed_exposure": "0.06"
+          },
+          "joint": {
+            "joint_exposure": "0.06",
+            "joint_cap": "0.20"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "conservative",
+            "prior_joint_cap": "0.20",
+            "prior_max_loss_cap": "0.09"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "drawdown 3750 < 2D/3 (5000, tier=conservative, D=0.15)"
+      },
+      {
+        "repetition_id": "conservative__L2__exact_2D_over_3_trip",
+        "tier": "conservative",
+        "row_id": "L2",
+        "case": "exact_2D_over_3_trip",
+        "inputs": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "D_fraction": "0.15",
+          "D_amount": "7500",
+          "threshold_2D_over_3": "5000",
+          "drawdown_amount": "5000"
+        },
+        "inputs_override": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "5000",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.09",
+            "proposed_exposure": "0.06"
+          },
+          "joint": {
+            "joint_exposure": "0.06",
+            "joint_cap": "0.20"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "conservative",
+            "prior_joint_cap": "0.20",
+            "prior_max_loss_cap": "0.09"
+          }
+        },
+        "scope": "account",
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": true,
+        "reason_class": "drawdown_reached_2D_over_3",
+        "reason": "drawdown 5000 == 2D/3 (5000, inclusive 'reaches') (tier=conservative, D=0.15); L2 breaker trips to NO-NEW-RISK and latches pending owner re-arm"
+      },
+      {
+        "repetition_id": "conservative__L2__0.8D_trip",
+        "tier": "conservative",
+        "row_id": "L2",
+        "case": "0.8D_trip",
+        "inputs": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "D_fraction": "0.15",
+          "D_amount": "7500",
+          "threshold_2D_over_3": "5000",
+          "drawdown_amount": "6000"
+        },
+        "inputs_override": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "6000",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.09",
+            "proposed_exposure": "0.06"
+          },
+          "joint": {
+            "joint_exposure": "0.06",
+            "joint_cap": "0.20"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "conservative",
+            "prior_joint_cap": "0.20",
+            "prior_max_loss_cap": "0.09"
+          }
+        },
+        "scope": "account",
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": true,
+        "reason_class": "drawdown_reached_2D_over_3",
+        "reason": "drawdown 6000 >= 2D/3 (5000) (tier=conservative, D=0.15); L2 breaker trips to NO-NEW-RISK and latches pending owner re-arm"
+      },
+      {
+        "repetition_id": "conservative__L3__0.8D_no_trip",
+        "tier": "conservative",
+        "row_id": "L3",
+        "case": "0.8D_no_trip",
+        "inputs": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "D_fraction": "0.15",
+          "D_amount": "7500",
+          "threshold_D": "7500",
+          "drawdown_amount": "6000"
+        },
+        "inputs_override": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "6000",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.09",
+            "proposed_exposure": "0.06"
+          },
+          "joint": {
+            "joint_exposure": "0.06",
+            "joint_cap": "0.20"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "conservative",
+            "prior_joint_cap": "0.20",
+            "prior_max_loss_cap": "0.09"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "drawdown 6000 < D (7500, tier=conservative, D=0.15)",
+        "cooling_off_days_remaining": 0,
+        "locked_flat": false,
+        "loss_record_cleared": false
+      },
+      {
+        "repetition_id": "conservative__L3__1.05D_trip",
+        "tier": "conservative",
+        "row_id": "L3",
+        "case": "1.05D_trip",
+        "inputs": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "D_fraction": "0.15",
+          "D_amount": "7500",
+          "threshold_D": "7500",
+          "drawdown_amount": "7875"
+        },
+        "inputs_override": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "7875",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.09",
+            "proposed_exposure": "0.06"
+          },
+          "joint": {
+            "joint_exposure": "0.06",
+            "joint_cap": "0.20"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "conservative",
+            "prior_joint_cap": "0.20",
+            "prior_max_loss_cap": "0.09"
+          }
+        },
+        "scope": "account",
+        "state": "DE-RISK",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": true,
+        "reason_class": "drawdown_reached_D",
+        "reason": "drawdown 7875 >= D (7500, tier=conservative, D=0.15); L3 breaker trips to DE-RISK to zero, locked flat, 30-day cooling-off recorded, loss record not cleared",
+        "cooling_off_days_remaining": 30,
+        "locked_flat": true,
+        "loss_record_cleared": false
+      },
+      {
+        "repetition_id": "conservative__L4__0.05D_no_trip",
+        "tier": "conservative",
+        "row_id": "L4",
+        "case": "0.05D_no_trip",
+        "inputs": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "D_fraction": "0.15",
+          "D_amount": "7500",
+          "threshold_D_over_10": "750",
+          "session_loss_amount": "375"
+        },
+        "inputs_override": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "375"
+          },
+          "sizing": {
+            "max_loss_cap": "0.09",
+            "proposed_exposure": "0.06"
+          },
+          "joint": {
+            "joint_exposure": "0.06",
+            "joint_cap": "0.20"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "conservative",
+            "prior_joint_cap": "0.20",
+            "prior_max_loss_cap": "0.09"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "one-session loss 375 < D/10 (750, tier=conservative, D=0.15)"
+      },
+      {
+        "repetition_id": "conservative__L4__0.12D_trip",
+        "tier": "conservative",
+        "row_id": "L4",
+        "case": "0.12D_trip",
+        "inputs": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "D_fraction": "0.15",
+          "D_amount": "7500",
+          "threshold_D_over_10": "750",
+          "session_loss_amount": "900"
+        },
+        "inputs_override": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "900"
+          },
+          "sizing": {
+            "max_loss_cap": "0.09",
+            "proposed_exposure": "0.06"
+          },
+          "joint": {
+            "joint_exposure": "0.06",
+            "joint_cap": "0.20"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "conservative",
+            "prior_joint_cap": "0.20",
+            "prior_max_loss_cap": "0.09"
+          }
+        },
+        "scope": "account",
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": true,
+        "reason_class": "session_loss_reached_D_over_10",
+        "reason": "one-session loss 900 >= D/10 (750, tier=conservative, D=0.15); L4 breaker trips to NO-NEW-RISK and latches pending owner acknowledgment not before next session"
+      },
+      {
+        "repetition_id": "conservative__J1__0.9x_cap_ok",
+        "tier": "conservative",
+        "row_id": "J1",
+        "case": "0.9x_cap_ok",
+        "inputs": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "D_fraction": "0.15",
+          "D_amount": "7500",
+          "joint_cap": "0.20",
+          "joint_exposure": "0.18",
+          "trim_threshold_110pct": "0.22"
+        },
+        "inputs_override": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.09",
+            "proposed_exposure": "0.06"
+          },
+          "joint": {
+            "joint_exposure": "0.18",
+            "joint_cap": "0.20"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "conservative",
+            "prior_joint_cap": "0.20",
+            "prior_max_loss_cap": "0.09"
+          }
+        },
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "joint_exposure 0.18 <= joint_cap 0.20 (headroom=0.02, 110% trim threshold=0.22, tier=conservative, state contribution NONE)",
+        "headroom_output": {
+          "joint_exposure": "0.18",
+          "joint_cap": "0.20",
+          "headroom": "0.02",
+          "trim_threshold_110pct": "0.22",
+          "increases_blocked": false,
+          "trim_required_next_session": false
+        }
+      },
+      {
+        "repetition_id": "conservative__J1__1.05x_cap_blocked",
+        "tier": "conservative",
+        "row_id": "J1",
+        "case": "1.05x_cap_blocked",
+        "inputs": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "D_fraction": "0.15",
+          "D_amount": "7500",
+          "joint_cap": "0.20",
+          "joint_exposure": "0.21",
+          "trim_threshold_110pct": "0.22"
+        },
+        "inputs_override": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.09",
+            "proposed_exposure": "0.06"
+          },
+          "joint": {
+            "joint_exposure": "0.21",
+            "joint_cap": "0.20"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "conservative",
+            "prior_joint_cap": "0.20",
+            "prior_max_loss_cap": "0.09"
+          }
+        },
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "joint_cap_exceeded",
+        "reason": "joint_exposure 0.21 > joint_cap 0.20 (<= 110% trim threshold 0.22, tier=conservative); increases blocked (headroom=-0.01, state contribution NONE)",
+        "headroom_output": {
+          "joint_exposure": "0.21",
+          "joint_cap": "0.20",
+          "headroom": "-0.01",
+          "trim_threshold_110pct": "0.22",
+          "increases_blocked": true,
+          "trim_required_next_session": false
+        }
+      },
+      {
+        "repetition_id": "conservative__J1__1.15x_cap_trim",
+        "tier": "conservative",
+        "row_id": "J1",
+        "case": "1.15x_cap_trim",
+        "inputs": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "D_fraction": "0.15",
+          "D_amount": "7500",
+          "joint_cap": "0.20",
+          "joint_exposure": "0.23",
+          "trim_threshold_110pct": "0.22"
+        },
+        "inputs_override": {
+          "tier": "conservative",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.09",
+            "proposed_exposure": "0.06"
+          },
+          "joint": {
+            "joint_exposure": "0.23",
+            "joint_cap": "0.20"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "conservative",
+            "prior_joint_cap": "0.20",
+            "prior_max_loss_cap": "0.09"
+          }
+        },
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "joint_cap_trim_required",
+        "reason": "joint_exposure 0.23 > 110% of joint_cap 0.20 (0.22, tier=conservative); increases blocked and trim required at next session (headroom=-0.03, state contribution NONE)",
+        "headroom_output": {
+          "joint_exposure": "0.23",
+          "joint_cap": "0.20",
+          "headroom": "-0.03",
+          "trim_threshold_110pct": "0.22",
+          "increases_blocked": true,
+          "trim_required_next_session": true
+        }
+      },
+      {
+        "repetition_id": "balanced__L0__below_cap",
+        "tier": "balanced",
+        "row_id": "L0",
+        "case": "below_cap",
+        "inputs": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "D_fraction": "0.30",
+          "D_amount": "15000",
+          "max_loss_cap": "0.20",
+          "proposed_exposure": "0.15",
+          "joint_exposure": "0.15"
+        },
+        "inputs_override": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.20",
+            "proposed_exposure": "0.15"
+          },
+          "joint": {
+            "joint_exposure": "0.15",
+            "joint_cap": "0.40"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "balanced",
+            "prior_joint_cap": "0.40",
+            "prior_max_loss_cap": "0.20"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "standing limit: exposure cap 0.20, proposed 0.15, joint 0.15 within cap (tier=balanced, state contribution NONE)",
+        "cap_output": {
+          "exposure_cap": "0.20",
+          "proposed_exposure": "0.15",
+          "joint_exposure": "0.15",
+          "effective_capped_exposure": "0.15",
+          "cap_breached": false
+        }
+      },
+      {
+        "repetition_id": "balanced__L0__above_cap",
+        "tier": "balanced",
+        "row_id": "L0",
+        "case": "above_cap",
+        "inputs": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "D_fraction": "0.30",
+          "D_amount": "15000",
+          "max_loss_cap": "0.20",
+          "proposed_exposure": "0.25",
+          "joint_exposure": "0.25"
+        },
+        "inputs_override": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.20",
+            "proposed_exposure": "0.25"
+          },
+          "joint": {
+            "joint_exposure": "0.25",
+            "joint_cap": "0.40"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "balanced",
+            "prior_joint_cap": "0.40",
+            "prior_max_loss_cap": "0.20"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "cap_breached",
+        "reason": "standing limit: exposure cap 0.20, proposed 0.25, joint 0.25 exceeds cap -> capped to 0.20 (tier=balanced, state contribution NONE)",
+        "cap_output": {
+          "exposure_cap": "0.20",
+          "proposed_exposure": "0.25",
+          "joint_exposure": "0.25",
+          "effective_capped_exposure": "0.20",
+          "cap_breached": true
+        }
+      },
+      {
+        "repetition_id": "balanced__L1__0.2D_no_trip",
+        "tier": "balanced",
+        "row_id": "L1",
+        "case": "0.2D_no_trip",
+        "inputs": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "D_fraction": "0.30",
+          "D_amount": "15000",
+          "threshold_D_over_3": "5000",
+          "drawdown_amount": "3000"
+        },
+        "inputs_override": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "3000",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.20",
+            "proposed_exposure": "0.15"
+          },
+          "joint": {
+            "joint_exposure": "0.15",
+            "joint_cap": "0.40"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "balanced",
+            "prior_joint_cap": "0.40",
+            "prior_max_loss_cap": "0.20"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "drawdown 3000 < D/3 (5000, tier=balanced, D=0.30)",
+        "locked_against_loosening": false,
+        "notify": false
+      },
+      {
+        "repetition_id": "balanced__L1__0.5D_trip",
+        "tier": "balanced",
+        "row_id": "L1",
+        "case": "0.5D_trip",
+        "inputs": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "D_fraction": "0.30",
+          "D_amount": "15000",
+          "threshold_D_over_3": "5000",
+          "drawdown_amount": "7500"
+        },
+        "inputs_override": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "7500",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.20",
+            "proposed_exposure": "0.15"
+          },
+          "joint": {
+            "joint_exposure": "0.15",
+            "joint_cap": "0.40"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "balanced",
+            "prior_joint_cap": "0.40",
+            "prior_max_loss_cap": "0.20"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "drawdown_reached_D_over_3",
+        "reason": "drawdown 7500 >= D/3 (5000, tier=balanced, D=0.30); notify and lock tier, H, and high-water mark against loosening (state contribution NONE)",
+        "locked_against_loosening": true,
+        "notify": true
+      },
+      {
+        "repetition_id": "balanced__L2__0.5D_no_trip",
+        "tier": "balanced",
+        "row_id": "L2",
+        "case": "0.5D_no_trip",
+        "inputs": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "D_fraction": "0.30",
+          "D_amount": "15000",
+          "threshold_2D_over_3": "10000",
+          "drawdown_amount": "7500"
+        },
+        "inputs_override": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "7500",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.20",
+            "proposed_exposure": "0.15"
+          },
+          "joint": {
+            "joint_exposure": "0.15",
+            "joint_cap": "0.40"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "balanced",
+            "prior_joint_cap": "0.40",
+            "prior_max_loss_cap": "0.20"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "drawdown 7500 < 2D/3 (10000, tier=balanced, D=0.30)"
+      },
+      {
+        "repetition_id": "balanced__L2__exact_2D_over_3_trip",
+        "tier": "balanced",
+        "row_id": "L2",
+        "case": "exact_2D_over_3_trip",
+        "inputs": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "D_fraction": "0.30",
+          "D_amount": "15000",
+          "threshold_2D_over_3": "10000",
+          "drawdown_amount": "10000"
+        },
+        "inputs_override": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "10000",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.20",
+            "proposed_exposure": "0.15"
+          },
+          "joint": {
+            "joint_exposure": "0.15",
+            "joint_cap": "0.40"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "balanced",
+            "prior_joint_cap": "0.40",
+            "prior_max_loss_cap": "0.20"
+          }
+        },
+        "scope": "account",
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": true,
+        "reason_class": "drawdown_reached_2D_over_3",
+        "reason": "drawdown 10000 == 2D/3 (10000, inclusive 'reaches') (tier=balanced, D=0.30); L2 breaker trips to NO-NEW-RISK and latches pending owner re-arm"
+      },
+      {
+        "repetition_id": "balanced__L2__0.8D_trip",
+        "tier": "balanced",
+        "row_id": "L2",
+        "case": "0.8D_trip",
+        "inputs": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "D_fraction": "0.30",
+          "D_amount": "15000",
+          "threshold_2D_over_3": "10000",
+          "drawdown_amount": "12000"
+        },
+        "inputs_override": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "12000",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.20",
+            "proposed_exposure": "0.15"
+          },
+          "joint": {
+            "joint_exposure": "0.15",
+            "joint_cap": "0.40"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "balanced",
+            "prior_joint_cap": "0.40",
+            "prior_max_loss_cap": "0.20"
+          }
+        },
+        "scope": "account",
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": true,
+        "reason_class": "drawdown_reached_2D_over_3",
+        "reason": "drawdown 12000 >= 2D/3 (10000) (tier=balanced, D=0.30); L2 breaker trips to NO-NEW-RISK and latches pending owner re-arm"
+      },
+      {
+        "repetition_id": "balanced__L3__0.8D_no_trip",
+        "tier": "balanced",
+        "row_id": "L3",
+        "case": "0.8D_no_trip",
+        "inputs": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "D_fraction": "0.30",
+          "D_amount": "15000",
+          "threshold_D": "15000",
+          "drawdown_amount": "12000"
+        },
+        "inputs_override": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "12000",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.20",
+            "proposed_exposure": "0.15"
+          },
+          "joint": {
+            "joint_exposure": "0.15",
+            "joint_cap": "0.40"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "balanced",
+            "prior_joint_cap": "0.40",
+            "prior_max_loss_cap": "0.20"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "drawdown 12000 < D (15000, tier=balanced, D=0.30)",
+        "cooling_off_days_remaining": 0,
+        "locked_flat": false,
+        "loss_record_cleared": false
+      },
+      {
+        "repetition_id": "balanced__L3__1.05D_trip",
+        "tier": "balanced",
+        "row_id": "L3",
+        "case": "1.05D_trip",
+        "inputs": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "D_fraction": "0.30",
+          "D_amount": "15000",
+          "threshold_D": "15000",
+          "drawdown_amount": "15750"
+        },
+        "inputs_override": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "15750",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.20",
+            "proposed_exposure": "0.15"
+          },
+          "joint": {
+            "joint_exposure": "0.15",
+            "joint_cap": "0.40"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "balanced",
+            "prior_joint_cap": "0.40",
+            "prior_max_loss_cap": "0.20"
+          }
+        },
+        "scope": "account",
+        "state": "DE-RISK",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": true,
+        "reason_class": "drawdown_reached_D",
+        "reason": "drawdown 15750 >= D (15000, tier=balanced, D=0.30); L3 breaker trips to DE-RISK to zero, locked flat, 30-day cooling-off recorded, loss record not cleared",
+        "cooling_off_days_remaining": 30,
+        "locked_flat": true,
+        "loss_record_cleared": false
+      },
+      {
+        "repetition_id": "balanced__L4__0.05D_no_trip",
+        "tier": "balanced",
+        "row_id": "L4",
+        "case": "0.05D_no_trip",
+        "inputs": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "D_fraction": "0.30",
+          "D_amount": "15000",
+          "threshold_D_over_10": "1500",
+          "session_loss_amount": "750"
+        },
+        "inputs_override": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "750"
+          },
+          "sizing": {
+            "max_loss_cap": "0.20",
+            "proposed_exposure": "0.15"
+          },
+          "joint": {
+            "joint_exposure": "0.15",
+            "joint_cap": "0.40"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "balanced",
+            "prior_joint_cap": "0.40",
+            "prior_max_loss_cap": "0.20"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "one-session loss 750 < D/10 (1500, tier=balanced, D=0.30)"
+      },
+      {
+        "repetition_id": "balanced__L4__0.12D_trip",
+        "tier": "balanced",
+        "row_id": "L4",
+        "case": "0.12D_trip",
+        "inputs": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "D_fraction": "0.30",
+          "D_amount": "15000",
+          "threshold_D_over_10": "1500",
+          "session_loss_amount": "1800"
+        },
+        "inputs_override": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "1800"
+          },
+          "sizing": {
+            "max_loss_cap": "0.20",
+            "proposed_exposure": "0.15"
+          },
+          "joint": {
+            "joint_exposure": "0.15",
+            "joint_cap": "0.40"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "balanced",
+            "prior_joint_cap": "0.40",
+            "prior_max_loss_cap": "0.20"
+          }
+        },
+        "scope": "account",
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": true,
+        "reason_class": "session_loss_reached_D_over_10",
+        "reason": "one-session loss 1800 >= D/10 (1500, tier=balanced, D=0.30); L4 breaker trips to NO-NEW-RISK and latches pending owner acknowledgment not before next session"
+      },
+      {
+        "repetition_id": "balanced__J1__0.9x_cap_ok",
+        "tier": "balanced",
+        "row_id": "J1",
+        "case": "0.9x_cap_ok",
+        "inputs": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "D_fraction": "0.30",
+          "D_amount": "15000",
+          "joint_cap": "0.40",
+          "joint_exposure": "0.36",
+          "trim_threshold_110pct": "0.44"
+        },
+        "inputs_override": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.20",
+            "proposed_exposure": "0.15"
+          },
+          "joint": {
+            "joint_exposure": "0.36",
+            "joint_cap": "0.40"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "balanced",
+            "prior_joint_cap": "0.40",
+            "prior_max_loss_cap": "0.20"
+          }
+        },
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "joint_exposure 0.36 <= joint_cap 0.40 (headroom=0.04, 110% trim threshold=0.44, tier=balanced, state contribution NONE)",
+        "headroom_output": {
+          "joint_exposure": "0.36",
+          "joint_cap": "0.40",
+          "headroom": "0.04",
+          "trim_threshold_110pct": "0.44",
+          "increases_blocked": false,
+          "trim_required_next_session": false
+        }
+      },
+      {
+        "repetition_id": "balanced__J1__1.05x_cap_blocked",
+        "tier": "balanced",
+        "row_id": "J1",
+        "case": "1.05x_cap_blocked",
+        "inputs": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "D_fraction": "0.30",
+          "D_amount": "15000",
+          "joint_cap": "0.40",
+          "joint_exposure": "0.42",
+          "trim_threshold_110pct": "0.44"
+        },
+        "inputs_override": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.20",
+            "proposed_exposure": "0.15"
+          },
+          "joint": {
+            "joint_exposure": "0.42",
+            "joint_cap": "0.40"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "balanced",
+            "prior_joint_cap": "0.40",
+            "prior_max_loss_cap": "0.20"
+          }
+        },
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "joint_cap_exceeded",
+        "reason": "joint_exposure 0.42 > joint_cap 0.40 (<= 110% trim threshold 0.44, tier=balanced); increases blocked (headroom=-0.02, state contribution NONE)",
+        "headroom_output": {
+          "joint_exposure": "0.42",
+          "joint_cap": "0.40",
+          "headroom": "-0.02",
+          "trim_threshold_110pct": "0.44",
+          "increases_blocked": true,
+          "trim_required_next_session": false
+        }
+      },
+      {
+        "repetition_id": "balanced__J1__1.15x_cap_trim",
+        "tier": "balanced",
+        "row_id": "J1",
+        "case": "1.15x_cap_trim",
+        "inputs": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "D_fraction": "0.30",
+          "D_amount": "15000",
+          "joint_cap": "0.40",
+          "joint_exposure": "0.46",
+          "trim_threshold_110pct": "0.44"
+        },
+        "inputs_override": {
+          "tier": "balanced",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.20",
+            "proposed_exposure": "0.15"
+          },
+          "joint": {
+            "joint_exposure": "0.46",
+            "joint_cap": "0.40"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "balanced",
+            "prior_joint_cap": "0.40",
+            "prior_max_loss_cap": "0.20"
+          }
+        },
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "joint_cap_trim_required",
+        "reason": "joint_exposure 0.46 > 110% of joint_cap 0.40 (0.44, tier=balanced); increases blocked and trim required at next session (headroom=-0.06, state contribution NONE)",
+        "headroom_output": {
+          "joint_exposure": "0.46",
+          "joint_cap": "0.40",
+          "headroom": "-0.06",
+          "trim_threshold_110pct": "0.44",
+          "increases_blocked": true,
+          "trim_required_next_session": true
+        }
+      },
+      {
+        "repetition_id": "aggressive__L0__below_cap",
+        "tier": "aggressive",
+        "row_id": "L0",
+        "case": "below_cap",
+        "inputs": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "D_fraction": "0.50",
+          "D_amount": "25000",
+          "max_loss_cap": "0.39",
+          "proposed_exposure": "0.30",
+          "joint_exposure": "0.30"
+        },
+        "inputs_override": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.39",
+            "proposed_exposure": "0.30"
+          },
+          "joint": {
+            "joint_exposure": "0.30",
+            "joint_cap": "0.80"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "aggressive",
+            "prior_joint_cap": "0.80",
+            "prior_max_loss_cap": "0.39"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "standing limit: exposure cap 0.39, proposed 0.30, joint 0.30 within cap (tier=aggressive, state contribution NONE)",
+        "cap_output": {
+          "exposure_cap": "0.39",
+          "proposed_exposure": "0.30",
+          "joint_exposure": "0.30",
+          "effective_capped_exposure": "0.30",
+          "cap_breached": false
+        }
+      },
+      {
+        "repetition_id": "aggressive__L0__above_cap",
+        "tier": "aggressive",
+        "row_id": "L0",
+        "case": "above_cap",
+        "inputs": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "D_fraction": "0.50",
+          "D_amount": "25000",
+          "max_loss_cap": "0.39",
+          "proposed_exposure": "0.45",
+          "joint_exposure": "0.45"
+        },
+        "inputs_override": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.39",
+            "proposed_exposure": "0.45"
+          },
+          "joint": {
+            "joint_exposure": "0.45",
+            "joint_cap": "0.80"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "aggressive",
+            "prior_joint_cap": "0.80",
+            "prior_max_loss_cap": "0.39"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "cap_breached",
+        "reason": "standing limit: exposure cap 0.39, proposed 0.45, joint 0.45 exceeds cap -> capped to 0.39 (tier=aggressive, state contribution NONE)",
+        "cap_output": {
+          "exposure_cap": "0.39",
+          "proposed_exposure": "0.45",
+          "joint_exposure": "0.45",
+          "effective_capped_exposure": "0.39",
+          "cap_breached": true
+        }
+      },
+      {
+        "repetition_id": "aggressive__L1__0.2D_no_trip",
+        "tier": "aggressive",
+        "row_id": "L1",
+        "case": "0.2D_no_trip",
+        "inputs": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "D_fraction": "0.50",
+          "D_amount": "25000",
+          "threshold_D_over_3": "8333.333333333333333333333333",
+          "drawdown_amount": "5000"
+        },
+        "inputs_override": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "5000",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.39",
+            "proposed_exposure": "0.30"
+          },
+          "joint": {
+            "joint_exposure": "0.30",
+            "joint_cap": "0.80"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "aggressive",
+            "prior_joint_cap": "0.80",
+            "prior_max_loss_cap": "0.39"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "drawdown 5000 < D/3 (25000/3, tier=aggressive, D=0.50)",
+        "locked_against_loosening": false,
+        "notify": false
+      },
+      {
+        "repetition_id": "aggressive__L1__0.5D_trip",
+        "tier": "aggressive",
+        "row_id": "L1",
+        "case": "0.5D_trip",
+        "inputs": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "D_fraction": "0.50",
+          "D_amount": "25000",
+          "threshold_D_over_3": "8333.333333333333333333333333",
+          "drawdown_amount": "12500"
+        },
+        "inputs_override": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "12500",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.39",
+            "proposed_exposure": "0.30"
+          },
+          "joint": {
+            "joint_exposure": "0.30",
+            "joint_cap": "0.80"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "aggressive",
+            "prior_joint_cap": "0.80",
+            "prior_max_loss_cap": "0.39"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "drawdown_reached_D_over_3",
+        "reason": "drawdown 12500 >= D/3 (25000/3, tier=aggressive, D=0.50); notify and lock tier, H, and high-water mark against loosening (state contribution NONE)",
+        "locked_against_loosening": true,
+        "notify": true
+      },
+      {
+        "repetition_id": "aggressive__L2__0.5D_no_trip",
+        "tier": "aggressive",
+        "row_id": "L2",
+        "case": "0.5D_no_trip",
+        "inputs": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "D_fraction": "0.50",
+          "D_amount": "25000",
+          "threshold_2D_over_3": "16666.66666666666666666666667",
+          "drawdown_amount": "12500"
+        },
+        "inputs_override": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "12500",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.39",
+            "proposed_exposure": "0.30"
+          },
+          "joint": {
+            "joint_exposure": "0.30",
+            "joint_cap": "0.80"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "aggressive",
+            "prior_joint_cap": "0.80",
+            "prior_max_loss_cap": "0.39"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "drawdown 12500 < 2D/3 (50000/3, tier=aggressive, D=0.50)"
+      },
+      {
+        "repetition_id": "aggressive__L2__exact_2D_over_3_trip",
+        "tier": "aggressive",
+        "row_id": "L2",
+        "case": "exact_2D_over_3_trip",
+        "inputs": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "D_fraction": "0.50",
+          "D_amount": "25000",
+          "threshold_2D_over_3": "16666.66666666666666666666667",
+          "drawdown_amount": "16666.66666666666666666666667"
+        },
+        "inputs_override": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "16666.66666666666666666666667",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.39",
+            "proposed_exposure": "0.30"
+          },
+          "joint": {
+            "joint_exposure": "0.30",
+            "joint_cap": "0.80"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "aggressive",
+            "prior_joint_cap": "0.80",
+            "prior_max_loss_cap": "0.39"
+          }
+        },
+        "scope": "account",
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": true,
+        "reason_class": "drawdown_reached_2D_over_3",
+        "reason": "drawdown 16666.66666666666666666666667 == 2D/3 (50000/3, inclusive 'reaches') (tier=aggressive, D=0.50); L2 breaker trips to NO-NEW-RISK and latches pending owner re-arm"
+      },
+      {
+        "repetition_id": "aggressive__L2__0.8D_trip",
+        "tier": "aggressive",
+        "row_id": "L2",
+        "case": "0.8D_trip",
+        "inputs": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "D_fraction": "0.50",
+          "D_amount": "25000",
+          "threshold_2D_over_3": "16666.66666666666666666666667",
+          "drawdown_amount": "20000"
+        },
+        "inputs_override": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "20000",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.39",
+            "proposed_exposure": "0.30"
+          },
+          "joint": {
+            "joint_exposure": "0.30",
+            "joint_cap": "0.80"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "aggressive",
+            "prior_joint_cap": "0.80",
+            "prior_max_loss_cap": "0.39"
+          }
+        },
+        "scope": "account",
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": true,
+        "reason_class": "drawdown_reached_2D_over_3",
+        "reason": "drawdown 20000 >= 2D/3 (50000/3) (tier=aggressive, D=0.50); L2 breaker trips to NO-NEW-RISK and latches pending owner re-arm"
+      },
+      {
+        "repetition_id": "aggressive__L3__0.8D_no_trip",
+        "tier": "aggressive",
+        "row_id": "L3",
+        "case": "0.8D_no_trip",
+        "inputs": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "D_fraction": "0.50",
+          "D_amount": "25000",
+          "threshold_D": "25000",
+          "drawdown_amount": "20000"
+        },
+        "inputs_override": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "20000",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.39",
+            "proposed_exposure": "0.30"
+          },
+          "joint": {
+            "joint_exposure": "0.30",
+            "joint_cap": "0.80"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "aggressive",
+            "prior_joint_cap": "0.80",
+            "prior_max_loss_cap": "0.39"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "drawdown 20000 < D (25000, tier=aggressive, D=0.50)",
+        "cooling_off_days_remaining": 0,
+        "locked_flat": false,
+        "loss_record_cleared": false
+      },
+      {
+        "repetition_id": "aggressive__L3__1.05D_trip",
+        "tier": "aggressive",
+        "row_id": "L3",
+        "case": "1.05D_trip",
+        "inputs": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "D_fraction": "0.50",
+          "D_amount": "25000",
+          "threshold_D": "25000",
+          "drawdown_amount": "26250"
+        },
+        "inputs_override": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "26250",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.39",
+            "proposed_exposure": "0.30"
+          },
+          "joint": {
+            "joint_exposure": "0.30",
+            "joint_cap": "0.80"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "aggressive",
+            "prior_joint_cap": "0.80",
+            "prior_max_loss_cap": "0.39"
+          }
+        },
+        "scope": "account",
+        "state": "DE-RISK",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": true,
+        "reason_class": "drawdown_reached_D",
+        "reason": "drawdown 26250 >= D (25000, tier=aggressive, D=0.50); L3 breaker trips to DE-RISK to zero, locked flat, 30-day cooling-off recorded, loss record not cleared",
+        "cooling_off_days_remaining": 30,
+        "locked_flat": true,
+        "loss_record_cleared": false
+      },
+      {
+        "repetition_id": "aggressive__L4__0.05D_no_trip",
+        "tier": "aggressive",
+        "row_id": "L4",
+        "case": "0.05D_no_trip",
+        "inputs": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "D_fraction": "0.50",
+          "D_amount": "25000",
+          "threshold_D_over_10": "2500",
+          "session_loss_amount": "1250"
+        },
+        "inputs_override": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "1250"
+          },
+          "sizing": {
+            "max_loss_cap": "0.39",
+            "proposed_exposure": "0.30"
+          },
+          "joint": {
+            "joint_exposure": "0.30",
+            "joint_cap": "0.80"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "aggressive",
+            "prior_joint_cap": "0.80",
+            "prior_max_loss_cap": "0.39"
+          }
+        },
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "one-session loss 1250 < D/10 (2500, tier=aggressive, D=0.50)"
+      },
+      {
+        "repetition_id": "aggressive__L4__0.12D_trip",
+        "tier": "aggressive",
+        "row_id": "L4",
+        "case": "0.12D_trip",
+        "inputs": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "D_fraction": "0.50",
+          "D_amount": "25000",
+          "threshold_D_over_10": "2500",
+          "session_loss_amount": "3000"
+        },
+        "inputs_override": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "3000"
+          },
+          "sizing": {
+            "max_loss_cap": "0.39",
+            "proposed_exposure": "0.30"
+          },
+          "joint": {
+            "joint_exposure": "0.30",
+            "joint_cap": "0.80"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "aggressive",
+            "prior_joint_cap": "0.80",
+            "prior_max_loss_cap": "0.39"
+          }
+        },
+        "scope": "account",
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": true,
+        "reason_class": "session_loss_reached_D_over_10",
+        "reason": "one-session loss 3000 >= D/10 (2500, tier=aggressive, D=0.50); L4 breaker trips to NO-NEW-RISK and latches pending owner acknowledgment not before next session"
+      },
+      {
+        "repetition_id": "aggressive__J1__0.9x_cap_ok",
+        "tier": "aggressive",
+        "row_id": "J1",
+        "case": "0.9x_cap_ok",
+        "inputs": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "D_fraction": "0.50",
+          "D_amount": "25000",
+          "joint_cap": "0.80",
+          "joint_exposure": "0.72",
+          "trim_threshold_110pct": "0.88"
+        },
+        "inputs_override": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.39",
+            "proposed_exposure": "0.30"
+          },
+          "joint": {
+            "joint_exposure": "0.72",
+            "joint_cap": "0.80"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "aggressive",
+            "prior_joint_cap": "0.80",
+            "prior_max_loss_cap": "0.39"
+          }
+        },
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "reason": "joint_exposure 0.72 <= joint_cap 0.80 (headroom=0.08, 110% trim threshold=0.88, tier=aggressive, state contribution NONE)",
+        "headroom_output": {
+          "joint_exposure": "0.72",
+          "joint_cap": "0.80",
+          "headroom": "0.08",
+          "trim_threshold_110pct": "0.88",
+          "increases_blocked": false,
+          "trim_required_next_session": false
+        }
+      },
+      {
+        "repetition_id": "aggressive__J1__1.05x_cap_blocked",
+        "tier": "aggressive",
+        "row_id": "J1",
+        "case": "1.05x_cap_blocked",
+        "inputs": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "D_fraction": "0.50",
+          "D_amount": "25000",
+          "joint_cap": "0.80",
+          "joint_exposure": "0.84",
+          "trim_threshold_110pct": "0.88"
+        },
+        "inputs_override": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.39",
+            "proposed_exposure": "0.30"
+          },
+          "joint": {
+            "joint_exposure": "0.84",
+            "joint_cap": "0.80"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "aggressive",
+            "prior_joint_cap": "0.80",
+            "prior_max_loss_cap": "0.39"
+          }
+        },
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "joint_cap_exceeded",
+        "reason": "joint_exposure 0.84 > joint_cap 0.80 (<= 110% trim threshold 0.88, tier=aggressive); increases blocked (headroom=-0.04, state contribution NONE)",
+        "headroom_output": {
+          "joint_exposure": "0.84",
+          "joint_cap": "0.80",
+          "headroom": "-0.04",
+          "trim_threshold_110pct": "0.88",
+          "increases_blocked": true,
+          "trim_required_next_session": false
+        }
+      },
+      {
+        "repetition_id": "aggressive__J1__1.15x_cap_trim",
+        "tier": "aggressive",
+        "row_id": "J1",
+        "case": "1.15x_cap_trim",
+        "inputs": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "D_fraction": "0.50",
+          "D_amount": "25000",
+          "joint_cap": "0.80",
+          "joint_exposure": "0.92",
+          "trim_threshold_110pct": "0.88"
+        },
+        "inputs_override": {
+          "tier": "aggressive",
+          "bankroll": "50000",
+          "loss": {
+            "drawdown_amount": "0",
+            "session_loss_amount": "0"
+          },
+          "sizing": {
+            "max_loss_cap": "0.39",
+            "proposed_exposure": "0.30"
+          },
+          "joint": {
+            "joint_exposure": "0.92",
+            "joint_cap": "0.80"
+          }
+        },
+        "prior_row_state_override": {
+          "O9": {
+            "prior_tier": "aggressive",
+            "prior_joint_cap": "0.80",
+            "prior_max_loss_cap": "0.39"
+          }
+        },
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "joint_cap_trim_required",
+        "reason": "joint_exposure 0.92 > 110% of joint_cap 0.80 (0.88, tier=aggressive); increases blocked and trim required at next session (headroom=-0.12, state contribution NONE)",
+        "headroom_output": {
+          "joint_exposure": "0.92",
+          "joint_cap": "0.80",
+          "headroom": "-0.12",
+          "trim_threshold_110pct": "0.88",
+          "increases_blocked": true,
+          "trim_required_next_session": true
+        }
+      }
+    ]
   }
 }

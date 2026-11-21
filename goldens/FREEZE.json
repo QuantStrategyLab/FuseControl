@@ -1,0 +1,8 @@
+{
+  "spec_version": "fuse-eval-spec/v1",
+  "golden_table_sha256": "0d2316001922789368a5d93c1629912e7d67f3290e92f7e6852bf28faa2f28ee",
+  "scenario_fixtures_sha256": "21bfd04b8eb2395ae2b0de8c53cc26b79fd6b7acf7507ba3c893eb7144f523d6",
+  "base_cells": 264,
+  "tier_repetitions": 42,
+  "frozen_at_note": "frozen before first full engine matrix run"
+}
