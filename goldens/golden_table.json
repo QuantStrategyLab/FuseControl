@@ -47,7 +47,9 @@
           "kind": "interlock",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)",
+          "locked_against_loosening": false,
+          "notify": false
         },
         "L2": {
           "scope": "account",
@@ -65,7 +67,10 @@
           "kind": "breaker",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)",
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
         },
         "L4": {
           "scope": "account",
@@ -474,7 +479,9 @@
           "kind": "interlock",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30); flow-adjusted for deposit 10000"
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30); flow-adjusted for deposit 10000",
+          "locked_against_loosening": false,
+          "notify": false
         },
         "L2": {
           "scope": "account",
@@ -492,7 +499,10 @@
           "kind": "breaker",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30); flow-adjusted for deposit 10000"
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30); flow-adjusted for deposit 10000",
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
         },
         "L4": {
           "scope": "account",
@@ -901,7 +911,9 @@
           "kind": "interlock",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30); flow-adjusted for withdrawal 10000"
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30); flow-adjusted for withdrawal 10000",
+          "locked_against_loosening": false,
+          "notify": false
         },
         "L2": {
           "scope": "account",
@@ -919,7 +931,10 @@
           "kind": "breaker",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30); flow-adjusted for withdrawal 10000"
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30); flow-adjusted for withdrawal 10000",
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
         },
         "L4": {
           "scope": "account",
@@ -1328,7 +1343,9 @@
           "kind": "interlock",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)",
+          "locked_against_loosening": false,
+          "notify": false
         },
         "L2": {
           "scope": "account",
@@ -1346,7 +1363,10 @@
           "kind": "breaker",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)",
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
         },
         "L4": {
           "scope": "account",
@@ -1755,7 +1775,9 @@
           "kind": "interlock",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)",
+          "locked_against_loosening": false,
+          "notify": false
         },
         "L2": {
           "scope": "account",
@@ -1773,7 +1795,10 @@
           "kind": "breaker",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)",
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
         },
         "L4": {
           "scope": "account",
@@ -2182,7 +2207,9 @@
           "kind": "interlock",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)",
+          "locked_against_loosening": false,
+          "notify": false
         },
         "L2": {
           "scope": "account",
@@ -2200,7 +2227,10 @@
           "kind": "breaker",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)",
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
         },
         "L4": {
           "scope": "account",
@@ -2609,7 +2639,9 @@
           "kind": "interlock",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)",
+          "locked_against_loosening": false,
+          "notify": false
         },
         "L2": {
           "scope": "account",
@@ -2627,7 +2659,10 @@
           "kind": "breaker",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)",
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
         },
         "L4": {
           "scope": "account",
@@ -3038,7 +3073,9 @@
           "kind": "interlock",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)",
+          "locked_against_loosening": false,
+          "notify": false
         },
         "L2": {
           "scope": "account",
@@ -3056,7 +3093,10 @@
           "kind": "breaker",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)",
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
         },
         "L4": {
           "scope": "account",
@@ -3465,7 +3505,9 @@
           "kind": "interlock",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D/3 (2500, tier=conservative, D=0.15)"
+          "reason": "drawdown 0 < D/3 (2500, tier=conservative, D=0.15)",
+          "locked_against_loosening": false,
+          "notify": false
         },
         "L2": {
           "scope": "account",
@@ -3483,7 +3525,10 @@
           "kind": "breaker",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D (7500, tier=conservative, D=0.15)"
+          "reason": "drawdown 0 < D (7500, tier=conservative, D=0.15)",
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
         },
         "L4": {
           "scope": "account",
@@ -3892,7 +3937,9 @@
           "kind": "interlock",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)",
+          "locked_against_loosening": false,
+          "notify": false
         },
         "L2": {
           "scope": "account",
@@ -3910,7 +3957,10 @@
           "kind": "breaker",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)",
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
         },
         "L4": {
           "scope": "account",
@@ -4319,7 +4369,9 @@
           "kind": "interlock",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)",
+          "locked_against_loosening": false,
+          "notify": false
         },
         "L2": {
           "scope": "account",
@@ -4337,7 +4389,10 @@
           "kind": "breaker",
           "latched": false,
           "reason_class": "none",
-          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)",
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
         },
         "L4": {
           "scope": "account",

@@ -144,3 +144,19 @@
 | `J1` | `joint_exposure = 0.9 × joint_cap` (`0.18` / `0.36` / `0.72`) | `NORMAL`, `would_have_tripped: false`, `increases_blocked: false`, `trim_required_next_session: false`. |
 | `J1` | `joint_exposure = 1.05 × joint_cap` (`0.21` / `0.42` / `0.84`) | `NORMAL` (`state_contribution: NONE`), `would_have_tripped: true`, `increases_blocked: true`, `trim_required_next_session: false`. |
 | `J1` | `joint_exposure = 1.15 × joint_cap` (`0.23` / `0.46` / `0.92`) | `NORMAL` (`state_contribution: NONE`), `would_have_tripped: true`, `increases_blocked: true`, `trim_required_next_session: true`. |
+
+---
+
+## Correction 1 — L1 and L3 Base Matrix Row Outputs
+
+- **Governance rule:** `BRIEF-FUSE-1.md` §6.2 rule 4 (golden corrected only with a written spec citation; correction and re-freeze hash recorded; corrected table re-runs in full at the next matrix run).
+- **Spec citation:** `BRIEF-FUSE-1.md` §5.1 (L380–L382: rows carry their own outputs) with §4.3 (L267 `L1`: *"Notify; tier, `H` and high-water mark locked against loosening (§3.2, Q2)"*; L269 `L3`: *"`DE-RISK` to zero, then locked flat"*, *"owner card with a 30-day cooling-off (CLK-09); the loss record is not cleared"*) and §4.1 (L238–L244).
+- **Reason:** `L1`'s notification and loosening-lock status fields (`locked_against_loosening`, `notify`) and `L3`'s cooling-off, flat-lock, and loss-record status fields (`cooling_off_days_remaining`, `locked_flat`, `loss_record_cleared`) are these rows' own structured outputs and are emitted on every evaluation (benign and tripped alike), as the `tier_repetitions` goldens already carry (`L1` at `0.2D` and `L3` at `0.8D`). The 22 base-matrix cells for `L1` and `L3` omitted these fields in benign (`drawdown = 0`) cases.
+- **22 corrected cells:** All 11 base scenarios (`normal`, `deposit`, `withdrawal`, `split`, `reverse_split`, `stale`, `missing`, `restart`, `tier_change`, `holiday`, `half_day`) × `{L1, L3}`:
+  - **11 `L1` base cells** (`normal.L1`, `deposit.L1`, `withdrawal.L1`, `split.L1`, `reverse_split.L1`, `stale.L1`, `missing.L1`, `restart.L1`, `tier_change.L1`, `holiday.L1`, `half_day.L1`): added `"locked_against_loosening": false`, `"notify": false` (`drawdown = 0 < D/3` in all 11 base scenarios).
+  - **11 `L3` base cells** (`normal.L3`, `deposit.L3`, `withdrawal.L3`, `split.L3`, `reverse_split.L3`, `stale.L3`, `missing.L3`, `restart.L3`, `tier_change.L3`, `holiday.L3`, `half_day.L3`): added `"cooling_off_days_remaining": 0`, `"locked_flat": false`, `"loss_record_cleared": false` (`drawdown = 0 < D` and unlatched in all 11 base scenarios).
+  - No other base cell, no existing value, and nothing in `tier_repetitions` was modified.
+- **Re-freeze hashes:**
+  - `original_golden_table_sha256`: `0d2316001922789368a5d93c1629912e7d67f3290e92f7e6852bf28faa2f28ee`
+  - `correction_1.new_golden_table_sha256` (`golden_table_sha256`): `d65d3d903804c1e93c60d316a73e4298fa447ed98206721c4c1a5cf8f9a5107b`
+  - Recorded in `goldens/FREEZE.json` (`citation: "BRIEF 5.1 + 4.3"`, `cells_corrected: 22`); the full matrix will re-run against the corrected table at the next matrix run.
