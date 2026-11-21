@@ -1,0 +1,4713 @@
+{
+  "spec_version": "fuse-eval-spec/v1",
+  "derived_from": [
+    "spec/fuse_eval_spec.json",
+    "spec/disposition_register.json",
+    "goldens/scenario_fixtures.json"
+  ],
+  "observation_class": "synthetic",
+  "scenario_count": 11,
+  "rows_per_scenario": 24,
+  "total_cells": 264,
+  "scenarios": {
+    "normal": {
+      "enforcement_mode": "shadow_would_have_tripped",
+      "loss_breakers_armed": false,
+      "kelly_applied": false,
+      "orders_placed": 0,
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "cells": {
+        "L0": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "standing limit: exposure cap 0.50, proposed 0.35, joint 0.35 within cap (state contribution NONE)",
+          "cap_output": {
+            "exposure_cap": "0.50",
+            "proposed_exposure": "0.35",
+            "joint_exposure": "0.35",
+            "effective_capped_exposure": "0.35",
+            "cap_breached": false
+          }
+        },
+        "L1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+        },
+        "L2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < 2D/3 (10000, tier=balanced, D=0.30)"
+        },
+        "L3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+        },
+        "L4": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "one-session loss 0 < D/10 (1500, tier=balanced, D=0.30)"
+        },
+        "L5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "market mwcb_level=0 (not Level 1 or 2) and clean_session=True"
+        },
+        "L6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "mwcb_level=0 and index_session_fall=0 < 0.10 (10% CONFIRMED-AS-SPEC)"
+        },
+        "V1": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "tracking deviations within 0.75pp (1s) and 2.0pp (5s) limits for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            }
+          }
+        },
+        "V2": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker-with-auto-clear-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no split, reverse split, or distribution for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for SOXL"
+            }
+          }
+        },
+        "V3": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no fund_event for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for SOXL"
+            }
+          }
+        },
+        "V4": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "forecast_vol < 2x long_run_vol for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ forecast_vol 0.22 < 2x long_run_vol (0.48)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL forecast_vol 0.28 < 2x long_run_vol (0.64)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            }
+          }
+        },
+        "V5": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V5 decay tolerance is UNRESOLVED-FAIL-CLOSED in disposition_register; evaluation fails closed to diagnostic notify without numeric default or 0 (state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            }
+          },
+          "diagnostic_output": {
+            "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+            "by_fund": {
+              "TQQQ": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              },
+              "SOXL": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              }
+            }
+          }
+        },
+        "V6": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "measured carrying cost <= quarter shrunk excess for TQQQ and SOXL (diagnostic notify=false)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            }
+          },
+          "diagnostic_output": {
+            "by_fund": {
+              "TQQQ": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              },
+              "SOXL": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              }
+            }
+          }
+        },
+        "V7": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V7 spread width is UNRESOLVED-FAIL-CLOSED in disposition_register; order-level gate fails closed (order not sent, state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            }
+          }
+        },
+        "O1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "all required data_inputs present, valid, and age_sessions=0 <= 1"
+        },
+        "O2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "calendar.session_state=open and exchange_agrees=true"
+        },
+        "O3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "broker positions and cash within tolerance"
+        },
+        "O4": {
+          "scope": "symbol",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock-with-breaker-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "orders.pending is null; no symbol in ORDER-UNKNOWN",
+          "by_symbol": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for SOXL"
+            }
+          }
+        },
+        "O5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "breaker on third rejection (stateful count)",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "O5 price collar is UNRESOLVED-FAIL-CLOSED in disposition_register; attempted_order fails closed (single rejection: rejections_this_session 0 -> 1 < 3, state contribution NONE)",
+          "rejections_this_session": 1
+        },
+        "O6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "loaded_hash matches registered_hash"
+        },
+        "O7": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "runtime silence_seconds=0 <= scheduled_interval_seconds=300"
+        },
+        "O8": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "owner",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no owner kill-switch event in authorized_events"
+        },
+        "O9": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no tier, H, high-water mark, or limit changes"
+        },
+        "J1": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "joint_exposure 0.35 <= joint_cap 0.60 (headroom=0.25, 110% trim threshold=0.6600, state contribution NONE)",
+          "headroom_output": {
+            "joint_exposure": "0.35",
+            "joint_cap": "0.60",
+            "headroom": "0.25",
+            "trim_threshold_110pct": "0.66",
+            "increases_blocked": false,
+            "trim_required_next_session": false
+          }
+        }
+      }
+    },
+    "deposit": {
+      "enforcement_mode": "shadow_would_have_tripped",
+      "loss_breakers_armed": false,
+      "kelly_applied": false,
+      "orders_placed": 0,
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "cells": {
+        "L0": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "standing limit: exposure cap 0.50, proposed 0.35, joint 0.35 within cap (state contribution NONE); flow-adjusted for deposit 10000",
+          "cap_output": {
+            "exposure_cap": "0.50",
+            "proposed_exposure": "0.35",
+            "joint_exposure": "0.35",
+            "effective_capped_exposure": "0.35",
+            "cap_breached": false
+          }
+        },
+        "L1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30); flow-adjusted for deposit 10000"
+        },
+        "L2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < 2D/3 (10000, tier=balanced, D=0.30); flow-adjusted for deposit 10000"
+        },
+        "L3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30); flow-adjusted for deposit 10000"
+        },
+        "L4": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "one-session loss 0 < D/10 (1500, tier=balanced, D=0.30); flow-adjusted for deposit 10000"
+        },
+        "L5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "market mwcb_level=0 (not Level 1 or 2) and clean_session=True"
+        },
+        "L6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "mwcb_level=0 and index_session_fall=0 < 0.10 (10% CONFIRMED-AS-SPEC)"
+        },
+        "V1": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "tracking deviations within 0.75pp (1s) and 2.0pp (5s) limits for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            }
+          }
+        },
+        "V2": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker-with-auto-clear-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no split, reverse split, or distribution for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for SOXL"
+            }
+          }
+        },
+        "V3": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no fund_event for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for SOXL"
+            }
+          }
+        },
+        "V4": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "forecast_vol < 2x long_run_vol for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ forecast_vol 0.22 < 2x long_run_vol (0.48)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL forecast_vol 0.28 < 2x long_run_vol (0.64)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            }
+          }
+        },
+        "V5": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V5 decay tolerance is UNRESOLVED-FAIL-CLOSED in disposition_register; evaluation fails closed to diagnostic notify without numeric default or 0 (state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            }
+          },
+          "diagnostic_output": {
+            "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+            "by_fund": {
+              "TQQQ": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              },
+              "SOXL": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              }
+            }
+          }
+        },
+        "V6": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "measured carrying cost <= quarter shrunk excess for TQQQ and SOXL (diagnostic notify=false)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            }
+          },
+          "diagnostic_output": {
+            "by_fund": {
+              "TQQQ": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              },
+              "SOXL": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              }
+            }
+          }
+        },
+        "V7": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V7 spread width is UNRESOLVED-FAIL-CLOSED in disposition_register; order-level gate fails closed (order not sent, state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            }
+          }
+        },
+        "O1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "all required data_inputs present, valid, and age_sessions=0 <= 1"
+        },
+        "O2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "calendar.session_state=open and exchange_agrees=true"
+        },
+        "O3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "broker positions and cash within tolerance"
+        },
+        "O4": {
+          "scope": "symbol",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock-with-breaker-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "orders.pending is null; no symbol in ORDER-UNKNOWN",
+          "by_symbol": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for SOXL"
+            }
+          }
+        },
+        "O5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "breaker on third rejection (stateful count)",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "O5 price collar is UNRESOLVED-FAIL-CLOSED in disposition_register; attempted_order fails closed (single rejection: rejections_this_session 0 -> 1 < 3, state contribution NONE)",
+          "rejections_this_session": 1
+        },
+        "O6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "loaded_hash matches registered_hash"
+        },
+        "O7": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "runtime silence_seconds=0 <= scheduled_interval_seconds=300"
+        },
+        "O8": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "owner",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no owner kill-switch event in authorized_events"
+        },
+        "O9": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no tier, H, high-water mark, or limit changes"
+        },
+        "J1": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "joint_exposure 0.35 <= joint_cap 0.60 (headroom=0.25, 110% trim threshold=0.6600, state contribution NONE)",
+          "headroom_output": {
+            "joint_exposure": "0.35",
+            "joint_cap": "0.60",
+            "headroom": "0.25",
+            "trim_threshold_110pct": "0.66",
+            "increases_blocked": false,
+            "trim_required_next_session": false
+          }
+        }
+      }
+    },
+    "withdrawal": {
+      "enforcement_mode": "shadow_would_have_tripped",
+      "loss_breakers_armed": false,
+      "kelly_applied": false,
+      "orders_placed": 0,
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "cells": {
+        "L0": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "standing limit: exposure cap 0.50, proposed 0.35, joint 0.35 within cap (state contribution NONE); flow-adjusted for withdrawal 10000",
+          "cap_output": {
+            "exposure_cap": "0.50",
+            "proposed_exposure": "0.35",
+            "joint_exposure": "0.35",
+            "effective_capped_exposure": "0.35",
+            "cap_breached": false
+          }
+        },
+        "L1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30); flow-adjusted for withdrawal 10000"
+        },
+        "L2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < 2D/3 (10000, tier=balanced, D=0.30); flow-adjusted for withdrawal 10000"
+        },
+        "L3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30); flow-adjusted for withdrawal 10000"
+        },
+        "L4": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "one-session loss 0 < D/10 (1500, tier=balanced, D=0.30); flow-adjusted for withdrawal 10000"
+        },
+        "L5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "market mwcb_level=0 (not Level 1 or 2) and clean_session=True"
+        },
+        "L6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "mwcb_level=0 and index_session_fall=0 < 0.10 (10% CONFIRMED-AS-SPEC)"
+        },
+        "V1": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "tracking deviations within 0.75pp (1s) and 2.0pp (5s) limits for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            }
+          }
+        },
+        "V2": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker-with-auto-clear-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no split, reverse split, or distribution for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for SOXL"
+            }
+          }
+        },
+        "V3": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no fund_event for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for SOXL"
+            }
+          }
+        },
+        "V4": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "forecast_vol < 2x long_run_vol for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ forecast_vol 0.22 < 2x long_run_vol (0.48)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL forecast_vol 0.28 < 2x long_run_vol (0.64)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            }
+          }
+        },
+        "V5": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V5 decay tolerance is UNRESOLVED-FAIL-CLOSED in disposition_register; evaluation fails closed to diagnostic notify without numeric default or 0 (state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            }
+          },
+          "diagnostic_output": {
+            "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+            "by_fund": {
+              "TQQQ": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              },
+              "SOXL": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              }
+            }
+          }
+        },
+        "V6": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "measured carrying cost <= quarter shrunk excess for TQQQ and SOXL (diagnostic notify=false)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            }
+          },
+          "diagnostic_output": {
+            "by_fund": {
+              "TQQQ": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              },
+              "SOXL": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              }
+            }
+          }
+        },
+        "V7": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V7 spread width is UNRESOLVED-FAIL-CLOSED in disposition_register; order-level gate fails closed (order not sent, state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            }
+          }
+        },
+        "O1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "all required data_inputs present, valid, and age_sessions=0 <= 1"
+        },
+        "O2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "calendar.session_state=open and exchange_agrees=true"
+        },
+        "O3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "broker positions and cash within tolerance"
+        },
+        "O4": {
+          "scope": "symbol",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock-with-breaker-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "orders.pending is null; no symbol in ORDER-UNKNOWN",
+          "by_symbol": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for SOXL"
+            }
+          }
+        },
+        "O5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "breaker on third rejection (stateful count)",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "O5 price collar is UNRESOLVED-FAIL-CLOSED in disposition_register; attempted_order fails closed (single rejection: rejections_this_session 0 -> 1 < 3, state contribution NONE)",
+          "rejections_this_session": 1
+        },
+        "O6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "loaded_hash matches registered_hash"
+        },
+        "O7": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "runtime silence_seconds=0 <= scheduled_interval_seconds=300"
+        },
+        "O8": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "owner",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no owner kill-switch event in authorized_events"
+        },
+        "O9": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no tier, H, high-water mark, or limit changes"
+        },
+        "J1": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "joint_exposure 0.35 <= joint_cap 0.60 (headroom=0.25, 110% trim threshold=0.6600, state contribution NONE)",
+          "headroom_output": {
+            "joint_exposure": "0.35",
+            "joint_cap": "0.60",
+            "headroom": "0.25",
+            "trim_threshold_110pct": "0.66",
+            "increases_blocked": false,
+            "trim_required_next_session": false
+          }
+        }
+      }
+    },
+    "split": {
+      "enforcement_mode": "shadow_would_have_tripped",
+      "loss_breakers_armed": false,
+      "kelly_applied": false,
+      "orders_placed": 0,
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "HALT",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "cells": {
+        "L0": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "standing limit: exposure cap 0.50, proposed 0.35, joint 0.35 within cap (state contribution NONE)",
+          "cap_output": {
+            "exposure_cap": "0.50",
+            "proposed_exposure": "0.35",
+            "joint_exposure": "0.35",
+            "effective_capped_exposure": "0.35",
+            "cap_breached": false
+          }
+        },
+        "L1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+        },
+        "L2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < 2D/3 (10000, tier=balanced, D=0.30)"
+        },
+        "L3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+        },
+        "L4": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "one-session loss 0 < D/10 (1500, tier=balanced, D=0.30)"
+        },
+        "L5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "market mwcb_level=0 (not Level 1 or 2) and clean_session=True"
+        },
+        "L6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "mwcb_level=0 and index_session_fall=0 < 0.10 (10% CONFIRMED-AS-SPEC)"
+        },
+        "V1": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "tracking deviations within 0.75pp (1s) and 2.0pp (5s) limits for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            }
+          }
+        },
+        "V2": {
+          "scope": "fund",
+          "state": "HALT",
+          "would_have_tripped": true,
+          "kind": "breaker-with-auto-clear-branch",
+          "latched": false,
+          "reason_class": "corporate_action_pending",
+          "reason": "corporate action pending adjustment for TQQQ (HALT in fund:TQQQ, not latched)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "HALT",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "corporate_action_pending",
+              "reason": "TQQQ split announced=True detected_in_price=True with ledger_adjusted=False, reconciles_exactly=False; HALT in fund:TQQQ pending adjustment (not latched)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for SOXL"
+            }
+          }
+        },
+        "V3": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no fund_event for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for SOXL"
+            }
+          }
+        },
+        "V4": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "forecast_vol < 2x long_run_vol for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ forecast_vol 0.22 < 2x long_run_vol (0.48)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL forecast_vol 0.28 < 2x long_run_vol (0.64)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            }
+          }
+        },
+        "V5": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V5 decay tolerance is UNRESOLVED-FAIL-CLOSED in disposition_register; evaluation fails closed to diagnostic notify without numeric default or 0 (state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            }
+          },
+          "diagnostic_output": {
+            "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+            "by_fund": {
+              "TQQQ": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              },
+              "SOXL": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              }
+            }
+          }
+        },
+        "V6": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "measured carrying cost <= quarter shrunk excess for TQQQ and SOXL (diagnostic notify=false)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            }
+          },
+          "diagnostic_output": {
+            "by_fund": {
+              "TQQQ": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              },
+              "SOXL": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              }
+            }
+          }
+        },
+        "V7": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V7 spread width is UNRESOLVED-FAIL-CLOSED in disposition_register; order-level gate fails closed (order not sent, state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            }
+          }
+        },
+        "O1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "all required data_inputs present, valid, and age_sessions=0 <= 1"
+        },
+        "O2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "calendar.session_state=open and exchange_agrees=true"
+        },
+        "O3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "broker positions and cash within tolerance"
+        },
+        "O4": {
+          "scope": "symbol",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock-with-breaker-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "orders.pending is null; no symbol in ORDER-UNKNOWN",
+          "by_symbol": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for SOXL"
+            }
+          }
+        },
+        "O5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "breaker on third rejection (stateful count)",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "O5 price collar is UNRESOLVED-FAIL-CLOSED in disposition_register; attempted_order fails closed (single rejection: rejections_this_session 0 -> 1 < 3, state contribution NONE)",
+          "rejections_this_session": 1
+        },
+        "O6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "loaded_hash matches registered_hash"
+        },
+        "O7": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "runtime silence_seconds=0 <= scheduled_interval_seconds=300"
+        },
+        "O8": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "owner",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no owner kill-switch event in authorized_events"
+        },
+        "O9": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no tier, H, high-water mark, or limit changes"
+        },
+        "J1": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "joint_exposure 0.35 <= joint_cap 0.60 (headroom=0.25, 110% trim threshold=0.6600, state contribution NONE)",
+          "headroom_output": {
+            "joint_exposure": "0.35",
+            "joint_cap": "0.60",
+            "headroom": "0.25",
+            "trim_threshold_110pct": "0.66",
+            "increases_blocked": false,
+            "trim_required_next_session": false
+          }
+        }
+      }
+    },
+    "reverse_split": {
+      "enforcement_mode": "shadow_would_have_tripped",
+      "loss_breakers_armed": false,
+      "kelly_applied": false,
+      "orders_placed": 0,
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "HALT",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "cells": {
+        "L0": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "standing limit: exposure cap 0.50, proposed 0.35, joint 0.35 within cap (state contribution NONE)",
+          "cap_output": {
+            "exposure_cap": "0.50",
+            "proposed_exposure": "0.35",
+            "joint_exposure": "0.35",
+            "effective_capped_exposure": "0.35",
+            "cap_breached": false
+          }
+        },
+        "L1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+        },
+        "L2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < 2D/3 (10000, tier=balanced, D=0.30)"
+        },
+        "L3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+        },
+        "L4": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "one-session loss 0 < D/10 (1500, tier=balanced, D=0.30)"
+        },
+        "L5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "market mwcb_level=0 (not Level 1 or 2) and clean_session=True"
+        },
+        "L6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "mwcb_level=0 and index_session_fall=0 < 0.10 (10% CONFIRMED-AS-SPEC)"
+        },
+        "V1": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "tracking deviations within 0.75pp (1s) and 2.0pp (5s) limits for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            }
+          }
+        },
+        "V2": {
+          "scope": "fund",
+          "state": "HALT",
+          "would_have_tripped": true,
+          "kind": "breaker-with-auto-clear-branch",
+          "latched": false,
+          "reason_class": "corporate_action_pending",
+          "reason": "corporate action pending adjustment for SOXL (HALT in fund:SOXL, not latched)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for TQQQ"
+            },
+            "SOXL": {
+              "state": "HALT",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "corporate_action_pending",
+              "reason": "SOXL reverse_split announced=True detected_in_price=True with ledger_adjusted=False, reconciles_exactly=False; HALT in fund:SOXL pending adjustment (not latched)"
+            }
+          }
+        },
+        "V3": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no fund_event for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for SOXL"
+            }
+          }
+        },
+        "V4": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "forecast_vol < 2x long_run_vol for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ forecast_vol 0.22 < 2x long_run_vol (0.48)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL forecast_vol 0.28 < 2x long_run_vol (0.64)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            }
+          }
+        },
+        "V5": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V5 decay tolerance is UNRESOLVED-FAIL-CLOSED in disposition_register; evaluation fails closed to diagnostic notify without numeric default or 0 (state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            }
+          },
+          "diagnostic_output": {
+            "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+            "by_fund": {
+              "TQQQ": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              },
+              "SOXL": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              }
+            }
+          }
+        },
+        "V6": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "measured carrying cost <= quarter shrunk excess for TQQQ and SOXL (diagnostic notify=false)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            }
+          },
+          "diagnostic_output": {
+            "by_fund": {
+              "TQQQ": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              },
+              "SOXL": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              }
+            }
+          }
+        },
+        "V7": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V7 spread width is UNRESOLVED-FAIL-CLOSED in disposition_register; order-level gate fails closed (order not sent, state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            }
+          }
+        },
+        "O1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "all required data_inputs present, valid, and age_sessions=0 <= 1"
+        },
+        "O2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "calendar.session_state=open and exchange_agrees=true"
+        },
+        "O3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "broker positions and cash within tolerance"
+        },
+        "O4": {
+          "scope": "symbol",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock-with-breaker-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "orders.pending is null; no symbol in ORDER-UNKNOWN",
+          "by_symbol": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for SOXL"
+            }
+          }
+        },
+        "O5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "breaker on third rejection (stateful count)",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "O5 price collar is UNRESOLVED-FAIL-CLOSED in disposition_register; attempted_order fails closed (single rejection: rejections_this_session 0 -> 1 < 3, state contribution NONE)",
+          "rejections_this_session": 1
+        },
+        "O6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "loaded_hash matches registered_hash"
+        },
+        "O7": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "runtime silence_seconds=0 <= scheduled_interval_seconds=300"
+        },
+        "O8": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "owner",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no owner kill-switch event in authorized_events"
+        },
+        "O9": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no tier, H, high-water mark, or limit changes"
+        },
+        "J1": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "joint_exposure 0.35 <= joint_cap 0.60 (headroom=0.25, 110% trim threshold=0.6600, state contribution NONE)",
+          "headroom_output": {
+            "joint_exposure": "0.35",
+            "joint_cap": "0.60",
+            "headroom": "0.25",
+            "trim_threshold_110pct": "0.66",
+            "increases_blocked": false,
+            "trim_required_next_session": false
+          }
+        }
+      }
+    },
+    "stale": {
+      "enforcement_mode": "shadow_would_have_tripped",
+      "loss_breakers_armed": false,
+      "kelly_applied": false,
+      "orders_placed": 0,
+      "effective_state_by_scope": {
+        "account": "NO-NEW-RISK",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "cells": {
+        "L0": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "standing limit: exposure cap 0.50, proposed 0.35, joint 0.35 within cap (state contribution NONE)",
+          "cap_output": {
+            "exposure_cap": "0.50",
+            "proposed_exposure": "0.35",
+            "joint_exposure": "0.35",
+            "effective_capped_exposure": "0.35",
+            "cap_breached": false
+          }
+        },
+        "L1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+        },
+        "L2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < 2D/3 (10000, tier=balanced, D=0.30)"
+        },
+        "L3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+        },
+        "L4": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "one-session loss 0 < D/10 (1500, tier=balanced, D=0.30)"
+        },
+        "L5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "market mwcb_level=0 (not Level 1 or 2) and clean_session=True"
+        },
+        "L6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "mwcb_level=0 and index_session_fall=0 < 0.10 (10% CONFIRMED-AS-SPEC)"
+        },
+        "V1": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "tracking deviations within 0.75pp (1s) and 2.0pp (5s) limits for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            }
+          }
+        },
+        "V2": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker-with-auto-clear-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no split, reverse split, or distribution for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for SOXL"
+            }
+          }
+        },
+        "V3": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no fund_event for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for SOXL"
+            }
+          }
+        },
+        "V4": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "forecast_vol < 2x long_run_vol for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ forecast_vol 0.22 < 2x long_run_vol (0.48)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL forecast_vol 0.28 < 2x long_run_vol (0.64)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            }
+          }
+        },
+        "V5": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V5 decay tolerance is UNRESOLVED-FAIL-CLOSED in disposition_register; evaluation fails closed to diagnostic notify without numeric default or 0 (state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            }
+          },
+          "diagnostic_output": {
+            "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+            "by_fund": {
+              "TQQQ": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              },
+              "SOXL": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              }
+            }
+          }
+        },
+        "V6": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "measured carrying cost <= quarter shrunk excess for TQQQ and SOXL (diagnostic notify=false)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            }
+          },
+          "diagnostic_output": {
+            "by_fund": {
+              "TQQQ": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              },
+              "SOXL": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              }
+            }
+          }
+        },
+        "V7": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V7 spread width is UNRESOLVED-FAIL-CLOSED in disposition_register; order-level gate fails closed (order not sent, state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            }
+          }
+        },
+        "O1": {
+          "scope": "account",
+          "state": "NO-NEW-RISK",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "stale_input",
+          "reason": "stale required input: index_returns.age_sessions=2 (> 1); O1 interlock trips to NO-NEW-RISK until one session of fresh data"
+        },
+        "O2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "calendar.session_state=open and exchange_agrees=true"
+        },
+        "O3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "broker positions and cash within tolerance"
+        },
+        "O4": {
+          "scope": "symbol",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock-with-breaker-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "orders.pending is null; no symbol in ORDER-UNKNOWN",
+          "by_symbol": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for SOXL"
+            }
+          }
+        },
+        "O5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "breaker on third rejection (stateful count)",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "O5 price collar is UNRESOLVED-FAIL-CLOSED in disposition_register; attempted_order fails closed (single rejection: rejections_this_session 0 -> 1 < 3, state contribution NONE)",
+          "rejections_this_session": 1
+        },
+        "O6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "loaded_hash matches registered_hash"
+        },
+        "O7": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "runtime silence_seconds=0 <= scheduled_interval_seconds=300"
+        },
+        "O8": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "owner",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no owner kill-switch event in authorized_events"
+        },
+        "O9": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no tier, H, high-water mark, or limit changes"
+        },
+        "J1": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "joint_exposure 0.35 <= joint_cap 0.60 (headroom=0.25, 110% trim threshold=0.6600, state contribution NONE)",
+          "headroom_output": {
+            "joint_exposure": "0.35",
+            "joint_cap": "0.60",
+            "headroom": "0.25",
+            "trim_threshold_110pct": "0.66",
+            "increases_blocked": false,
+            "trim_required_next_session": false
+          }
+        }
+      }
+    },
+    "missing": {
+      "enforcement_mode": "shadow_would_have_tripped",
+      "loss_breakers_armed": false,
+      "kelly_applied": false,
+      "orders_placed": 0,
+      "effective_state_by_scope": {
+        "account": "NO-NEW-RISK",
+        "fund:TQQQ": "NO-NEW-RISK",
+        "fund:SOXL": "NO-NEW-RISK",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "cells": {
+        "L0": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "standing limit: exposure cap 0.50, proposed 0.35, joint 0.35 within cap (state contribution NONE)",
+          "cap_output": {
+            "exposure_cap": "0.50",
+            "proposed_exposure": "0.35",
+            "joint_exposure": "0.35",
+            "effective_capped_exposure": "0.35",
+            "cap_breached": false
+          }
+        },
+        "L1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+        },
+        "L2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < 2D/3 (10000, tier=balanced, D=0.30)"
+        },
+        "L3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+        },
+        "L4": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "one-session loss 0 < D/10 (1500, tier=balanced, D=0.30)"
+        },
+        "L5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "market mwcb_level=0 (not Level 1 or 2) and clean_session=True"
+        },
+        "L6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "mwcb_level=0 and index_session_fall=0 < 0.10 (10% CONFIRMED-AS-SPEC)"
+        },
+        "V1": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "tracking deviations within 0.75pp (1s) and 2.0pp (5s) limits for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            }
+          }
+        },
+        "V2": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker-with-auto-clear-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no split, reverse split, or distribution for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for SOXL"
+            }
+          }
+        },
+        "V3": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no fund_event for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for SOXL"
+            }
+          }
+        },
+        "V4": {
+          "scope": "fund",
+          "state": "NO-NEW-RISK",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "missing_input",
+          "reason": "missing_input: fund.forecast_vol is null for TQQQ and SOXL (volatility missing/invalid; stress substitution max(0.22, 0.70)=0.70 >= 2x long_run_vol for both funds)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NO-NEW-RISK",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "missing_input",
+              "reason": "missing_input: TQQQ forecast_vol is null and data_inputs.volatility missing/invalid; fail-closed trip with stress substitution max(0.22, 0.70) = 0.70 >= 2x long_run_vol (0.48)",
+              "active": true,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10,
+              "substituted_vol": "0.70"
+            },
+            "SOXL": {
+              "state": "NO-NEW-RISK",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "missing_input",
+              "reason": "missing_input: SOXL forecast_vol is null and data_inputs.volatility missing/invalid; fail-closed trip with stress substitution max(0.22, 0.70) = 0.70 >= 2x long_run_vol (0.64)",
+              "active": true,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10,
+              "substituted_vol": "0.70"
+            }
+          }
+        },
+        "V5": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V5 decay tolerance is UNRESOLVED-FAIL-CLOSED in disposition_register; evaluation fails closed to diagnostic notify without numeric default or 0 (state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            }
+          },
+          "diagnostic_output": {
+            "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+            "by_fund": {
+              "TQQQ": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              },
+              "SOXL": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              }
+            }
+          }
+        },
+        "V6": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "measured carrying cost <= quarter shrunk excess for TQQQ and SOXL (diagnostic notify=false)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            }
+          },
+          "diagnostic_output": {
+            "by_fund": {
+              "TQQQ": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              },
+              "SOXL": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              }
+            }
+          }
+        },
+        "V7": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V7 spread width is UNRESOLVED-FAIL-CLOSED in disposition_register; order-level gate fails closed (order not sent, state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            }
+          }
+        },
+        "O1": {
+          "scope": "account",
+          "state": "NO-NEW-RISK",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "missing_input",
+          "reason": "missing_input: data_inputs.volatility missing/invalid (present=False, valid=False, age_sessions=None); substitute max(last_valid=0.22, stress_default=0.70)=0.70, block increases, never return-1-on-missing"
+        },
+        "O2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "calendar.session_state=open and exchange_agrees=true"
+        },
+        "O3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "broker positions and cash within tolerance"
+        },
+        "O4": {
+          "scope": "symbol",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock-with-breaker-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "orders.pending is null; no symbol in ORDER-UNKNOWN",
+          "by_symbol": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for SOXL"
+            }
+          }
+        },
+        "O5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "breaker on third rejection (stateful count)",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "O5 price collar is UNRESOLVED-FAIL-CLOSED in disposition_register; attempted_order fails closed (single rejection: rejections_this_session 0 -> 1 < 3, state contribution NONE)",
+          "rejections_this_session": 1
+        },
+        "O6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "loaded_hash matches registered_hash"
+        },
+        "O7": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "runtime silence_seconds=0 <= scheduled_interval_seconds=300"
+        },
+        "O8": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "owner",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no owner kill-switch event in authorized_events"
+        },
+        "O9": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no tier, H, high-water mark, or limit changes"
+        },
+        "J1": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "joint_exposure 0.35 <= joint_cap 0.60 (headroom=0.25, 110% trim threshold=0.6600, state contribution NONE)",
+          "headroom_output": {
+            "joint_exposure": "0.35",
+            "joint_cap": "0.60",
+            "headroom": "0.25",
+            "trim_threshold_110pct": "0.66",
+            "increases_blocked": false,
+            "trim_required_next_session": false
+          }
+        }
+      }
+    },
+    "restart": {
+      "enforcement_mode": "shadow_would_have_tripped",
+      "loss_breakers_armed": false,
+      "kelly_applied": false,
+      "orders_placed": 0,
+      "effective_state_by_scope": {
+        "account": "NO-NEW-RISK",
+        "fund:TQQQ": "NO-NEW-RISK",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "cells": {
+        "L0": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "standing limit: exposure cap 0.50, proposed 0.35, joint 0.35 within cap (state contribution NONE)",
+          "cap_output": {
+            "exposure_cap": "0.50",
+            "proposed_exposure": "0.35",
+            "joint_exposure": "0.35",
+            "effective_capped_exposure": "0.35",
+            "cap_breached": false
+          }
+        },
+        "L1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+        },
+        "L2": {
+          "scope": "account",
+          "state": "NO-NEW-RISK",
+          "would_have_tripped": true,
+          "kind": "breaker",
+          "latched": true,
+          "reason_class": "latched_prior_trip",
+          "reason": "prior L2 trip remains latched across restart (prior_drawdown_reached_2D_over_3); no owner re-arm in authorized_events"
+        },
+        "L3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+        },
+        "L4": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "one-session loss 0 < D/10 (1500, tier=balanced, D=0.30)"
+        },
+        "L5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "market mwcb_level=0 (not Level 1 or 2) and clean_session=True"
+        },
+        "L6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "mwcb_level=0 and index_session_fall=0 < 0.10 (10% CONFIRMED-AS-SPEC)"
+        },
+        "V1": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "tracking deviations within 0.75pp (1s) and 2.0pp (5s) limits for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            }
+          }
+        },
+        "V2": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker-with-auto-clear-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no split, reverse split, or distribution for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for SOXL"
+            }
+          }
+        },
+        "V3": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no fund_event for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for SOXL"
+            }
+          }
+        },
+        "V4": {
+          "scope": "fund",
+          "state": "NO-NEW-RISK",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "active_clearing_counter",
+          "reason": "TQQQ prior V4 active interlock preserved across restart with below_threshold_sessions counter advancing 4 -> 5 (< 10); SOXL inactive",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NO-NEW-RISK",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "active_clearing_counter",
+              "reason": "TQQQ prior V4 active state preserved across restart; forecast_vol 0.22 < 2x long_run_vol (0.48) advances below_threshold_sessions 4 -> 5 (< 10 required to clear)",
+              "active": true,
+              "prior_below_threshold_sessions": 4,
+              "below_threshold_sessions": 5,
+              "clearing_threshold_sessions": 10
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL forecast_vol 0.28 < 2x long_run_vol (0.64)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            }
+          }
+        },
+        "V5": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V5 decay tolerance is UNRESOLVED-FAIL-CLOSED in disposition_register; evaluation fails closed to diagnostic notify without numeric default or 0 (state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            }
+          },
+          "diagnostic_output": {
+            "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+            "by_fund": {
+              "TQQQ": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              },
+              "SOXL": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              }
+            }
+          }
+        },
+        "V6": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "measured carrying cost <= quarter shrunk excess for TQQQ and SOXL (diagnostic notify=false)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            }
+          },
+          "diagnostic_output": {
+            "by_fund": {
+              "TQQQ": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              },
+              "SOXL": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              }
+            }
+          }
+        },
+        "V7": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V7 spread width is UNRESOLVED-FAIL-CLOSED in disposition_register; order-level gate fails closed (order not sent, state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            }
+          }
+        },
+        "O1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "all required data_inputs present, valid, and age_sessions=0 <= 1"
+        },
+        "O2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "calendar.session_state=open and exchange_agrees=true"
+        },
+        "O3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "broker positions and cash within tolerance"
+        },
+        "O4": {
+          "scope": "symbol",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock-with-breaker-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "orders.pending is null; no symbol in ORDER-UNKNOWN",
+          "by_symbol": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for SOXL"
+            }
+          }
+        },
+        "O5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "breaker on third rejection (stateful count)",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "O5 price collar is UNRESOLVED-FAIL-CLOSED in disposition_register; attempted_order fails closed (single rejection: rejections_this_session 0 -> 1 < 3, state contribution NONE)",
+          "rejections_this_session": 1
+        },
+        "O6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "loaded_hash matches registered_hash"
+        },
+        "O7": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "runtime silence_seconds=0 <= scheduled_interval_seconds=300"
+        },
+        "O8": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "owner",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no owner kill-switch event in authorized_events"
+        },
+        "O9": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no tier, H, high-water mark, or limit changes"
+        },
+        "J1": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "joint_exposure 0.35 <= joint_cap 0.60 (headroom=0.25, 110% trim threshold=0.6600, state contribution NONE)",
+          "headroom_output": {
+            "joint_exposure": "0.35",
+            "joint_cap": "0.60",
+            "headroom": "0.25",
+            "trim_threshold_110pct": "0.66",
+            "increases_blocked": false,
+            "trim_required_next_session": false
+          }
+        }
+      }
+    },
+    "tier_change": {
+      "enforcement_mode": "shadow_would_have_tripped",
+      "loss_breakers_armed": false,
+      "kelly_applied": false,
+      "orders_placed": 0,
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "cells": {
+        "L0": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "standing limit: exposure cap 0.50, proposed 0.35, joint 0.35 within cap (state contribution NONE)",
+          "cap_output": {
+            "exposure_cap": "0.50",
+            "proposed_exposure": "0.35",
+            "joint_exposure": "0.35",
+            "effective_capped_exposure": "0.35",
+            "cap_breached": false
+          }
+        },
+        "L1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D/3 (2500, tier=conservative, D=0.15)"
+        },
+        "L2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < 2D/3 (5000, tier=conservative, D=0.15)"
+        },
+        "L3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D (7500, tier=conservative, D=0.15)"
+        },
+        "L4": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "one-session loss 0 < D/10 (750, tier=conservative, D=0.15)"
+        },
+        "L5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "market mwcb_level=0 (not Level 1 or 2) and clean_session=True"
+        },
+        "L6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "mwcb_level=0 and index_session_fall=0 < 0.10 (10% CONFIRMED-AS-SPEC)"
+        },
+        "V1": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "tracking deviations within 0.75pp (1s) and 2.0pp (5s) limits for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            }
+          }
+        },
+        "V2": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker-with-auto-clear-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no split, reverse split, or distribution for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for SOXL"
+            }
+          }
+        },
+        "V3": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no fund_event for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for SOXL"
+            }
+          }
+        },
+        "V4": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "forecast_vol < 2x long_run_vol for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ forecast_vol 0.22 < 2x long_run_vol (0.48)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL forecast_vol 0.28 < 2x long_run_vol (0.64)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            }
+          }
+        },
+        "V5": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V5 decay tolerance is UNRESOLVED-FAIL-CLOSED in disposition_register; evaluation fails closed to diagnostic notify without numeric default or 0 (state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            }
+          },
+          "diagnostic_output": {
+            "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+            "by_fund": {
+              "TQQQ": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              },
+              "SOXL": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              }
+            }
+          }
+        },
+        "V6": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "measured carrying cost <= quarter shrunk excess for TQQQ and SOXL (diagnostic notify=false)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            }
+          },
+          "diagnostic_output": {
+            "by_fund": {
+              "TQQQ": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              },
+              "SOXL": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              }
+            }
+          }
+        },
+        "V7": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V7 spread width is UNRESOLVED-FAIL-CLOSED in disposition_register; order-level gate fails closed (order not sent, state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            }
+          }
+        },
+        "O1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "all required data_inputs present, valid, and age_sessions=0 <= 1"
+        },
+        "O2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "calendar.session_state=open and exchange_agrees=true"
+        },
+        "O3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "broker positions and cash within tolerance"
+        },
+        "O4": {
+          "scope": "symbol",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock-with-breaker-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "orders.pending is null; no symbol in ORDER-UNKNOWN",
+          "by_symbol": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for SOXL"
+            }
+          }
+        },
+        "O5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "breaker on third rejection (stateful count)",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "O5 price collar is UNRESOLVED-FAIL-CLOSED in disposition_register; attempted_order fails closed (single rejection: rejections_this_session 0 -> 1 < 3, state contribution NONE)",
+          "rejections_this_session": 1
+        },
+        "O6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "loaded_hash matches registered_hash"
+        },
+        "O7": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "runtime silence_seconds=0 <= scheduled_interval_seconds=300"
+        },
+        "O8": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "owner",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no owner kill-switch event in authorized_events"
+        },
+        "O9": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "tier change balanced -> conservative authorized by owner_card OC-SYNTH-TIER-001; joint_cap and max_loss_cap unchanged"
+        },
+        "J1": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "joint_exposure 0.35 <= joint_cap 0.60 (headroom=0.25, 110% trim threshold=0.6600, state contribution NONE)",
+          "headroom_output": {
+            "joint_exposure": "0.35",
+            "joint_cap": "0.60",
+            "headroom": "0.25",
+            "trim_threshold_110pct": "0.66",
+            "increases_blocked": false,
+            "trim_required_next_session": false
+          }
+        }
+      }
+    },
+    "holiday": {
+      "enforcement_mode": "shadow_would_have_tripped",
+      "loss_breakers_armed": false,
+      "kelly_applied": false,
+      "orders_placed": 0,
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "cells": {
+        "L0": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "standing limit: exposure cap 0.50, proposed 0.35, joint 0.35 within cap (state contribution NONE)",
+          "cap_output": {
+            "exposure_cap": "0.50",
+            "proposed_exposure": "0.35",
+            "joint_exposure": "0.35",
+            "effective_capped_exposure": "0.35",
+            "cap_breached": false
+          }
+        },
+        "L1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+        },
+        "L2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < 2D/3 (10000, tier=balanced, D=0.30)"
+        },
+        "L3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+        },
+        "L4": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "one-session loss 0 < D/10 (1500, tier=balanced, D=0.30)"
+        },
+        "L5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "market mwcb_level=0 (not Level 1 or 2) and clean_session=True"
+        },
+        "L6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "mwcb_level=0 and index_session_fall=0 < 0.10 (10% CONFIRMED-AS-SPEC)"
+        },
+        "V1": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "tracking deviations within 0.75pp (1s) and 2.0pp (5s) limits for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            }
+          }
+        },
+        "V2": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker-with-auto-clear-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no split, reverse split, or distribution for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for SOXL"
+            }
+          }
+        },
+        "V3": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no fund_event for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for SOXL"
+            }
+          }
+        },
+        "V4": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "forecast_vol < 2x long_run_vol for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ forecast_vol 0.22 < 2x long_run_vol (0.48)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL forecast_vol 0.28 < 2x long_run_vol (0.64)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            }
+          }
+        },
+        "V5": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V5 decay tolerance is UNRESOLVED-FAIL-CLOSED in disposition_register; evaluation fails closed to diagnostic notify without numeric default or 0 (state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            }
+          },
+          "diagnostic_output": {
+            "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+            "by_fund": {
+              "TQQQ": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              },
+              "SOXL": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              }
+            }
+          }
+        },
+        "V6": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "measured carrying cost <= quarter shrunk excess for TQQQ and SOXL (diagnostic notify=false)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            }
+          },
+          "diagnostic_output": {
+            "by_fund": {
+              "TQQQ": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              },
+              "SOXL": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              }
+            }
+          }
+        },
+        "V7": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V7 spread width is UNRESOLVED-FAIL-CLOSED in disposition_register; order-level gate fails closed (order not sent, state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            }
+          }
+        },
+        "O1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "all required data_inputs present, valid, and age_sessions=0 <= 1"
+        },
+        "O2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "calendar_closed",
+          "reason": "calendar.session_state=holiday (exchange_agrees=True); session-level order gate trips: no order (state contribution NONE)"
+        },
+        "O3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "broker positions and cash within tolerance"
+        },
+        "O4": {
+          "scope": "symbol",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock-with-breaker-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "orders.pending is null; no symbol in ORDER-UNKNOWN",
+          "by_symbol": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for SOXL"
+            }
+          }
+        },
+        "O5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "breaker on third rejection (stateful count)",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "O5 price collar is UNRESOLVED-FAIL-CLOSED in disposition_register; attempted_order fails closed (single rejection: rejections_this_session 0 -> 1 < 3, state contribution NONE)",
+          "rejections_this_session": 1
+        },
+        "O6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "loaded_hash matches registered_hash"
+        },
+        "O7": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "runtime silence_seconds=0 <= scheduled_interval_seconds=300"
+        },
+        "O8": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "owner",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no owner kill-switch event in authorized_events"
+        },
+        "O9": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no tier, H, high-water mark, or limit changes"
+        },
+        "J1": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "joint_exposure 0.35 <= joint_cap 0.60 (headroom=0.25, 110% trim threshold=0.6600, state contribution NONE)",
+          "headroom_output": {
+            "joint_exposure": "0.35",
+            "joint_cap": "0.60",
+            "headroom": "0.25",
+            "trim_threshold_110pct": "0.66",
+            "increases_blocked": false,
+            "trim_required_next_session": false
+          }
+        }
+      }
+    },
+    "half_day": {
+      "enforcement_mode": "shadow_would_have_tripped",
+      "loss_breakers_armed": false,
+      "kelly_applied": false,
+      "orders_placed": 0,
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "cells": {
+        "L0": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "standing limit: exposure cap 0.50, proposed 0.35, joint 0.35 within cap (state contribution NONE)",
+          "cap_output": {
+            "exposure_cap": "0.50",
+            "proposed_exposure": "0.35",
+            "joint_exposure": "0.35",
+            "effective_capped_exposure": "0.35",
+            "cap_breached": false
+          }
+        },
+        "L1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D/3 (5000, tier=balanced, D=0.30)"
+        },
+        "L2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < 2D/3 (10000, tier=balanced, D=0.30)"
+        },
+        "L3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "drawdown 0 < D (15000, tier=balanced, D=0.30)"
+        },
+        "L4": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "one-session loss 0 < D/10 (1500, tier=balanced, D=0.30)"
+        },
+        "L5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "market mwcb_level=0 (not Level 1 or 2) and clean_session=True"
+        },
+        "L6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "mwcb_level=0 and index_session_fall=0 < 0.10 (10% CONFIRMED-AS-SPEC)"
+        },
+        "V1": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "tracking deviations within 0.75pp (1s) and 2.0pp (5s) limits for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL tracking deviations 0.10pp (1s <= 0.75pp) and 0.30pp (5s <= 2.0pp) within CONFIRMED-AS-SPEC limits"
+            }
+          }
+        },
+        "V2": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker-with-auto-clear-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no split, reverse split, or distribution for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no corporate action for SOXL"
+            }
+          }
+        },
+        "V3": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no fund_event for TQQQ or SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no issuer, exchange halt, or delisting event for SOXL"
+            }
+          }
+        },
+        "V4": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "forecast_vol < 2x long_run_vol for TQQQ and SOXL",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ forecast_vol 0.22 < 2x long_run_vol (0.48)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL forecast_vol 0.28 < 2x long_run_vol (0.64)",
+              "active": false,
+              "prior_below_threshold_sessions": 0,
+              "below_threshold_sessions": 0,
+              "clearing_threshold_sessions": 10
+            }
+          }
+        },
+        "V5": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V5 decay tolerance is UNRESOLVED-FAIL-CLOSED in disposition_register; evaluation fails closed to diagnostic notify without numeric default or 0 (state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V5 decay tolerance is UNRESOLVED-FAIL-CLOSED (never numeric default or 0); fail-closed diagnostic notify (persistent_sessions 0 -> 1, state contribution NONE)"
+            }
+          },
+          "diagnostic_output": {
+            "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+            "by_fund": {
+              "TQQQ": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              },
+              "SOXL": {
+                "decay_shortfall_60s": "0.0050",
+                "decay_predicted_60s": "0.0080",
+                "excess_shortfall_60s": "-0.0030",
+                "tolerance": null,
+                "notify": true,
+                "fail_closed": true,
+                "persistent_sessions": 1,
+                "escalated_to_v1": false
+              }
+            }
+          }
+        },
+        "V6": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "diagnostic",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "measured carrying cost <= quarter shrunk excess for TQQQ and SOXL (diagnostic notify=false)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "TQQQ carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "SOXL carrying cost 0.0060 <= quarter shrunk excess 0.0130 (diagnostic notify=false)"
+            }
+          },
+          "diagnostic_output": {
+            "by_fund": {
+              "TQQQ": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              },
+              "SOXL": {
+                "measured_per_unit": "0.0060",
+                "quarter_shrunk_excess": "0.0130",
+                "headroom": "0.0070",
+                "notify": false,
+                "policy_review_required": false
+              }
+            }
+          }
+        },
+        "V7": {
+          "scope": "fund",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "V7 spread width is UNRESOLVED-FAIL-CLOSED in disposition_register; order-level gate fails closed (order not sent, state contribution NONE)",
+          "by_fund": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "TQQQ V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "latched": false,
+              "reason_class": "unresolved_fail_closed",
+              "reason": "SOXL V7 spread width is UNRESOLVED-FAIL-CLOSED (quote.spread=0.0002 cannot clear an unresolved width); fail-closed order-level gate: order not sent (state contribution NONE)"
+            }
+          }
+        },
+        "O1": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "all required data_inputs present, valid, and age_sessions=0 <= 1"
+        },
+        "O2": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "calendar_closed",
+          "reason": "calendar.session_state=half_day_past_cutoff (exchange_agrees=True); session-level order gate trips: no order (state contribution NONE)"
+        },
+        "O3": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "broker positions and cash within tolerance"
+        },
+        "O4": {
+          "scope": "symbol",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock-with-breaker-branch",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "orders.pending is null; no symbol in ORDER-UNKNOWN",
+          "by_symbol": {
+            "TQQQ": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for TQQQ"
+            },
+            "SOXL": {
+              "state": "NORMAL",
+              "would_have_tripped": false,
+              "latched": false,
+              "reason_class": "none",
+              "reason": "no pending or timed-out order for SOXL"
+            }
+          }
+        },
+        "O5": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "breaker on third rejection (stateful count)",
+          "latched": false,
+          "reason_class": "unresolved_fail_closed",
+          "reason": "O5 price collar is UNRESOLVED-FAIL-CLOSED in disposition_register; attempted_order fails closed (single rejection: rejections_this_session 0 -> 1 < 3, state contribution NONE)",
+          "rejections_this_session": 1
+        },
+        "O6": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "loaded_hash matches registered_hash"
+        },
+        "O7": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "runtime silence_seconds=0 <= scheduled_interval_seconds=300"
+        },
+        "O8": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "owner",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no owner kill-switch event in authorized_events"
+        },
+        "O9": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "no tier, H, high-water mark, or limit changes"
+        },
+        "J1": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "reason": "joint_exposure 0.35 <= joint_cap 0.60 (headroom=0.25, 110% trim threshold=0.6600, state contribution NONE)",
+          "headroom_output": {
+            "joint_exposure": "0.35",
+            "joint_cap": "0.60",
+            "headroom": "0.25",
+            "trim_threshold_110pct": "0.66",
+            "increases_blocked": false,
+            "trim_required_next_session": false
+          }
+        }
+      }
+    }
+  }
+}
