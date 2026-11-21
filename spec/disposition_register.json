@@ -1,0 +1,50 @@
+{
+  "spec_version": "fuse-eval-spec/v1",
+  "section": "§4.5",
+  "source": "BRIEF-FUSE-1 §4.5 (CATALOG-CONDENSED.md)",
+  "unresolved_rule": "UNRESOLVED-FAIL-CLOSED = parameter exists as explicitly unresolved; any evaluation depending on it fails closed; never a numeric default, never 0.",
+  "entries": [
+    {
+      "row_id": "L6",
+      "parameter": "L6 one-session index fall",
+      "proposal_value": "10%",
+      "disposition": "CONFIRMED-AS-SPEC",
+      "source": "BRIEF-FUSE-1 §4 / §4.5 (REPORT §4.4)"
+    },
+    {
+      "row_id": "V1",
+      "parameter": "V1 tracking deviation",
+      "proposal_value": "0.75pp (1s) / 2.0pp (5s)",
+      "disposition": "CONFIRMED-AS-SPEC",
+      "source": "BRIEF-FUSE-1 §4 / §4.5 (REPORT §4.4)"
+    },
+    {
+      "row_id": "V4",
+      "parameter": "V4 volatility multiple",
+      "proposal_value": "2x",
+      "disposition": "CONFIRMED-AS-SPEC",
+      "source": "BRIEF-FUSE-1 §4 / §4.5 (REPORT §4.4)"
+    },
+    {
+      "row_id": "V7",
+      "parameter": "V7 spread width",
+      "proposal_value": null,
+      "disposition": "UNRESOLVED-FAIL-CLOSED",
+      "source": "OI-COST-4 unresolved (BRIEF-FUSE-1 §4.5)"
+    },
+    {
+      "row_id": "O5",
+      "parameter": "O5 price collar",
+      "proposal_value": null,
+      "disposition": "UNRESOLVED-FAIL-CLOSED",
+      "source": "OI-COST-4 unresolved (BRIEF-FUSE-1 §4.5)"
+    },
+    {
+      "row_id": "V5",
+      "parameter": "V5 decay tolerance",
+      "proposal_value": null,
+      "disposition": "UNRESOLVED-FAIL-CLOSED",
+      "source": "no stated value in frozen sources (BRIEF-FUSE-1 §4.5)"
+    }
+  ]
+}

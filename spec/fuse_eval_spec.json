@@ -1,0 +1,392 @@
+{
+  "spec_version": "fuse-eval-spec/v1",
+  "source": "BRIEF-FUSE-1 §4 (= REPORT §4.4 verbatim in substance)",
+  "states": [
+    "NORMAL",
+    "NO-NEW-RISK",
+    "DE-RISK",
+    "HALT",
+    "ORDER-UNKNOWN"
+  ],
+  "precedence": [
+    "HALT",
+    "ORDER-UNKNOWN",
+    "DE-RISK",
+    "NO-NEW-RISK",
+    "NORMAL"
+  ],
+  "precedence_note": "Precedence applies per scope; ORDER-UNKNOWN is symbol-scoped.",
+  "tier_loss_budgets": {
+    "conservative": "0.15",
+    "balanced": "0.30",
+    "aggressive": "0.50"
+  },
+  "loss_measurement_basis": "Loss rows measured on bankroll, flow-adjusted and split-adjusted.",
+  "funds": [
+    "TQQQ",
+    "SOXL"
+  ],
+  "enforcement_defaults": {
+    "enforcement_mode": "shadow_would_have_tripped",
+    "loss_breakers_armed": false
+  },
+  "whole_set_rules": [
+    "No trip can raise exposure; no trip changes a parameter.",
+    "No row is a price stop on a fund.",
+    "Every failure mode fails closed; trip state survives restart, deposit, withdrawal, split, tier change.",
+    "FUSE-1 outputs are computed-and-recorded only: enforcement_mode shadow_would_have_tripped, loss_breakers_armed false.",
+    "L0 and L2-L4 are computed and recorded only until the owner's stop-loss-split approval.",
+    "Legacy three-platform gate is FUSE-2's subject (spec note only)."
+  ],
+  "rows": [
+    {
+      "id": "L0",
+      "family": "loss",
+      "trigger": "every session (standing)",
+      "action": "exposure cap = maximum-loss cap (a cap output, NOT a state)",
+      "state_contribution": "NONE (cap output, not a state)",
+      "kind": "limit",
+      "scope": "account",
+      "clearing": "symmetric, automatic",
+      "required_inputs": [
+        "sizing.max_loss_cap",
+        "sizing.proposed_exposure",
+        "joint.joint_exposure"
+      ]
+    },
+    {
+      "id": "L1",
+      "family": "loss",
+      "trigger": "drawdown reaches D/3",
+      "action": "notify; tier, H and high-water mark locked against loosening",
+      "state_contribution": "NONE (notify and lock tier, H, and high-water mark against loosening)",
+      "kind": "interlock",
+      "scope": "account",
+      "clearing": "drawdown back under D/3",
+      "required_inputs": [
+        "loss.drawdown_amount",
+        "tier.D"
+      ]
+    },
+    {
+      "id": "L2",
+      "family": "loss",
+      "trigger": "drawdown reaches 2D/3",
+      "action": "NO-NEW-RISK",
+      "state_contribution": "NO-NEW-RISK",
+      "kind": "breaker",
+      "scope": "account",
+      "clearing": "owner re-arm via authorized_events only",
+      "required_inputs": [
+        "loss.drawdown_amount",
+        "tier.D"
+      ]
+    },
+    {
+      "id": "L3",
+      "family": "loss",
+      "trigger": "drawdown reaches D",
+      "action": "DE-RISK to zero, then locked flat; 30-day cooling-off recorded; loss record not cleared",
+      "state_contribution": "DE-RISK",
+      "kind": "breaker",
+      "scope": "account",
+      "clearing": "owner card after cooling-off",
+      "required_inputs": [
+        "loss.drawdown_amount",
+        "tier.D"
+      ]
+    },
+    {
+      "id": "L4",
+      "family": "loss",
+      "trigger": "one-session loss reaches D/10",
+      "action": "NO-NEW-RISK",
+      "state_contribution": "NO-NEW-RISK",
+      "kind": "breaker",
+      "scope": "account",
+      "clearing": "owner acknowledges, not before next session",
+      "required_inputs": [
+        "loss.session_loss_amount",
+        "tier.D"
+      ]
+    },
+    {
+      "id": "L5",
+      "family": "loss",
+      "trigger": "market-wide trading halt Level 1 or 2 in the session [W-MWCB]",
+      "action": "no orders during halt; NO-NEW-RISK for rest of session",
+      "state_contribution": "NO-NEW-RISK",
+      "kind": "interlock",
+      "scope": "account",
+      "clearing": "after one clean session",
+      "required_inputs": [
+        "market.mwcb_level",
+        "market.clean_session"
+      ]
+    },
+    {
+      "id": "L6",
+      "family": "loss",
+      "trigger": "market-wide Level 3 halt OR one-session fall >= 10% in either underlying index (~30% in fund) [proposal value CONFIRMED-AS-SPEC]",
+      "action": "HALT",
+      "state_contribution": "HALT",
+      "kind": "breaker",
+      "scope": "account",
+      "clearing": "owner re-arms after reconciliation",
+      "required_inputs": [
+        "market.mwcb_level",
+        "market.index_session_fall"
+      ]
+    },
+    {
+      "id": "V1",
+      "family": "vehicle",
+      "trigger": "fund one-session return differs from 3x index by > 0.75 pp, or > 2.0 pp over five sessions, after modelled fee and financing [CONFIRMED-AS-SPEC]",
+      "action": "NO-NEW-RISK in that fund; data check first",
+      "state_contribution": "NO-NEW-RISK",
+      "kind": "breaker",
+      "scope": "fund",
+      "clearing": "owner re-arm",
+      "required_inputs": [
+        "fund.tracking_dev_1s_pp",
+        "fund.tracking_dev_5s_pp"
+      ]
+    },
+    {
+      "id": "V2",
+      "family": "vehicle",
+      "trigger": "split, reverse split or distribution announced for next two sessions, or detected in price",
+      "action": "HALT in that fund until ledger, share count and high-water mark adjusted",
+      "state_contribution": "HALT",
+      "kind": "breaker-with-auto-clear-branch",
+      "scope": "fund",
+      "clearing": "automatic ONLY if adjusted ledger reconciles EXACTLY to broker (apply-once, replayable, invariance identity incl. dividend-receivable leg); otherwise latched breaker, owner re-arm",
+      "required_inputs": [
+        "fund.corporate_action.type",
+        "fund.corporate_action.announced",
+        "fund.corporate_action.detected_in_price",
+        "fund.corporate_action.ledger_adjusted",
+        "fund.corporate_action.reconciles_exactly"
+      ]
+    },
+    {
+      "id": "V3",
+      "family": "vehicle",
+      "trigger": "issuer notice of liquidation, change in multiple or objective, or suspended creations; exchange halt in the fund; delisting notice",
+      "action": "DE-RISK in that fund",
+      "state_contribution": "DE-RISK",
+      "kind": "breaker",
+      "scope": "fund",
+      "clearing": "owner decides",
+      "required_inputs": [
+        "fund.fund_event"
+      ]
+    },
+    {
+      "id": "V4",
+      "family": "vehicle",
+      "trigger": "forecast index volatility >= 2x long-run figure (~48% Nasdaq-100) [CONFIRMED-AS-SPEC]",
+      "action": "NO-NEW-RISK in that fund",
+      "state_contribution": "NO-NEW-RISK",
+      "kind": "interlock",
+      "scope": "fund",
+      "clearing": "after ten sessions below the level (stateful counter)",
+      "required_inputs": [
+        "fund.forecast_vol",
+        "fund.long_run_vol"
+      ]
+    },
+    {
+      "id": "V5",
+      "family": "vehicle",
+      "trigger": "over 60 sessions the fund shortfall vs 3x index exceeds what variance, fee and financing predict, by more than a stated tolerance [tolerance UNRESOLVED-FAIL-CLOSED]",
+      "action": "notify (diagnostic output); if persists two months, treat as V1 (stateful escalation)",
+      "state_contribution": "NONE (diagnostic; escalates to NO-NEW-RISK if persists two months)",
+      "kind": "diagnostic",
+      "scope": "fund",
+      "clearing": "n/a (diagnostic)",
+      "required_inputs": [
+        "fund.decay_shortfall_60s",
+        "fund.decay_predicted_60s"
+      ]
+    },
+    {
+      "id": "V6",
+      "family": "vehicle",
+      "trigger": "measured carrying cost per unit of index exposure exceeds one quarter of the shrunk excess return (~1.3%/yr illustrative)",
+      "action": "notify; policy review (diagnostic output)",
+      "state_contribution": "NONE (diagnostic output)",
+      "kind": "diagnostic",
+      "scope": "fund",
+      "clearing": "n/a",
+      "required_inputs": [
+        "fund.carrying_cost.measured_per_unit",
+        "fund.carrying_cost.quarter_shrunk_excess"
+      ]
+    },
+    {
+      "id": "V7",
+      "family": "vehicle",
+      "trigger": "stale quote, spread above a stated width [width UNRESOLVED-FAIL-CLOSED], single-stock trading pause, or time outside regular session",
+      "action": "the order is not sent",
+      "state_contribution": "NONE (order-level gate: order not sent)",
+      "kind": "interlock",
+      "scope": "fund",
+      "clearing": "condition absent",
+      "required_inputs": [
+        "fund.quote.stale",
+        "fund.quote.spread",
+        "fund.quote.single_stock_pause",
+        "fund.quote.in_regular_session"
+      ]
+    },
+    {
+      "id": "O1",
+      "family": "data_and_operations",
+      "trigger": "a required input older than one session, missing, or fails validation (missing volatility figure -> substitute larger of last valid and stress default, block increases; never return-1-on-missing)",
+      "action": "NO-NEW-RISK",
+      "state_contribution": "NO-NEW-RISK",
+      "kind": "interlock",
+      "scope": "account",
+      "clearing": "after one session of fresh data (stateful counter)",
+      "required_inputs": [
+        "data_inputs.present",
+        "data_inputs.age_sessions",
+        "data_inputs.valid"
+      ]
+    },
+    {
+      "id": "O2",
+      "family": "data_and_operations",
+      "trigger": "session calendar says closed, holiday, or past half-day cut-off; or calendar and exchange status disagree",
+      "action": "no order",
+      "state_contribution": "NONE (session-level order gate: no order)",
+      "kind": "interlock",
+      "scope": "account",
+      "clearing": "next open session",
+      "required_inputs": [
+        "calendar.session_state",
+        "calendar.exchange_agrees"
+      ]
+    },
+    {
+      "id": "O3",
+      "family": "data_and_operations",
+      "trigger": "positions or cash differ from broker record beyond tolerance",
+      "action": "HALT",
+      "state_contribution": "HALT",
+      "kind": "breaker",
+      "scope": "account",
+      "clearing": "owner re-arm",
+      "required_inputs": [
+        "broker_record.positions_beyond_tolerance",
+        "broker_record.cash_beyond_tolerance"
+      ]
+    },
+    {
+      "id": "O4",
+      "family": "data_and_operations",
+      "trigger": "an order has no terminal status within the time-out",
+      "action": "ORDER-UNKNOWN for that symbol; original order queried, nothing re-sent",
+      "state_contribution": "ORDER-UNKNOWN",
+      "kind": "interlock-with-breaker-branch",
+      "scope": "symbol",
+      "clearing": "definitive broker status for the original order; otherwise latched breaker",
+      "required_inputs": [
+        "orders.pending.symbol",
+        "orders.pending.terminal_status",
+        "orders.pending.timed_out"
+      ]
+    },
+    {
+      "id": "O5",
+      "family": "data_and_operations",
+      "trigger": "pre-trade limit violation (symbol whitelist TQQQ/SOXL/bill vehicle; account whitelist; long only; purchases within settled cash; max order size; max orders and turnover per session; price collar [collar UNRESOLVED-FAIL-CLOSED])",
+      "action": "order rejected (per attempted order); three rejections in one session -> HALT",
+      "state_contribution": "HALT (on third rejection in one session; single rejection: NONE)",
+      "kind": "breaker on third rejection (stateful count)",
+      "scope": "account",
+      "clearing": "owner re-arm after HALT",
+      "required_inputs": [
+        "pretrade.symbol_whitelisted",
+        "pretrade.account_whitelisted",
+        "pretrade.long_only",
+        "pretrade.within_settled_cash",
+        "pretrade.within_max_order_size",
+        "pretrade.within_max_orders_per_session",
+        "pretrade.within_max_turnover_per_session",
+        "pretrade.price_collar",
+        "pretrade.rejections_this_session"
+      ]
+    },
+    {
+      "id": "O6",
+      "family": "data_and_operations",
+      "trigger": "loaded policy or configuration hash differs from registered one",
+      "action": "HALT",
+      "state_contribution": "HALT",
+      "kind": "breaker",
+      "scope": "account",
+      "clearing": "owner re-arm",
+      "required_inputs": [
+        "policy.loaded_hash",
+        "policy.registered_hash"
+      ]
+    },
+    {
+      "id": "O7",
+      "family": "data_and_operations",
+      "trigger": "runtime or its monitor silent longer than one scheduled interval (dead-man's switch)",
+      "action": "no increase; every exposure-raising order needs a same-session permit from the control layer and none is issued; alarm on independent channel",
+      "state_contribution": "NO-NEW-RISK (no increase; no same-session exposure-raising permit issued)",
+      "kind": "breaker",
+      "scope": "account",
+      "clearing": "human re-arm only (latches)",
+      "required_inputs": [
+        "runtime.silence_seconds",
+        "runtime.scheduled_interval_seconds"
+      ]
+    },
+    {
+      "id": "O8",
+      "family": "data_and_operations",
+      "trigger": "owner kill-switch command (authorized_events only)",
+      "action": "HALT; flattening is a separate explicit second command",
+      "state_contribution": "HALT",
+      "kind": "owner",
+      "scope": "account",
+      "clearing": "owner command",
+      "required_inputs": [
+        "authorized_events"
+      ]
+    },
+    {
+      "id": "O9",
+      "family": "data_and_operations",
+      "trigger": "a tier, H, high-water mark or limit changed without a recorded owner card",
+      "action": "HALT",
+      "state_contribution": "HALT",
+      "kind": "breaker",
+      "scope": "account",
+      "clearing": "owner re-arm",
+      "required_inputs": [
+        "change_descriptors",
+        "authorized_events"
+      ]
+    },
+    {
+      "id": "J1",
+      "family": "data_and_operations",
+      "trigger": "joint exposure above the tier's joint cap",
+      "action": "increases blocked; trimmed at next session if above 110% of cap (a headroom output, NOT a state)",
+      "state_contribution": "NONE (headroom output, not a state)",
+      "kind": "limit",
+      "scope": "joint",
+      "clearing": "automatic",
+      "required_inputs": [
+        "joint.joint_exposure",
+        "joint.joint_cap"
+      ]
+    }
+  ]
+}
