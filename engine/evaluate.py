@@ -1,4 +1,4 @@
-"""Pure pinned evaluator entrypoint (L0-L6 implemented; V, O, J1 skeleton)."""
+"""Pure pinned evaluator entrypoint for all 24 FUSE-1 control rows."""
 
 from __future__ import annotations
 
@@ -112,7 +112,7 @@ def _pick_higher_state(current: str, candidate: str) -> str:
 def _resolve_effective_states(
     rows_by_ID: dict[str, dict[str, Any]],
 ) -> dict[str, str]:
-    """Resolve effective state independently per scope from row outputs."""
+    """Resolve effective state per scope with precedence max and account-HALT dominance."""
     effective: dict[str, str] = {
         "account": "NORMAL",
         **{f"fund:{fund}": "NORMAL" for fund in DEFAULT_FUNDS},
@@ -135,6 +135,9 @@ def _resolve_effective_states(
                 effective[key] = _pick_higher_state(
                     effective.get(key, "NORMAL"), sub["state"]
                 )
+    if effective["account"] == "HALT":
+        for scope_key in effective:
+            effective[scope_key] = "HALT"
     return effective
 
 

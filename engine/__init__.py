@@ -1,4 +1,4 @@
-"""FUSE-1 reference engine package (Phase C skeleton)."""
+"""FUSE-1 reference engine package."""
 
 from engine.canonical import (
     canonical_bytes,
