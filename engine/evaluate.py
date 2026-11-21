@@ -1,11 +1,11 @@
-"""Pure pinned evaluator entrypoint (skeleton implementation)."""
+"""Pure pinned evaluator entrypoint (L0-L6 implemented; V, O, J1 skeleton)."""
 
 from __future__ import annotations
 
 import copy
 from typing import Any
 
-from engine.rows import DEFAULT_FUNDS, ROW_EVALUATORS, ROW_IDS
+from engine.rows import DEFAULT_FUNDS, ROW_EVALUATORS, ROW_IDS, ROW_STATE_EVALUATORS
 
 ENFORCEMENT_MODE = "shadow_would_have_tripped"
 LOSS_BREAKERS_ARMED = False
@@ -155,18 +155,32 @@ def evaluate(
             f"Unsupported mode {mode!r}; expected one of {sorted(ALLOWED_MODES)}"
         )
 
-    rows_by_ID: dict[str, dict[str, Any]] = {
-        row_id: ROW_EVALUATORS[row_id](
-            validated_inputs,
-            prior_row_state,
-            authorized_events,
-            session=session,
-            as_of=as_of,
-        )
-        for row_id in ROW_IDS
-    }
+    rows_by_ID: dict[str, dict[str, Any]] = {}
+    next_row_state: dict[str, Any] = (
+        copy.deepcopy(prior_row_state)
+        if isinstance(prior_row_state, dict)
+        else {}
+    )
+    for row_id in ROW_IDS:
+        if row_id in ROW_STATE_EVALUATORS:
+            cell, row_next = ROW_STATE_EVALUATORS[row_id](
+                validated_inputs,
+                prior_row_state,
+                authorized_events,
+                session=session,
+                as_of=as_of,
+            )
+            rows_by_ID[row_id] = cell
+            next_row_state[row_id] = row_next
+        else:
+            rows_by_ID[row_id] = ROW_EVALUATORS[row_id](
+                validated_inputs,
+                prior_row_state,
+                authorized_events,
+                session=session,
+                as_of=as_of,
+            )
     effective_state_by_scope = _resolve_effective_states(rows_by_ID)
-    next_row_state = copy.deepcopy(prior_row_state)
 
     return EvaluationResult(
         rows_by_ID,
