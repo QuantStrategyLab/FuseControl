@@ -1,0 +1,1157 @@
+{
+  "spec_version": "fuse-eval-spec/v1",
+  "engine_hash": "f3be78a3e06001cdb9bdf71f04d4b15ffc7df0b3f4a4a2518b42a5f69ec83d70",
+  "engine_bytes_sha256": "aadb1730970386d39d0077ef92c3a9f75deda97cc7b5ca08d647d57390a6cb0f",
+  "observation_class": "synthetic",
+  "summary": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0,
+    "all_passed": true
+  },
+  "batteries": {
+    "determinism": {
+      "id": "F1-A05",
+      "passed": true,
+      "evidence_counts": {
+        "runs": 3,
+        "unique_hashes": 1,
+        "matches_committed": 1
+      },
+      "details": {
+        "committed_hash": "9bf0421e270828520fff47c88451121a63e340dcaf657ccde5a6e0c28cb9e38b",
+        "run_hashes": [
+          "9bf0421e270828520fff47c88451121a63e340dcaf657ccde5a6e0c28cb9e38b",
+          "9bf0421e270828520fff47c88451121a63e340dcaf657ccde5a6e0c28cb9e38b",
+          "9bf0421e270828520fff47c88451121a63e340dcaf657ccde5a6e0c28cb9e38b"
+        ],
+        "per_run_counts": [
+          {
+            "run": 1,
+            "hash": "9bf0421e270828520fff47c88451121a63e340dcaf657ccde5a6e0c28cb9e38b",
+            "passed": 264,
+            "total": 264,
+            "eff_passed": 11,
+            "tier_passed": 42
+          },
+          {
+            "run": 2,
+            "hash": "9bf0421e270828520fff47c88451121a63e340dcaf657ccde5a6e0c28cb9e38b",
+            "passed": 264,
+            "total": 264,
+            "eff_passed": 11,
+            "tier_passed": 42
+          },
+          {
+            "run": 3,
+            "hash": "9bf0421e270828520fff47c88451121a63e340dcaf657ccde5a6e0c28cb9e38b",
+            "passed": 264,
+            "total": 264,
+            "eff_passed": 11,
+            "tier_passed": 42
+          }
+        ]
+      }
+    },
+    "id_set_equality": {
+      "id": "F1-A01",
+      "passed": true,
+      "evidence_counts": {
+        "expected_count": 24,
+        "spec_count": 24,
+        "spec_unique_count": 24,
+        "engine_rows_by_id_count": 24,
+        "engine_row_ids_const_count": 24,
+        "spec_duplicates": 0
+      },
+      "details": {
+        "expected_ids": [
+          "J1",
+          "L0",
+          "L1",
+          "L2",
+          "L3",
+          "L4",
+          "L5",
+          "L6",
+          "O1",
+          "O2",
+          "O3",
+          "O4",
+          "O5",
+          "O6",
+          "O7",
+          "O8",
+          "O9",
+          "V1",
+          "V2",
+          "V3",
+          "V4",
+          "V5",
+          "V6",
+          "V7"
+        ],
+        "spec_missing_from_expected": [],
+        "spec_extra_beyond_expected": [],
+        "engine_missing_from_expected": [],
+        "engine_extra_beyond_expected": [],
+        "engine_const_matches": true
+      }
+    },
+    "spec_linter": {
+      "id": "F1-A02",
+      "passed": true,
+      "evidence_counts": {
+        "rows_checked": 24,
+        "fields_per_row": 7,
+        "total_field_checks": 168,
+        "missing_count": 0
+      },
+      "details": {
+        "required_fields": [
+          "trigger",
+          "required_inputs",
+          "action",
+          "state_contribution",
+          "kind",
+          "scope",
+          "clearing"
+        ],
+        "missing_fields": []
+      }
+    },
+    "fail_closed": {
+      "id": "F1-A06",
+      "passed": true,
+      "evidence_counts": {
+        "required_input_entries_covered": 61,
+        "variants_tested": 172,
+        "fail_closed_tripped_count": 159,
+        "by_design_exclusion_count": 9,
+        "reconciled_auto_cleared_count": 4,
+        "silent_pass_count": 0,
+        "exception_count": 0,
+        "explicit_assertions_passed": 10,
+        "explicit_assertions_total": 10
+      },
+      "details": {
+        "explicit_assertions": {
+          "L0_missing_joint_exposure": {
+            "passed": true,
+            "checks": {
+              "state_normal": true,
+              "would_have_tripped_true": true,
+              "latched_false": true,
+              "reason_class_missing_input": true,
+              "exposure_cap_eq": true,
+              "proposed_exposure_eq": true,
+              "joint_exposure_eq": true,
+              "effective_capped_exposure_null": true,
+              "increases_blocked_true": true,
+              "cap_breached_true": true
+            },
+            "observed": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "reason_class": "missing_input",
+              "cap_output": {
+                "exposure_cap": "0.50",
+                "proposed_exposure": "0.35",
+                "joint_exposure": null,
+                "effective_capped_exposure": null,
+                "cap_breached": true,
+                "increases_blocked": true
+              }
+            }
+          },
+          "L0_none_joint_exposure": {
+            "passed": true,
+            "checks": {
+              "state_normal": true,
+              "would_have_tripped_true": true,
+              "latched_false": true,
+              "reason_class_missing_input": true,
+              "exposure_cap_eq": true,
+              "proposed_exposure_eq": true,
+              "joint_exposure_eq": true,
+              "effective_capped_exposure_null": true,
+              "increases_blocked_true": true,
+              "cap_breached_true": true
+            },
+            "observed": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "reason_class": "missing_input",
+              "cap_output": {
+                "exposure_cap": "0.50",
+                "proposed_exposure": "0.35",
+                "joint_exposure": null,
+                "effective_capped_exposure": null,
+                "cap_breached": true,
+                "increases_blocked": true
+              }
+            }
+          },
+          "L0_invalid_joint_exposure": {
+            "passed": true,
+            "checks": {
+              "state_normal": true,
+              "would_have_tripped_true": true,
+              "latched_false": true,
+              "reason_class_missing_input": true,
+              "exposure_cap_eq": true,
+              "proposed_exposure_eq": true,
+              "joint_exposure_eq": true,
+              "effective_capped_exposure_null": true,
+              "increases_blocked_true": true,
+              "cap_breached_true": true
+            },
+            "observed": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "reason_class": "missing_input",
+              "cap_output": {
+                "exposure_cap": "0.50",
+                "proposed_exposure": "0.35",
+                "joint_exposure": null,
+                "effective_capped_exposure": null,
+                "cap_breached": true,
+                "increases_blocked": true
+              }
+            }
+          },
+          "L0_missing_max_loss_cap": {
+            "passed": true,
+            "checks": {
+              "state_normal": true,
+              "would_have_tripped_true": true,
+              "latched_false": true,
+              "reason_class_missing_input": true,
+              "exposure_cap_eq": true,
+              "proposed_exposure_eq": true,
+              "joint_exposure_eq": true,
+              "effective_capped_exposure_null": true,
+              "increases_blocked_true": true,
+              "cap_breached_true": true
+            },
+            "observed": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "reason_class": "missing_input",
+              "cap_output": {
+                "exposure_cap": null,
+                "proposed_exposure": "0.35",
+                "joint_exposure": "0.35",
+                "effective_capped_exposure": null,
+                "cap_breached": true,
+                "increases_blocked": true
+              }
+            }
+          },
+          "L0_invalid_proposed_exposure": {
+            "passed": true,
+            "checks": {
+              "state_normal": true,
+              "would_have_tripped_true": true,
+              "latched_false": true,
+              "reason_class_missing_input": true,
+              "exposure_cap_eq": true,
+              "proposed_exposure_eq": true,
+              "joint_exposure_eq": true,
+              "effective_capped_exposure_null": true,
+              "increases_blocked_true": true,
+              "cap_breached_true": true
+            },
+            "observed": {
+              "state": "NORMAL",
+              "would_have_tripped": true,
+              "reason_class": "missing_input",
+              "cap_output": {
+                "exposure_cap": "0.50",
+                "proposed_exposure": null,
+                "joint_exposure": "0.35",
+                "effective_capped_exposure": null,
+                "cap_breached": true,
+                "increases_blocked": true
+              }
+            }
+          },
+          "V2_malformed_missing_type": {
+            "passed": true,
+            "checks": {
+              "cell_state_halt": true,
+              "cell_would_have_tripped_true": true,
+              "cell_latched_false": true,
+              "cell_reason_class_missing_input": true,
+              "tqqq_state_halt": true,
+              "tqqq_would_have_tripped_true": true,
+              "tqqq_latched_false": true,
+              "tqqq_reason_class_missing_input": true,
+              "soxl_state_normal": true,
+              "eff_fund_tqqq_halt": true,
+              "eff_fund_soxl_normal": true,
+              "eff_account_normal": true
+            },
+            "observed": {
+              "V2_state": "HALT",
+              "V2_latched": false,
+              "V2_reason_class": "missing_input",
+              "V2_TQQQ": {
+                "state": "HALT",
+                "would_have_tripped": true,
+                "latched": false,
+                "reason_class": "missing_input",
+                "reason": "TQQQ malformed corporate_action container for V2 (missing or invalid 'type', expected split/reverse_split/distribution); HALT in fund:TQQQ (not latched)"
+              },
+              "effective_state_by_scope": {
+                "account": "NORMAL",
+                "fund:TQQQ": "HALT",
+                "fund:SOXL": "NORMAL",
+                "symbol:TQQQ": "NORMAL",
+                "symbol:SOXL": "NORMAL",
+                "joint": "NORMAL"
+              }
+            }
+          },
+          "V2_malformed_none_type": {
+            "passed": true,
+            "checks": {
+              "cell_state_halt": true,
+              "cell_would_have_tripped_true": true,
+              "cell_latched_false": true,
+              "cell_reason_class_missing_input": true,
+              "tqqq_state_halt": true,
+              "tqqq_would_have_tripped_true": true,
+              "tqqq_latched_false": true,
+              "tqqq_reason_class_missing_input": true,
+              "soxl_state_normal": true,
+              "eff_fund_tqqq_halt": true,
+              "eff_fund_soxl_normal": true,
+              "eff_account_normal": true
+            },
+            "observed": {
+              "V2_state": "HALT",
+              "V2_latched": false,
+              "V2_reason_class": "missing_input",
+              "V2_TQQQ": {
+                "state": "HALT",
+                "would_have_tripped": true,
+                "latched": false,
+                "reason_class": "missing_input",
+                "reason": "TQQQ malformed corporate_action container for V2 (missing or invalid 'type', expected split/reverse_split/distribution); HALT in fund:TQQQ (not latched)"
+              },
+              "effective_state_by_scope": {
+                "account": "NORMAL",
+                "fund:TQQQ": "HALT",
+                "fund:SOXL": "NORMAL",
+                "symbol:TQQQ": "NORMAL",
+                "symbol:SOXL": "NORMAL",
+                "joint": "NORMAL"
+              }
+            }
+          },
+          "V2_malformed_invalid_type": {
+            "passed": true,
+            "checks": {
+              "cell_state_halt": true,
+              "cell_would_have_tripped_true": true,
+              "cell_latched_false": true,
+              "cell_reason_class_missing_input": true,
+              "tqqq_state_halt": true,
+              "tqqq_would_have_tripped_true": true,
+              "tqqq_latched_false": true,
+              "tqqq_reason_class_missing_input": true,
+              "soxl_state_normal": true,
+              "eff_fund_tqqq_halt": true,
+              "eff_fund_soxl_normal": true,
+              "eff_account_normal": true
+            },
+            "observed": {
+              "V2_state": "HALT",
+              "V2_latched": false,
+              "V2_reason_class": "missing_input",
+              "V2_TQQQ": {
+                "state": "HALT",
+                "would_have_tripped": true,
+                "latched": false,
+                "reason_class": "missing_input",
+                "reason": "TQQQ malformed corporate_action container for V2 (missing or invalid 'type', expected split/reverse_split/distribution); HALT in fund:TQQQ (not latched)"
+              },
+              "effective_state_by_scope": {
+                "account": "NORMAL",
+                "fund:TQQQ": "HALT",
+                "fund:SOXL": "NORMAL",
+                "symbol:TQQQ": "NORMAL",
+                "symbol:SOXL": "NORMAL",
+                "joint": "NORMAL"
+              }
+            }
+          },
+          "V2_malformed_empty_container": {
+            "passed": true,
+            "checks": {
+              "cell_state_halt": true,
+              "cell_would_have_tripped_true": true,
+              "cell_latched_false": true,
+              "cell_reason_class_missing_input": true,
+              "tqqq_state_halt": true,
+              "tqqq_would_have_tripped_true": true,
+              "tqqq_latched_false": true,
+              "tqqq_reason_class_missing_input": true,
+              "soxl_state_normal": true,
+              "eff_fund_tqqq_halt": true,
+              "eff_fund_soxl_normal": true,
+              "eff_account_normal": true
+            },
+            "observed": {
+              "V2_state": "HALT",
+              "V2_latched": false,
+              "V2_reason_class": "missing_input",
+              "V2_TQQQ": {
+                "state": "HALT",
+                "would_have_tripped": true,
+                "latched": false,
+                "reason_class": "missing_input",
+                "reason": "TQQQ malformed corporate_action container for V2 (missing or invalid 'type', expected split/reverse_split/distribution); HALT in fund:TQQQ (not latched)"
+              },
+              "effective_state_by_scope": {
+                "account": "NORMAL",
+                "fund:TQQQ": "HALT",
+                "fund:SOXL": "NORMAL",
+                "symbol:TQQQ": "NORMAL",
+                "symbol:SOXL": "NORMAL",
+                "joint": "NORMAL"
+              }
+            }
+          },
+          "V2_null_corporate_action_benign": {
+            "passed": true,
+            "checks": {
+              "cell_state_normal": true,
+              "cell_would_have_tripped_false": true,
+              "cell_latched_false": true,
+              "cell_reason_class_none": true,
+              "tqqq_state_normal": true,
+              "eff_fund_tqqq_normal": true
+            },
+            "observed": {
+              "V2_state": "NORMAL",
+              "V2_latched": false,
+              "V2_reason_class": "none",
+              "V2_TQQQ": {
+                "state": "NORMAL",
+                "would_have_tripped": false,
+                "latched": false,
+                "reason_class": "none",
+                "reason": "no corporate action for TQQQ"
+              }
+            }
+          }
+        },
+        "by_design_exclusions": [
+          {
+            "row_id": "V2",
+            "field": "fund.corporate_action.type",
+            "variant": "container_key_missing",
+            "category": "corporate_action_null",
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "reason_class": "none",
+            "rationale": "Absent corporate_action key resolves to null, which IS the benign 'no corporate action' sentinel in the fixture model."
+          },
+          {
+            "row_id": "V2",
+            "field": "fund.corporate_action.type",
+            "variant": "container_null",
+            "category": "corporate_action_null",
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "reason_class": "none",
+            "rationale": "corporate_action=null IS the benign 'no corporate action' sentinel in the fixture model, not a missing market input."
+          },
+          {
+            "row_id": "V3",
+            "field": "fund.fund_event",
+            "variant": "container_key_missing",
+            "category": "fund_event_null",
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "reason_class": "none",
+            "rationale": "Absent fund_event key resolves to null, which IS the benign 'no fund event' sentinel in the fixture model."
+          },
+          {
+            "row_id": "V3",
+            "field": "fund.fund_event",
+            "variant": "container_null",
+            "category": "fund_event_null",
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "reason_class": "none",
+            "rationale": "fund_event=null IS the benign 'no fund event' sentinel in the fixture model, not a missing market input."
+          },
+          {
+            "row_id": "O4",
+            "field": "orders.pending.symbol",
+            "variant": "container_null",
+            "category": "orders_pending_null",
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "reason_class": "none",
+            "rationale": "orders.pending=null IS the benign 'no pending order' sentinel in the fixture model; omitting the pending key still fails closed."
+          },
+          {
+            "row_id": "O8",
+            "field": "authorized_events",
+            "variant": "none",
+            "category": "authorized_events_structural",
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "reason_class": "none",
+            "rationale": "authorized_events is a structural C-FUSE-EVAL signature argument (not a market input); null means no owner kill-switch command issued."
+          },
+          {
+            "row_id": "O9",
+            "field": "change_descriptors",
+            "variant": "omitted",
+            "category": "change_descriptors_omitted",
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "reason_class": "none",
+            "rationale": "Omitting change_descriptors IS the benign 'no parameter changes' sentinel in the fixture model, not a missing market input."
+          },
+          {
+            "row_id": "O9",
+            "field": "change_descriptors",
+            "variant": "none",
+            "category": "change_descriptors_omitted",
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "reason_class": "none",
+            "rationale": "change_descriptors=null IS the benign 'no parameter changes' sentinel in the fixture model, not a missing market input."
+          },
+          {
+            "row_id": "O9",
+            "field": "authorized_events",
+            "variant": "none",
+            "category": "authorized_events_structural",
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "reason_class": "none",
+            "rationale": "authorized_events is a structural C-FUSE-EVAL signature argument (not a market input); null means no owner cards when no parameter changed."
+          }
+        ],
+        "by_design_exclusion_violations": [],
+        "reconciled_auto_cleared_variants": [
+          {
+            "row_id": "V2",
+            "field": "fund.corporate_action.announced",
+            "variant": "reconciled_ca_missing",
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "reason_class": "reconciled",
+            "rationale": "V2 corporate action carries valid type='split' with ledger_adjusted=True and reconciles_exactly=True, triggering the documented auto-clear branch."
+          },
+          {
+            "row_id": "V2",
+            "field": "fund.corporate_action.announced",
+            "variant": "reconciled_ca_none",
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "reason_class": "reconciled",
+            "rationale": "V2 corporate action carries valid type='split' with ledger_adjusted=True and reconciles_exactly=True, triggering the documented auto-clear branch."
+          },
+          {
+            "row_id": "V2",
+            "field": "fund.corporate_action.detected_in_price",
+            "variant": "reconciled_ca_missing",
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "reason_class": "reconciled",
+            "rationale": "V2 corporate action carries valid type='split' with ledger_adjusted=True and reconciles_exactly=True, triggering the documented auto-clear branch."
+          },
+          {
+            "row_id": "V2",
+            "field": "fund.corporate_action.detected_in_price",
+            "variant": "reconciled_ca_none",
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "reason_class": "reconciled",
+            "rationale": "V2 corporate action carries valid type='split' with ledger_adjusted=True and reconciles_exactly=True, triggering the documented auto-clear branch."
+          }
+        ],
+        "silent_passes": [],
+        "exceptions": []
+      }
+    },
+    "persistence": {
+      "id": "F1-A07",
+      "passed": true,
+      "evidence_counts": {
+        "scenarios_checked": 5,
+        "scenarios_passed": 5,
+        "roundtrip_equal": true
+      },
+      "details": {
+        "preconditions": {
+          "roundtrip_equal": true,
+          "pre_l2_latched": true,
+          "pre_o3_latched": true,
+          "pre_v4_active": true,
+          "pre_v4_count_4": true,
+          "restored_L2": {
+            "latch_reason": "drawdown_reached_2D_over_3",
+            "latched": true
+          },
+          "restored_O3": {
+            "latch_reason": "positions_beyond_tolerance",
+            "latched": true
+          },
+          "restored_V4_TQQQ": {
+            "active": true,
+            "below_threshold_sessions": 4,
+            "latched": false
+          }
+        },
+        "per_scenario": {
+          "restart": {
+            "passed": true,
+            "checks": {
+              "l2_row_latched": true,
+              "l2_next_latched": true,
+              "l2_latch_reason_eq": true,
+              "o3_row_latched": true,
+              "o3_next_latched": true,
+              "o3_latch_reason_eq": true,
+              "v4_prior_counter_eq_4": true,
+              "v4_row_active": true,
+              "v4_next_active": true,
+              "v4_row_counter_eq_5": true,
+              "v4_next_counter_eq_5": true
+            },
+            "observed": {
+              "L2_next": {
+                "latched": true,
+                "latch_reason": "drawdown_reached_2D_over_3"
+              },
+              "O3_next": {
+                "latched": true,
+                "latch_reason": "positions_beyond_tolerance"
+              },
+              "V4_TQQQ_next": {
+                "latched": false,
+                "active": true,
+                "below_threshold_sessions": 5
+              }
+            }
+          },
+          "deposit": {
+            "passed": true,
+            "checks": {
+              "l2_row_latched": true,
+              "l2_next_latched": true,
+              "l2_latch_reason_eq": true,
+              "o3_row_latched": true,
+              "o3_next_latched": true,
+              "o3_latch_reason_eq": true,
+              "v4_prior_counter_eq_4": true,
+              "v4_row_active": true,
+              "v4_next_active": true,
+              "v4_row_counter_eq_5": true,
+              "v4_next_counter_eq_5": true
+            },
+            "observed": {
+              "L2_next": {
+                "latched": true,
+                "latch_reason": "drawdown_reached_2D_over_3"
+              },
+              "O3_next": {
+                "latched": true,
+                "latch_reason": "positions_beyond_tolerance"
+              },
+              "V4_TQQQ_next": {
+                "latched": false,
+                "active": true,
+                "below_threshold_sessions": 5
+              }
+            }
+          },
+          "withdrawal": {
+            "passed": true,
+            "checks": {
+              "l2_row_latched": true,
+              "l2_next_latched": true,
+              "l2_latch_reason_eq": true,
+              "o3_row_latched": true,
+              "o3_next_latched": true,
+              "o3_latch_reason_eq": true,
+              "v4_prior_counter_eq_4": true,
+              "v4_row_active": true,
+              "v4_next_active": true,
+              "v4_row_counter_eq_5": true,
+              "v4_next_counter_eq_5": true
+            },
+            "observed": {
+              "L2_next": {
+                "latched": true,
+                "latch_reason": "drawdown_reached_2D_over_3"
+              },
+              "O3_next": {
+                "latched": true,
+                "latch_reason": "positions_beyond_tolerance"
+              },
+              "V4_TQQQ_next": {
+                "latched": false,
+                "active": true,
+                "below_threshold_sessions": 5
+              }
+            }
+          },
+          "split": {
+            "passed": true,
+            "checks": {
+              "l2_row_latched": true,
+              "l2_next_latched": true,
+              "l2_latch_reason_eq": true,
+              "o3_row_latched": true,
+              "o3_next_latched": true,
+              "o3_latch_reason_eq": true,
+              "v4_prior_counter_eq_4": true,
+              "v4_row_active": true,
+              "v4_next_active": true,
+              "v4_row_counter_eq_5": true,
+              "v4_next_counter_eq_5": true
+            },
+            "observed": {
+              "L2_next": {
+                "latched": true,
+                "latch_reason": "drawdown_reached_2D_over_3"
+              },
+              "O3_next": {
+                "latched": true,
+                "latch_reason": "positions_beyond_tolerance"
+              },
+              "V4_TQQQ_next": {
+                "latched": false,
+                "active": true,
+                "below_threshold_sessions": 5
+              }
+            }
+          },
+          "tier_change": {
+            "passed": true,
+            "checks": {
+              "l2_row_latched": true,
+              "l2_next_latched": true,
+              "l2_latch_reason_eq": true,
+              "o3_row_latched": true,
+              "o3_next_latched": true,
+              "o3_latch_reason_eq": true,
+              "v4_prior_counter_eq_4": true,
+              "v4_row_active": true,
+              "v4_next_active": true,
+              "v4_row_counter_eq_5": true,
+              "v4_next_counter_eq_5": true
+            },
+            "observed": {
+              "L2_next": {
+                "latched": true,
+                "latch_reason": "drawdown_reached_2D_over_3"
+              },
+              "O3_next": {
+                "latched": true,
+                "latch_reason": "positions_beyond_tolerance"
+              },
+              "V4_TQQQ_next": {
+                "latched": false,
+                "active": true,
+                "below_threshold_sessions": 5
+              }
+            }
+          }
+        }
+      }
+    },
+    "precedence": {
+      "id": "F1-A08",
+      "passed": true,
+      "evidence_counts": {
+        "fixtures_checked": 4,
+        "fixtures_passed": 4
+      },
+      "details": {
+        "per_fixture": {
+          "a_o3_o4_v3_halt": {
+            "passed": true,
+            "row_checks": {
+              "O3_HALT": true,
+              "O4_TQQQ_ORDER_UNKNOWN": true,
+              "V3_TQQQ_DE_RISK": true
+            },
+            "effective_state_match": true,
+            "expected_effective_state_by_scope": {
+              "account": "HALT",
+              "fund:TQQQ": "HALT",
+              "fund:SOXL": "HALT",
+              "symbol:TQQQ": "HALT",
+              "symbol:SOXL": "HALT",
+              "joint": "HALT"
+            },
+            "actual_effective_state_by_scope": {
+              "account": "HALT",
+              "fund:TQQQ": "HALT",
+              "fund:SOXL": "HALT",
+              "symbol:TQQQ": "HALT",
+              "symbol:SOXL": "HALT",
+              "joint": "HALT"
+            }
+          },
+          "b_o4_l2_scoped": {
+            "passed": true,
+            "row_checks": {
+              "O4_TQQQ_ORDER_UNKNOWN": true,
+              "L2_NO_NEW_RISK": true
+            },
+            "effective_state_match": true,
+            "expected_effective_state_by_scope": {
+              "account": "NO-NEW-RISK",
+              "fund:TQQQ": "NORMAL",
+              "fund:SOXL": "NORMAL",
+              "symbol:TQQQ": "ORDER-UNKNOWN",
+              "symbol:SOXL": "NORMAL",
+              "joint": "NORMAL"
+            },
+            "actual_effective_state_by_scope": {
+              "account": "NO-NEW-RISK",
+              "fund:TQQQ": "NORMAL",
+              "fund:SOXL": "NORMAL",
+              "symbol:TQQQ": "ORDER-UNKNOWN",
+              "symbol:SOXL": "NORMAL",
+              "joint": "NORMAL"
+            }
+          },
+          "c_v3_v1_same_fund": {
+            "passed": true,
+            "row_checks": {
+              "V3_TQQQ_DE_RISK": true,
+              "V1_TQQQ_NO_NEW_RISK": true
+            },
+            "effective_state_match": true,
+            "expected_effective_state_by_scope": {
+              "account": "NORMAL",
+              "fund:TQQQ": "DE-RISK",
+              "fund:SOXL": "NORMAL",
+              "symbol:TQQQ": "NORMAL",
+              "symbol:SOXL": "NORMAL",
+              "joint": "NORMAL"
+            },
+            "actual_effective_state_by_scope": {
+              "account": "NORMAL",
+              "fund:TQQQ": "DE-RISK",
+              "fund:SOXL": "NORMAL",
+              "symbol:TQQQ": "NORMAL",
+              "symbol:SOXL": "NORMAL",
+              "joint": "NORMAL"
+            }
+          },
+          "d_l6_halt": {
+            "passed": true,
+            "row_checks": {
+              "L6_HALT": true
+            },
+            "effective_state_match": true,
+            "expected_effective_state_by_scope": {
+              "account": "HALT",
+              "fund:TQQQ": "HALT",
+              "fund:SOXL": "HALT",
+              "symbol:TQQQ": "HALT",
+              "symbol:SOXL": "HALT",
+              "joint": "HALT"
+            },
+            "actual_effective_state_by_scope": {
+              "account": "HALT",
+              "fund:TQQQ": "HALT",
+              "fund:SOXL": "HALT",
+              "symbol:TQQQ": "HALT",
+              "symbol:SOXL": "HALT",
+              "joint": "HALT"
+            }
+          }
+        }
+      }
+    },
+    "exposure_invariant": {
+      "id": "F1-A09",
+      "passed": true,
+      "evidence_counts": {
+        "evaluations_checked": 57,
+        "matrix_scenarios": 11,
+        "tier_repetitions": 42,
+        "precedence_fixtures": 4,
+        "violations": 0
+      },
+      "details": {
+        "spec_version": "fuse-eval-spec/v1",
+        "violations": []
+      }
+    },
+    "stub_swap": {
+      "id": "F1-A10",
+      "passed": true,
+      "evidence_counts": {
+        "rows_compared": 24,
+        "row_shape_mismatches": 0,
+        "engine_files_hashed": 4,
+        "engine_hash_echoed": true
+      },
+      "details": {
+        "signature_match": true,
+        "pinned_params": [
+          "spec_version",
+          "engine_hash",
+          "policy_hash",
+          "session",
+          "as_of",
+          "mode",
+          "validated_inputs",
+          "prior_row_state",
+          "authorized_events"
+        ],
+        "key_set_match": true,
+        "scope_match": true,
+        "shape_mismatches": [],
+        "engine_files": [
+          "engine/__init__.py",
+          "engine/canonical.py",
+          "engine/evaluate.py",
+          "engine/rows.py"
+        ],
+        "engine_bytes_sha256": "aadb1730970386d39d0077ef92c3a9f75deda97cc7b5ca08d647d57390a6cb0f",
+        "manifest_engine_hash": "f3be78a3e06001cdb9bdf71f04d4b15ffc7df0b3f4a4a2518b42a5f69ec83d70",
+        "manifest_hash_echoed": true
+      }
+    },
+    "register_proof": {
+      "id": "F1-A11",
+      "passed": true,
+      "evidence_counts": {
+        "unresolved_entries_verified": 3,
+        "engine_files_scanned": 4,
+        "numeric_literal_hits": 0,
+        "tolerance_null_dicts_verified": 1,
+        "runtime_checks_passed": 3
+      },
+      "details": {
+        "register_checks": {
+          "V7": {
+            "present": true,
+            "parameter_matches": true,
+            "disposition_unresolved": true,
+            "proposal_value_is_null": true,
+            "entry": {
+              "row_id": "V7",
+              "parameter": "V7 spread width",
+              "proposal_value": null,
+              "disposition": "UNRESOLVED-FAIL-CLOSED",
+              "source": "OI-COST-4 unresolved (BRIEF-FUSE-1 \u00a74.5)"
+            }
+          },
+          "O5": {
+            "present": true,
+            "parameter_matches": true,
+            "disposition_unresolved": true,
+            "proposal_value_is_null": true,
+            "entry": {
+              "row_id": "O5",
+              "parameter": "O5 price collar",
+              "proposal_value": null,
+              "disposition": "UNRESOLVED-FAIL-CLOSED",
+              "source": "OI-COST-4 unresolved (BRIEF-FUSE-1 \u00a74.5)"
+            }
+          },
+          "V5": {
+            "present": true,
+            "parameter_matches": true,
+            "disposition_unresolved": true,
+            "proposal_value_is_null": true,
+            "entry": {
+              "row_id": "V5",
+              "parameter": "V5 decay tolerance",
+              "proposal_value": null,
+              "disposition": "UNRESOLVED-FAIL-CLOSED",
+              "source": "no stated value in frozen sources (BRIEF-FUSE-1 \u00a74.5)"
+            }
+          }
+        },
+        "unresolved_row_ids": [
+          "O5",
+          "V5",
+          "V7"
+        ],
+        "engine_files": [
+          "engine/__init__.py",
+          "engine/canonical.py",
+          "engine/evaluate.py",
+          "engine/rows.py"
+        ],
+        "numeric_literal_hits": [],
+        "tolerance_null_dicts_verified": [
+          {
+            "file": "engine/rows.py",
+            "line": 1813,
+            "key": "tolerance"
+          }
+        ],
+        "runtime_checks": {
+          "V5_fail_closed": true,
+          "V7_fail_closed": true,
+          "O5_fail_closed": true
+        }
+      }
+    },
+    "offline_scan": {
+      "id": "F1-A13",
+      "passed": true,
+      "evidence_counts": {
+        "files_scanned": 6,
+        "forbidden_import_count": 0,
+        "forbidden_url_count": 0,
+        "forbidden_call_count": 0,
+        "forbidden_token_count": 0,
+        "broker_occurrences_count": 17,
+        "disallowed_broker_count": 0
+      },
+      "details": {
+        "scan_dirs_present": [
+          "engine",
+          "harness"
+        ],
+        "scan_dirs_absent": [
+          "tests"
+        ],
+        "scanned_files": [
+          "engine/__init__.py",
+          "engine/canonical.py",
+          "engine/evaluate.py",
+          "engine/rows.py",
+          "harness/batteries.py",
+          "harness/run_matrix.py"
+        ],
+        "scanner_self_scope": {
+          "file": "harness/batteries.py",
+          "start_line": 1829,
+          "end_line": 2033,
+          "note": "AST import/URL/call checks still inspect 100% of all files including this function; only raw token self-scan skips this definition span."
+        },
+        "forbidden_imports": [],
+        "forbidden_urls": [],
+        "forbidden_calls": [],
+        "forbidden_token_hits": [],
+        "broker_occurrences": [
+          {
+            "file": "engine/rows.py",
+            "line": 348,
+            "classification": "reconciliation_prose",
+            "text": "\"\"\"Return True if value represents a definitive broker terminal order status.\"\"\""
+          },
+          {
+            "file": "engine/rows.py",
+            "line": 2331,
+            "classification": "reconciliation_prose",
+            "text": "\"\"\"Evaluate O3 breaker: positions or cash beyond broker tolerance latches HALT.\"\"\""
+          },
+          {
+            "file": "engine/rows.py",
+            "line": 2337,
+            "classification": "broker_record_field",
+            "text": "broker = (validated_inputs or {}).get(\"broker_record\")"
+          },
+          {
+            "file": "engine/rows.py",
+            "line": 2338,
+            "classification": "broker_record_field",
+            "text": "pos_bt = broker.get(\"positions_beyond_tolerance\") if isinstance(broker, dict) else None"
+          },
+          {
+            "file": "engine/rows.py",
+            "line": 2339,
+            "classification": "broker_record_field",
+            "text": "cash_bt = broker.get(\"cash_beyond_tolerance\") if isinstance(broker, dict) else None"
+          },
+          {
+            "file": "engine/rows.py",
+            "line": 2347,
+            "classification": "broker_record_field",
+            "text": "reason = \"missing or invalid broker_record tolerance flags for O3 (fail-closed HALT)\""
+          },
+          {
+            "file": "engine/rows.py",
+            "line": 2360,
+            "classification": "reconciliation_prose",
+            "text": "f\"broker reconciliation breach (positions_beyond_tolerance={pos_bt}, \""
+          },
+          {
+            "file": "engine/rows.py",
+            "line": 2371,
+            "classification": "broker_record_field",
+            "text": "else \"broker_record_beyond_tolerance\""
+          },
+          {
+            "file": "engine/rows.py",
+            "line": 2381,
+            "classification": "reconciliation_prose",
+            "text": "\"O3 re-armed via authorized_events; broker positions and cash within tolerance\""
+          },
+          {
+            "file": "engine/rows.py",
+            "line": 2383,
+            "classification": "reconciliation_prose",
+            "text": "else \"broker positions and cash within tolerance\""
+          },
+          {
+            "file": "engine/rows.py",
+            "line": 2406,
+            "classification": "reconciliation_prose",
+            "text": "\"\"\"Evaluate O3 broker positions/cash reconciliation breaker.\"\"\""
+          },
+          {
+            "file": "engine/rows.py",
+            "line": 2544,
+            "classification": "reconciliation_prose",
+            "text": "f\"{sym} definitive broker terminal_status received; ORDER-UNKNOWN cleared\""
+          },
+          {
+            "file": "harness/batteries.py",
+            "line": 462,
+            "classification": "broker_record_field",
+            "text": "\"broker_record.positions_beyond_tolerance\","
+          },
+          {
+            "file": "harness/batteries.py",
+            "line": 463,
+            "classification": "broker_record_field",
+            "text": "\"broker_record.cash_beyond_tolerance\","
+          },
+          {
+            "file": "harness/batteries.py",
+            "line": 465,
+            "classification": "broker_record_field",
+            "text": "add_dict_key_variants((\"broker_record\",), field_name.split(\".\", 1)[1])"
+          },
+          {
+            "file": "harness/batteries.py",
+            "line": 927,
+            "classification": "broker_record_field",
+            "text": "trip_inputs[\"broker_record\"][\"positions_beyond_tolerance\"] = True"
+          },
+          {
+            "file": "harness/batteries.py",
+            "line": 1055,
+            "classification": "broker_record_field",
+            "text": "f_a[\"broker_record\"][\"positions_beyond_tolerance\"] = True"
+          }
+        ],
+        "disallowed_broker_occurrences": []
+      }
+    }
+  }
+}

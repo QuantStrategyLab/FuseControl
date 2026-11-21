@@ -59,6 +59,9 @@ L4_ACK_TOKENS: frozenset[str] = REARM_TOKENS | frozenset(
 
 V1_DEV_1S_THRESHOLD_PP = Decimal("0.75")
 V1_DEV_5S_THRESHOLD_PP = Decimal("2.0")
+V2_VALID_CA_TYPES: frozenset[str] = frozenset(
+    {"split", "reverse_split", "distribution"}
+)
 V4_VOL_MULTIPLE = Decimal("2")
 V4_CLEARING_SESSIONS_REQUIRED = 10
 
@@ -471,9 +474,13 @@ def _eval_L0_stateful(
     proposed_dec = _to_decimal(proposed_raw)
     joint_dec = _to_decimal(joint_raw)
 
-    joint_str = str(joint_dec) if joint_dec is not None else joint_raw
+    cap_valid = isinstance(sizing, dict) and cap_dec is not None and cap_dec >= 0
+    proposed_valid = (
+        isinstance(sizing, dict) and proposed_dec is not None and proposed_dec >= 0
+    )
+    joint_valid = isinstance(joint, dict) and joint_dec is not None and joint_dec >= 0
 
-    if cap_dec is None or proposed_dec is None or cap_dec < 0 or proposed_dec < 0:
+    if not (cap_valid and proposed_valid and joint_valid):
         cell = {
             "scope": "account",
             "state": "NORMAL",
@@ -481,17 +488,22 @@ def _eval_L0_stateful(
             "kind": "limit",
             "latched": False,
             "reason_class": "missing_input",
-            "reason": "missing or invalid sizing cap/proposed exposure (fail-closed, state contribution NONE)",
+            "reason": (
+                "missing or invalid sizing max_loss_cap/proposed_exposure or joint_exposure "
+                "for L0 (fail-closed, increases_blocked=True, state contribution NONE)"
+            ),
             "cap_output": {
-                "exposure_cap": str(cap_dec) if cap_dec is not None else cap_raw,
-                "proposed_exposure": str(proposed_dec) if proposed_dec is not None else proposed_raw,
-                "joint_exposure": joint_str,
-                "effective_capped_exposure": "0",
+                "exposure_cap": str(cap_dec) if cap_valid else None,
+                "proposed_exposure": str(proposed_dec) if proposed_valid else None,
+                "joint_exposure": str(joint_dec) if joint_valid else None,
+                "effective_capped_exposure": None,
                 "cap_breached": True,
+                "increases_blocked": True,
             },
         }
         return cell, {"latched": False}
 
+    joint_str = str(joint_dec)
     cap_breached = proposed_dec > cap_dec
     effective_dec = min(proposed_dec, cap_dec)
     reason_class = "cap_breached" if cap_breached else "none"
@@ -1364,17 +1376,38 @@ def _eval_V2_stateful(
                 reason_class = "none"
                 latch_reason = None
                 reason = f"no corporate action for {fund}"
-        elif not isinstance(ca, dict):
-            state = "HALT"
-            would_have_tripped = True
-            latched = True
-            reason_class = "missing_input"
-            latch_reason = "missing_input"
-            reason = f"{fund} invalid corporate_action payload for V2 (fail-closed HALT)"
+        elif not isinstance(ca, dict) or not (
+            isinstance(ca.get("type"), str) and ca.get("type") in V2_VALID_CA_TYPES
+        ):
+            if prior_latched and not rearmed:
+                state = "HALT"
+                would_have_tripped = True
+                latched = True
+                reason_class = "latched_prior_trip"
+                latch_reason = (
+                    prior_latch_reason
+                    if isinstance(prior_latch_reason, str) and prior_latch_reason
+                    else "corporate_action_reconciliation_failed"
+                )
+                reason = (
+                    f"{fund} prior V2 breaker remains latched ({latch_reason}) "
+                    "pending owner re-arm"
+                )
+            else:
+                state = "HALT"
+                would_have_tripped = True
+                latched = False
+                reason_class = "missing_input"
+                latch_reason = None
+                reason = (
+                    f"{fund} malformed corporate_action container for V2 "
+                    "(missing or invalid 'type', expected split/reverse_split/distribution); "
+                    f"HALT in fund:{fund} (not latched)"
+                )
         else:
             ledger_adjusted = ca.get("ledger_adjusted") is True
             reconciles_exactly = ca.get("reconciles_exactly") is True
-            ca_type = ca.get("type") or "corporate_action"
+            ca_type = ca["type"]
             if ledger_adjusted and reconciles_exactly:
                 if prior_latched and not rearmed:
                     state = "HALT"
