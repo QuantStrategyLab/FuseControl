@@ -1,0 +1,4662 @@
+{
+  "label": "skeleton-baseline",
+  "spec_version": "fuse-eval-spec/v1",
+  "engine_hash": "9a05c8f897fa80c114c9a127422daf1a2b1b5de15503ee0d586ced62cfeb76a8",
+  "code_hash": "9a05c8f897fa80c114c9a127422daf1a2b1b5de15503ee0d586ced62cfeb76a8",
+  "observation_class": "synthetic",
+  "enforcement_mode": "shadow_would_have_tripped",
+  "loss_breakers_armed": false,
+  "kelly_applied": false,
+  "orders_placed": 0,
+  "golden_table_sha256": "0d2316001922789368a5d93c1629912e7d67f3290e92f7e6852bf28faa2f28ee",
+  "scenario_fixtures_sha256": "21bfd04b8eb2395ae2b0de8c53cc26b79fd6b7acf7507ba3c893eb7144f523d6",
+  "passed": 191,
+  "failed": 73,
+  "total": 264,
+  "effective_state_by_scope": {
+    "passed": 6,
+    "failed": 5,
+    "total": 11,
+    "failures": [
+      {
+        "scenario": "split",
+        "expected": {
+          "account": "NORMAL",
+          "fund:TQQQ": "HALT",
+          "fund:SOXL": "NORMAL",
+          "symbol:TQQQ": "NORMAL",
+          "symbol:SOXL": "NORMAL",
+          "joint": "NORMAL"
+        },
+        "actual": {
+          "account": "NORMAL",
+          "fund:TQQQ": "NORMAL",
+          "fund:SOXL": "NORMAL",
+          "symbol:TQQQ": "NORMAL",
+          "symbol:SOXL": "NORMAL",
+          "joint": "NORMAL"
+        }
+      },
+      {
+        "scenario": "reverse_split",
+        "expected": {
+          "account": "NORMAL",
+          "fund:TQQQ": "NORMAL",
+          "fund:SOXL": "HALT",
+          "symbol:TQQQ": "NORMAL",
+          "symbol:SOXL": "NORMAL",
+          "joint": "NORMAL"
+        },
+        "actual": {
+          "account": "NORMAL",
+          "fund:TQQQ": "NORMAL",
+          "fund:SOXL": "NORMAL",
+          "symbol:TQQQ": "NORMAL",
+          "symbol:SOXL": "NORMAL",
+          "joint": "NORMAL"
+        }
+      },
+      {
+        "scenario": "stale",
+        "expected": {
+          "account": "NO-NEW-RISK",
+          "fund:TQQQ": "NORMAL",
+          "fund:SOXL": "NORMAL",
+          "symbol:TQQQ": "NORMAL",
+          "symbol:SOXL": "NORMAL",
+          "joint": "NORMAL"
+        },
+        "actual": {
+          "account": "NORMAL",
+          "fund:TQQQ": "NORMAL",
+          "fund:SOXL": "NORMAL",
+          "symbol:TQQQ": "NORMAL",
+          "symbol:SOXL": "NORMAL",
+          "joint": "NORMAL"
+        }
+      },
+      {
+        "scenario": "missing",
+        "expected": {
+          "account": "NO-NEW-RISK",
+          "fund:TQQQ": "NO-NEW-RISK",
+          "fund:SOXL": "NO-NEW-RISK",
+          "symbol:TQQQ": "NORMAL",
+          "symbol:SOXL": "NORMAL",
+          "joint": "NORMAL"
+        },
+        "actual": {
+          "account": "NORMAL",
+          "fund:TQQQ": "NORMAL",
+          "fund:SOXL": "NORMAL",
+          "symbol:TQQQ": "NORMAL",
+          "symbol:SOXL": "NORMAL",
+          "joint": "NORMAL"
+        }
+      },
+      {
+        "scenario": "restart",
+        "expected": {
+          "account": "NO-NEW-RISK",
+          "fund:TQQQ": "NO-NEW-RISK",
+          "fund:SOXL": "NORMAL",
+          "symbol:TQQQ": "NORMAL",
+          "symbol:SOXL": "NORMAL",
+          "joint": "NORMAL"
+        },
+        "actual": {
+          "account": "NORMAL",
+          "fund:TQQQ": "NORMAL",
+          "fund:SOXL": "NORMAL",
+          "symbol:TQQQ": "NORMAL",
+          "symbol:SOXL": "NORMAL",
+          "joint": "NORMAL"
+        }
+      }
+    ]
+  },
+  "per_scenario": {
+    "normal": {
+      "passed": 18,
+      "failed": 6,
+      "total": 24,
+      "effective_state_match": true,
+      "effective_state_expected": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "effective_state_actual": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "envelope_match": true
+    },
+    "deposit": {
+      "passed": 18,
+      "failed": 6,
+      "total": 24,
+      "effective_state_match": true,
+      "effective_state_expected": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "effective_state_actual": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "envelope_match": true
+    },
+    "withdrawal": {
+      "passed": 18,
+      "failed": 6,
+      "total": 24,
+      "effective_state_match": true,
+      "effective_state_expected": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "effective_state_actual": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "envelope_match": true
+    },
+    "split": {
+      "passed": 17,
+      "failed": 7,
+      "total": 24,
+      "effective_state_match": false,
+      "effective_state_expected": {
+        "account": "NORMAL",
+        "fund:TQQQ": "HALT",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "effective_state_actual": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "envelope_match": true
+    },
+    "reverse_split": {
+      "passed": 17,
+      "failed": 7,
+      "total": 24,
+      "effective_state_match": false,
+      "effective_state_expected": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "HALT",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "effective_state_actual": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "envelope_match": true
+    },
+    "stale": {
+      "passed": 17,
+      "failed": 7,
+      "total": 24,
+      "effective_state_match": false,
+      "effective_state_expected": {
+        "account": "NO-NEW-RISK",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "effective_state_actual": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "envelope_match": true
+    },
+    "missing": {
+      "passed": 17,
+      "failed": 7,
+      "total": 24,
+      "effective_state_match": false,
+      "effective_state_expected": {
+        "account": "NO-NEW-RISK",
+        "fund:TQQQ": "NO-NEW-RISK",
+        "fund:SOXL": "NO-NEW-RISK",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "effective_state_actual": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "envelope_match": true
+    },
+    "restart": {
+      "passed": 17,
+      "failed": 7,
+      "total": 24,
+      "effective_state_match": false,
+      "effective_state_expected": {
+        "account": "NO-NEW-RISK",
+        "fund:TQQQ": "NO-NEW-RISK",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "effective_state_actual": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "envelope_match": true
+    },
+    "tier_change": {
+      "passed": 18,
+      "failed": 6,
+      "total": 24,
+      "effective_state_match": true,
+      "effective_state_expected": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "effective_state_actual": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "envelope_match": true
+    },
+    "holiday": {
+      "passed": 17,
+      "failed": 7,
+      "total": 24,
+      "effective_state_match": true,
+      "effective_state_expected": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "effective_state_actual": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "envelope_match": true
+    },
+    "half_day": {
+      "passed": 17,
+      "failed": 7,
+      "total": 24,
+      "effective_state_match": true,
+      "effective_state_expected": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "effective_state_actual": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      },
+      "envelope_match": true
+    }
+  },
+  "failures": [
+    {
+      "scenario": "normal",
+      "row": "V4",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "normal",
+      "row": "V5",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        },
+        "diagnostic_output": {
+          "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+          "by_fund": {
+            "TQQQ": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            },
+            "SOXL": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "normal",
+      "row": "V6",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        },
+        "diagnostic_output": {
+          "by_fund": {
+            "TQQQ": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            },
+            "SOXL": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "normal",
+      "row": "V7",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "normal",
+      "row": "O5",
+      "expected": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "rejections_this_session": 1
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "normal",
+      "row": "J1",
+      "expected": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "headroom_output": {
+          "joint_exposure": "0.35",
+          "joint_cap": "0.60",
+          "headroom": "0.25",
+          "trim_threshold_110pct": "0.66",
+          "increases_blocked": false,
+          "trim_required_next_session": false
+        }
+      },
+      "actual": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "deposit",
+      "row": "V4",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "deposit",
+      "row": "V5",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        },
+        "diagnostic_output": {
+          "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+          "by_fund": {
+            "TQQQ": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            },
+            "SOXL": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "deposit",
+      "row": "V6",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        },
+        "diagnostic_output": {
+          "by_fund": {
+            "TQQQ": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            },
+            "SOXL": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "deposit",
+      "row": "V7",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "deposit",
+      "row": "O5",
+      "expected": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "rejections_this_session": 1
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "deposit",
+      "row": "J1",
+      "expected": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "headroom_output": {
+          "joint_exposure": "0.35",
+          "joint_cap": "0.60",
+          "headroom": "0.25",
+          "trim_threshold_110pct": "0.66",
+          "increases_blocked": false,
+          "trim_required_next_session": false
+        }
+      },
+      "actual": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "withdrawal",
+      "row": "V4",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "withdrawal",
+      "row": "V5",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        },
+        "diagnostic_output": {
+          "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+          "by_fund": {
+            "TQQQ": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            },
+            "SOXL": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "withdrawal",
+      "row": "V6",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        },
+        "diagnostic_output": {
+          "by_fund": {
+            "TQQQ": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            },
+            "SOXL": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "withdrawal",
+      "row": "V7",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "withdrawal",
+      "row": "O5",
+      "expected": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "rejections_this_session": 1
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "withdrawal",
+      "row": "J1",
+      "expected": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "headroom_output": {
+          "joint_exposure": "0.35",
+          "joint_cap": "0.60",
+          "headroom": "0.25",
+          "trim_threshold_110pct": "0.66",
+          "increases_blocked": false,
+          "trim_required_next_session": false
+        }
+      },
+      "actual": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "split",
+      "row": "V2",
+      "expected": {
+        "scope": "fund",
+        "state": "HALT",
+        "would_have_tripped": true,
+        "kind": "breaker-with-auto-clear-branch",
+        "latched": false,
+        "reason_class": "corporate_action_pending",
+        "by_fund": {
+          "TQQQ": {
+            "state": "HALT",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "corporate_action_pending"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker-with-auto-clear-branch",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "split",
+      "row": "V4",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "split",
+      "row": "V5",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        },
+        "diagnostic_output": {
+          "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+          "by_fund": {
+            "TQQQ": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            },
+            "SOXL": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "split",
+      "row": "V6",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        },
+        "diagnostic_output": {
+          "by_fund": {
+            "TQQQ": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            },
+            "SOXL": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "split",
+      "row": "V7",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "split",
+      "row": "O5",
+      "expected": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "rejections_this_session": 1
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "split",
+      "row": "J1",
+      "expected": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "headroom_output": {
+          "joint_exposure": "0.35",
+          "joint_cap": "0.60",
+          "headroom": "0.25",
+          "trim_threshold_110pct": "0.66",
+          "increases_blocked": false,
+          "trim_required_next_session": false
+        }
+      },
+      "actual": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "reverse_split",
+      "row": "V2",
+      "expected": {
+        "scope": "fund",
+        "state": "HALT",
+        "would_have_tripped": true,
+        "kind": "breaker-with-auto-clear-branch",
+        "latched": false,
+        "reason_class": "corporate_action_pending",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "HALT",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "corporate_action_pending"
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker-with-auto-clear-branch",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "reverse_split",
+      "row": "V4",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "reverse_split",
+      "row": "V5",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        },
+        "diagnostic_output": {
+          "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+          "by_fund": {
+            "TQQQ": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            },
+            "SOXL": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "reverse_split",
+      "row": "V6",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        },
+        "diagnostic_output": {
+          "by_fund": {
+            "TQQQ": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            },
+            "SOXL": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "reverse_split",
+      "row": "V7",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "reverse_split",
+      "row": "O5",
+      "expected": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "rejections_this_session": 1
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "reverse_split",
+      "row": "J1",
+      "expected": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "headroom_output": {
+          "joint_exposure": "0.35",
+          "joint_cap": "0.60",
+          "headroom": "0.25",
+          "trim_threshold_110pct": "0.66",
+          "increases_blocked": false,
+          "trim_required_next_session": false
+        }
+      },
+      "actual": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "stale",
+      "row": "V4",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "stale",
+      "row": "V5",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        },
+        "diagnostic_output": {
+          "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+          "by_fund": {
+            "TQQQ": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            },
+            "SOXL": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "stale",
+      "row": "V6",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        },
+        "diagnostic_output": {
+          "by_fund": {
+            "TQQQ": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            },
+            "SOXL": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "stale",
+      "row": "V7",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "stale",
+      "row": "O1",
+      "expected": {
+        "scope": "account",
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "stale_input"
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "stale",
+      "row": "O5",
+      "expected": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "rejections_this_session": 1
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "stale",
+      "row": "J1",
+      "expected": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "headroom_output": {
+          "joint_exposure": "0.35",
+          "joint_cap": "0.60",
+          "headroom": "0.25",
+          "trim_threshold_110pct": "0.66",
+          "increases_blocked": false,
+          "trim_required_next_session": false
+        }
+      },
+      "actual": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "missing",
+      "row": "V4",
+      "expected": {
+        "scope": "fund",
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "missing_input",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NO-NEW-RISK",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "missing_input",
+            "active": true,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10,
+            "substituted_vol": "0.70"
+          },
+          "SOXL": {
+            "state": "NO-NEW-RISK",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "missing_input",
+            "active": true,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10,
+            "substituted_vol": "0.70"
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "missing",
+      "row": "V5",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        },
+        "diagnostic_output": {
+          "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+          "by_fund": {
+            "TQQQ": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            },
+            "SOXL": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "missing",
+      "row": "V6",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        },
+        "diagnostic_output": {
+          "by_fund": {
+            "TQQQ": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            },
+            "SOXL": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "missing",
+      "row": "V7",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "missing",
+      "row": "O1",
+      "expected": {
+        "scope": "account",
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "missing_input"
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "missing",
+      "row": "O5",
+      "expected": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "rejections_this_session": 1
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "missing",
+      "row": "J1",
+      "expected": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "headroom_output": {
+          "joint_exposure": "0.35",
+          "joint_cap": "0.60",
+          "headroom": "0.25",
+          "trim_threshold_110pct": "0.66",
+          "increases_blocked": false,
+          "trim_required_next_session": false
+        }
+      },
+      "actual": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "restart",
+      "row": "L2",
+      "expected": {
+        "scope": "account",
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": true,
+        "reason_class": "latched_prior_trip"
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "restart",
+      "row": "V4",
+      "expected": {
+        "scope": "fund",
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "active_clearing_counter",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NO-NEW-RISK",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "active_clearing_counter",
+            "active": true,
+            "prior_below_threshold_sessions": 4,
+            "below_threshold_sessions": 5,
+            "clearing_threshold_sessions": 10
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "restart",
+      "row": "V5",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        },
+        "diagnostic_output": {
+          "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+          "by_fund": {
+            "TQQQ": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            },
+            "SOXL": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "restart",
+      "row": "V6",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        },
+        "diagnostic_output": {
+          "by_fund": {
+            "TQQQ": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            },
+            "SOXL": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "restart",
+      "row": "V7",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "restart",
+      "row": "O5",
+      "expected": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "rejections_this_session": 1
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "restart",
+      "row": "J1",
+      "expected": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "headroom_output": {
+          "joint_exposure": "0.35",
+          "joint_cap": "0.60",
+          "headroom": "0.25",
+          "trim_threshold_110pct": "0.66",
+          "increases_blocked": false,
+          "trim_required_next_session": false
+        }
+      },
+      "actual": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "tier_change",
+      "row": "V4",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "tier_change",
+      "row": "V5",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        },
+        "diagnostic_output": {
+          "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+          "by_fund": {
+            "TQQQ": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            },
+            "SOXL": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "tier_change",
+      "row": "V6",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        },
+        "diagnostic_output": {
+          "by_fund": {
+            "TQQQ": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            },
+            "SOXL": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "tier_change",
+      "row": "V7",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "tier_change",
+      "row": "O5",
+      "expected": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "rejections_this_session": 1
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "tier_change",
+      "row": "J1",
+      "expected": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "headroom_output": {
+          "joint_exposure": "0.35",
+          "joint_cap": "0.60",
+          "headroom": "0.25",
+          "trim_threshold_110pct": "0.66",
+          "increases_blocked": false,
+          "trim_required_next_session": false
+        }
+      },
+      "actual": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "holiday",
+      "row": "V4",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "holiday",
+      "row": "V5",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        },
+        "diagnostic_output": {
+          "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+          "by_fund": {
+            "TQQQ": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            },
+            "SOXL": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "holiday",
+      "row": "V6",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        },
+        "diagnostic_output": {
+          "by_fund": {
+            "TQQQ": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            },
+            "SOXL": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "holiday",
+      "row": "V7",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "holiday",
+      "row": "O2",
+      "expected": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "calendar_closed"
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "holiday",
+      "row": "O5",
+      "expected": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "rejections_this_session": 1
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "holiday",
+      "row": "J1",
+      "expected": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "headroom_output": {
+          "joint_exposure": "0.35",
+          "joint_cap": "0.60",
+          "headroom": "0.25",
+          "trim_threshold_110pct": "0.66",
+          "increases_blocked": false,
+          "trim_required_next_session": false
+        }
+      },
+      "actual": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "half_day",
+      "row": "V4",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none",
+            "active": false,
+            "prior_below_threshold_sessions": 0,
+            "below_threshold_sessions": 0,
+            "clearing_threshold_sessions": 10
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "half_day",
+      "row": "V5",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        },
+        "diagnostic_output": {
+          "tolerance_disposition": "UNRESOLVED-FAIL-CLOSED",
+          "by_fund": {
+            "TQQQ": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            },
+            "SOXL": {
+              "decay_shortfall_60s": "0.0050",
+              "decay_predicted_60s": "0.0080",
+              "excess_shortfall_60s": "-0.0030",
+              "tolerance": null,
+              "notify": true,
+              "fail_closed": true,
+              "persistent_sessions": 1,
+              "escalated_to_v1": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "half_day",
+      "row": "V6",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        },
+        "diagnostic_output": {
+          "by_fund": {
+            "TQQQ": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            },
+            "SOXL": {
+              "measured_per_unit": "0.0060",
+              "quarter_shrunk_excess": "0.0130",
+              "headroom": "0.0070",
+              "notify": false,
+              "policy_review_required": false
+            }
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "half_day",
+      "row": "V7",
+      "expected": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": true,
+            "latched": false,
+            "reason_class": "unresolved_fail_closed"
+          }
+        }
+      },
+      "actual": {
+        "scope": "fund",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none",
+        "by_fund": {
+          "TQQQ": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          },
+          "SOXL": {
+            "state": "NORMAL",
+            "would_have_tripped": false,
+            "latched": false,
+            "reason_class": "none"
+          }
+        }
+      }
+    },
+    {
+      "scenario": "half_day",
+      "row": "O2",
+      "expected": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "calendar_closed"
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "half_day",
+      "row": "O5",
+      "expected": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "unresolved_fail_closed",
+        "rejections_this_session": 1
+      },
+      "actual": {
+        "scope": "account",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker on third rejection (stateful count)",
+        "latched": false,
+        "reason_class": "none"
+      }
+    },
+    {
+      "scenario": "half_day",
+      "row": "J1",
+      "expected": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none",
+        "headroom_output": {
+          "joint_exposure": "0.35",
+          "joint_cap": "0.60",
+          "headroom": "0.25",
+          "trim_threshold_110pct": "0.66",
+          "increases_blocked": false,
+          "trim_required_next_session": false
+        }
+      },
+      "actual": {
+        "scope": "joint",
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason_class": "none"
+      }
+    }
+  ],
+  "tier_repetitions": {
+    "passed": 9,
+    "failed": 33,
+    "total": 42,
+    "failures": [
+      {
+        "repetition_id": "conservative__L0__above_cap",
+        "tier": "conservative",
+        "row": "L0",
+        "case": "above_cap",
+        "expected": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "cap_breached",
+          "cap_output": {
+            "exposure_cap": "0.09",
+            "proposed_exposure": "0.12",
+            "joint_exposure": "0.12",
+            "effective_capped_exposure": "0.09",
+            "cap_breached": true
+          }
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "cap_output": {
+            "exposure_cap": "0.09",
+            "proposed_exposure": "0.12",
+            "joint_exposure": "0.12",
+            "effective_capped_exposure": "0.12",
+            "cap_breached": false
+          }
+        }
+      },
+      {
+        "repetition_id": "conservative__L1__0.2D_no_trip",
+        "tier": "conservative",
+        "row": "L1",
+        "case": "0.2D_no_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "locked_against_loosening": false,
+          "notify": false
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "conservative__L1__0.5D_trip",
+        "tier": "conservative",
+        "row": "L1",
+        "case": "0.5D_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "drawdown_reached_D_over_3",
+          "locked_against_loosening": true,
+          "notify": true
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "conservative__L2__exact_2D_over_3_trip",
+        "tier": "conservative",
+        "row": "L2",
+        "case": "exact_2D_over_3_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NO-NEW-RISK",
+          "would_have_tripped": true,
+          "kind": "breaker",
+          "latched": true,
+          "reason_class": "drawdown_reached_2D_over_3"
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "conservative__L2__0.8D_trip",
+        "tier": "conservative",
+        "row": "L2",
+        "case": "0.8D_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NO-NEW-RISK",
+          "would_have_tripped": true,
+          "kind": "breaker",
+          "latched": true,
+          "reason_class": "drawdown_reached_2D_over_3"
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "conservative__L3__0.8D_no_trip",
+        "tier": "conservative",
+        "row": "L3",
+        "case": "0.8D_no_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "conservative__L3__1.05D_trip",
+        "tier": "conservative",
+        "row": "L3",
+        "case": "1.05D_trip",
+        "expected": {
+          "scope": "account",
+          "state": "DE-RISK",
+          "would_have_tripped": true,
+          "kind": "breaker",
+          "latched": true,
+          "reason_class": "drawdown_reached_D",
+          "cooling_off_days_remaining": 30,
+          "locked_flat": true,
+          "loss_record_cleared": false
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "conservative__L4__0.12D_trip",
+        "tier": "conservative",
+        "row": "L4",
+        "case": "0.12D_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NO-NEW-RISK",
+          "would_have_tripped": true,
+          "kind": "breaker",
+          "latched": true,
+          "reason_class": "session_loss_reached_D_over_10"
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "conservative__J1__0.9x_cap_ok",
+        "tier": "conservative",
+        "row": "J1",
+        "case": "0.9x_cap_ok",
+        "expected": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "headroom_output": {
+            "joint_exposure": "0.18",
+            "joint_cap": "0.20",
+            "headroom": "0.02",
+            "trim_threshold_110pct": "0.22",
+            "increases_blocked": false,
+            "trim_required_next_session": false
+          }
+        },
+        "actual": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "conservative__J1__1.05x_cap_blocked",
+        "tier": "conservative",
+        "row": "J1",
+        "case": "1.05x_cap_blocked",
+        "expected": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "joint_cap_exceeded",
+          "headroom_output": {
+            "joint_exposure": "0.21",
+            "joint_cap": "0.20",
+            "headroom": "-0.01",
+            "trim_threshold_110pct": "0.22",
+            "increases_blocked": true,
+            "trim_required_next_session": false
+          }
+        },
+        "actual": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "conservative__J1__1.15x_cap_trim",
+        "tier": "conservative",
+        "row": "J1",
+        "case": "1.15x_cap_trim",
+        "expected": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "joint_cap_trim_required",
+          "headroom_output": {
+            "joint_exposure": "0.23",
+            "joint_cap": "0.20",
+            "headroom": "-0.03",
+            "trim_threshold_110pct": "0.22",
+            "increases_blocked": true,
+            "trim_required_next_session": true
+          }
+        },
+        "actual": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "balanced__L0__above_cap",
+        "tier": "balanced",
+        "row": "L0",
+        "case": "above_cap",
+        "expected": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "cap_breached",
+          "cap_output": {
+            "exposure_cap": "0.20",
+            "proposed_exposure": "0.25",
+            "joint_exposure": "0.25",
+            "effective_capped_exposure": "0.20",
+            "cap_breached": true
+          }
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "cap_output": {
+            "exposure_cap": "0.20",
+            "proposed_exposure": "0.25",
+            "joint_exposure": "0.25",
+            "effective_capped_exposure": "0.25",
+            "cap_breached": false
+          }
+        }
+      },
+      {
+        "repetition_id": "balanced__L1__0.2D_no_trip",
+        "tier": "balanced",
+        "row": "L1",
+        "case": "0.2D_no_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "locked_against_loosening": false,
+          "notify": false
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "balanced__L1__0.5D_trip",
+        "tier": "balanced",
+        "row": "L1",
+        "case": "0.5D_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "drawdown_reached_D_over_3",
+          "locked_against_loosening": true,
+          "notify": true
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "balanced__L2__exact_2D_over_3_trip",
+        "tier": "balanced",
+        "row": "L2",
+        "case": "exact_2D_over_3_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NO-NEW-RISK",
+          "would_have_tripped": true,
+          "kind": "breaker",
+          "latched": true,
+          "reason_class": "drawdown_reached_2D_over_3"
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "balanced__L2__0.8D_trip",
+        "tier": "balanced",
+        "row": "L2",
+        "case": "0.8D_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NO-NEW-RISK",
+          "would_have_tripped": true,
+          "kind": "breaker",
+          "latched": true,
+          "reason_class": "drawdown_reached_2D_over_3"
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "balanced__L3__0.8D_no_trip",
+        "tier": "balanced",
+        "row": "L3",
+        "case": "0.8D_no_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "balanced__L3__1.05D_trip",
+        "tier": "balanced",
+        "row": "L3",
+        "case": "1.05D_trip",
+        "expected": {
+          "scope": "account",
+          "state": "DE-RISK",
+          "would_have_tripped": true,
+          "kind": "breaker",
+          "latched": true,
+          "reason_class": "drawdown_reached_D",
+          "cooling_off_days_remaining": 30,
+          "locked_flat": true,
+          "loss_record_cleared": false
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "balanced__L4__0.12D_trip",
+        "tier": "balanced",
+        "row": "L4",
+        "case": "0.12D_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NO-NEW-RISK",
+          "would_have_tripped": true,
+          "kind": "breaker",
+          "latched": true,
+          "reason_class": "session_loss_reached_D_over_10"
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "balanced__J1__0.9x_cap_ok",
+        "tier": "balanced",
+        "row": "J1",
+        "case": "0.9x_cap_ok",
+        "expected": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "headroom_output": {
+            "joint_exposure": "0.36",
+            "joint_cap": "0.40",
+            "headroom": "0.04",
+            "trim_threshold_110pct": "0.44",
+            "increases_blocked": false,
+            "trim_required_next_session": false
+          }
+        },
+        "actual": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "balanced__J1__1.05x_cap_blocked",
+        "tier": "balanced",
+        "row": "J1",
+        "case": "1.05x_cap_blocked",
+        "expected": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "joint_cap_exceeded",
+          "headroom_output": {
+            "joint_exposure": "0.42",
+            "joint_cap": "0.40",
+            "headroom": "-0.02",
+            "trim_threshold_110pct": "0.44",
+            "increases_blocked": true,
+            "trim_required_next_session": false
+          }
+        },
+        "actual": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "balanced__J1__1.15x_cap_trim",
+        "tier": "balanced",
+        "row": "J1",
+        "case": "1.15x_cap_trim",
+        "expected": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "joint_cap_trim_required",
+          "headroom_output": {
+            "joint_exposure": "0.46",
+            "joint_cap": "0.40",
+            "headroom": "-0.06",
+            "trim_threshold_110pct": "0.44",
+            "increases_blocked": true,
+            "trim_required_next_session": true
+          }
+        },
+        "actual": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "aggressive__L0__above_cap",
+        "tier": "aggressive",
+        "row": "L0",
+        "case": "above_cap",
+        "expected": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "cap_breached",
+          "cap_output": {
+            "exposure_cap": "0.39",
+            "proposed_exposure": "0.45",
+            "joint_exposure": "0.45",
+            "effective_capped_exposure": "0.39",
+            "cap_breached": true
+          }
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "cap_output": {
+            "exposure_cap": "0.39",
+            "proposed_exposure": "0.45",
+            "joint_exposure": "0.45",
+            "effective_capped_exposure": "0.45",
+            "cap_breached": false
+          }
+        }
+      },
+      {
+        "repetition_id": "aggressive__L1__0.2D_no_trip",
+        "tier": "aggressive",
+        "row": "L1",
+        "case": "0.2D_no_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none",
+          "locked_against_loosening": false,
+          "notify": false
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "aggressive__L1__0.5D_trip",
+        "tier": "aggressive",
+        "row": "L1",
+        "case": "0.5D_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "drawdown_reached_D_over_3",
+          "locked_against_loosening": true,
+          "notify": true
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "interlock",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "aggressive__L2__exact_2D_over_3_trip",
+        "tier": "aggressive",
+        "row": "L2",
+        "case": "exact_2D_over_3_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NO-NEW-RISK",
+          "would_have_tripped": true,
+          "kind": "breaker",
+          "latched": true,
+          "reason_class": "drawdown_reached_2D_over_3"
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "aggressive__L2__0.8D_trip",
+        "tier": "aggressive",
+        "row": "L2",
+        "case": "0.8D_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NO-NEW-RISK",
+          "would_have_tripped": true,
+          "kind": "breaker",
+          "latched": true,
+          "reason_class": "drawdown_reached_2D_over_3"
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "aggressive__L3__0.8D_no_trip",
+        "tier": "aggressive",
+        "row": "L3",
+        "case": "0.8D_no_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none",
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "aggressive__L3__1.05D_trip",
+        "tier": "aggressive",
+        "row": "L3",
+        "case": "1.05D_trip",
+        "expected": {
+          "scope": "account",
+          "state": "DE-RISK",
+          "would_have_tripped": true,
+          "kind": "breaker",
+          "latched": true,
+          "reason_class": "drawdown_reached_D",
+          "cooling_off_days_remaining": 30,
+          "locked_flat": true,
+          "loss_record_cleared": false
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "aggressive__L4__0.12D_trip",
+        "tier": "aggressive",
+        "row": "L4",
+        "case": "0.12D_trip",
+        "expected": {
+          "scope": "account",
+          "state": "NO-NEW-RISK",
+          "would_have_tripped": true,
+          "kind": "breaker",
+          "latched": true,
+          "reason_class": "session_loss_reached_D_over_10"
+        },
+        "actual": {
+          "scope": "account",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "breaker",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "aggressive__J1__0.9x_cap_ok",
+        "tier": "aggressive",
+        "row": "J1",
+        "case": "0.9x_cap_ok",
+        "expected": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none",
+          "headroom_output": {
+            "joint_exposure": "0.72",
+            "joint_cap": "0.80",
+            "headroom": "0.08",
+            "trim_threshold_110pct": "0.88",
+            "increases_blocked": false,
+            "trim_required_next_session": false
+          }
+        },
+        "actual": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "aggressive__J1__1.05x_cap_blocked",
+        "tier": "aggressive",
+        "row": "J1",
+        "case": "1.05x_cap_blocked",
+        "expected": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "joint_cap_exceeded",
+          "headroom_output": {
+            "joint_exposure": "0.84",
+            "joint_cap": "0.80",
+            "headroom": "-0.04",
+            "trim_threshold_110pct": "0.88",
+            "increases_blocked": true,
+            "trim_required_next_session": false
+          }
+        },
+        "actual": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none"
+        }
+      },
+      {
+        "repetition_id": "aggressive__J1__1.15x_cap_trim",
+        "tier": "aggressive",
+        "row": "J1",
+        "case": "1.15x_cap_trim",
+        "expected": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": true,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "joint_cap_trim_required",
+          "headroom_output": {
+            "joint_exposure": "0.92",
+            "joint_cap": "0.80",
+            "headroom": "-0.12",
+            "trim_threshold_110pct": "0.88",
+            "increases_blocked": true,
+            "trim_required_next_session": true
+          }
+        },
+        "actual": {
+          "scope": "joint",
+          "state": "NORMAL",
+          "would_have_tripped": false,
+          "kind": "limit",
+          "latched": false,
+          "reason_class": "none"
+        }
+      }
+    ]
+  }
+}
