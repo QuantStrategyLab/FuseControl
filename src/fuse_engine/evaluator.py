@@ -130,7 +130,6 @@ def evaluate(
     v5_outputs = {}
     v6_outputs = {}
     v7_outputs = {}
-    v5_escalated = {}
 
     for symbol in fund_symbols:
         fund_inputs = funds[symbol]
@@ -203,13 +202,13 @@ def evaluate(
             # At count 10, report 10 and remove the fund entry per Q1
             cst.clear_v4_state(next_row_state, symbol)
 
-        # V5 - decay monitor (B5: 40-session escalation)
+        # V5 - decay monitor (B5 canonical format per Q6)
         v5_result = rows_vehicle.evaluate_V5(fund_inputs, prior_row_state, authorized_events, symbol, session)
         v5_outputs[symbol] = v5_result
-        # Update V5 persistence counter
+        # Update V5 state - session identity per flag 4
         new_count = v5_result['outputs']['consecutive_sessions_beyond_tolerance']
-        st.set_counter(next_row_state, 'V5', f'fund:{symbol}', 'persistence_sessions', new_count)
-        v5_escalated[f'fund:{symbol}'] = v5_result['outputs']['escalated_to_v1']
+        escalated = v5_result['outputs']['escalated_to_v1']
+        cst.set_v5_state(next_row_state, symbol, new_count, escalated, session)
 
         # V6 - carrying cost
         v6_result = rows_vehicle.evaluate_V6(fund_inputs, prior_row_state, authorized_events, symbol)
@@ -230,10 +229,7 @@ def evaluate(
     rows_by_ID['V6'] = aggregate_diagnostic_row(v6_outputs)
     rows_by_ID['V7'] = aggregate_fund_row(v7_outputs, symbol_scoped=True)
 
-    # V2 and V4 state now written inline using canonical accessors per Q6
-    # Store V5 escalated state (B5)
-    if v5_escalated:
-        next_row_state['V5_escalated'] = v5_escalated
+    # V2, V4, V5 state now written inline using canonical accessors per Q6
 
     # ==== OPERATIONS ROWS (O1-O9, J1) ====
 

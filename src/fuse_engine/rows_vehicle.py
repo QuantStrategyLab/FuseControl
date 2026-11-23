@@ -474,14 +474,14 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Scope: fund
     State contribution: Diagnostic only until escalation; then NO-NEW-RISK
     Clearing: Diagnostic (stateful escalation)
-    Mechanism B5: persistence counter counts consecutive beyond-tolerance sessions,
+    Mechanism B5: persistence counter counts DISTINCT sessions (canonical format per Q6)
                   escalates to V1 treatment at 40 sessions
     """
-    scope = f'fund:{fund}'
-
-    # Get prior persistence counter
-    persistence_count = st.get_counter(prior_state, 'V5', scope, 'persistence_sessions', default=0)
-    prior_escalated = st.get_prior_state(prior_state, 'V5_escalated', {}).get(scope, False)
+    # Get prior V5 state from canonical format (flag 4 - includes session identity)
+    v5_state = cst.get_v5_state(prior_state, fund)
+    persistence_count = v5_state['consecutive_beyond_tolerance']
+    prior_escalated = v5_state['escalated']
+    last_session = v5_state['last_session']
 
     # Calculate excess shortfall from fund inputs
     shortfall_observed = inputs.get('shortfall_observed')
@@ -549,9 +549,14 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # Check if beyond tolerance
     beyond_tolerance = excess_shortfall > v5_tolerance
 
+    # B5: Count DISTINCT sessions - duplicate evaluations in same session don't double-count
     if beyond_tolerance:
-        # Increment persistence counter
-        new_count = persistence_count + 1
+        if last_session == session:
+            # Same session - don't increment (session deduplication per Q6)
+            new_count = persistence_count
+        else:
+            # New session - increment
+            new_count = persistence_count + 1
     else:
         # Reset counter
         new_count = 0
