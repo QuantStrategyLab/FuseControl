@@ -86,6 +86,24 @@ def evaluate_L0(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     cap_breached = joint_exposure > max_loss_cap
     increases_blocked = proposed_exposure > max_loss_cap
 
+    # Fix 4: tier_change re-based evaluation - report limits but don't trip
+    # O9 handles enforcement of unauthorized tier changes
+    tier_change_event = inputs.get('tier_change_event')
+    if tier_change_event:
+        # Re-based: report new tier limits in outputs but don't trip
+        return {
+            'state': 'NORMAL',
+            'would_have_tripped': False,
+            'kind': 'limit',
+            'latched': False,
+            'reason': 'none',
+            'outputs': {
+                'cap': max_loss_cap,
+                'cap_breached': cap_breached,
+                'increases_blocked': increases_blocked
+            }
+        }
+
     return {
         'state': 'NORMAL',
         'would_have_tripped': cap_breached or increases_blocked,
@@ -603,34 +621,25 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     market_halt_level = inputs.get('market_halt_level')
     index_returns = inputs.get('index_one_session_returns')
 
-    # Fail closed only if index_returns is missing (market_halt_level null = no halt, benign)
-    if index_returns is None:
-        return {
-            'state': 'HALT',
-            'would_have_tripped': True,
-            'kind': 'breaker',
-            'latched': True,
-            'reason': 'missing_input'
-        }
+    # Event-trigger rows don't fail closed on missing inputs (Fix 4):
+    # They require affirmative trigger evidence; O1 carries the data-integrity trip
+    # null market_halt_level = no halt (benign)
+    # null index_returns = no index data, thus no affirmative evidence of 10% fall (benign)
 
     # Check Level 3 halt (null = no halt, benign)
-    level_3_halt = market_halt_level == 3
+    level_3_halt = market_halt_level == 3 if market_halt_level is not None else False
 
-    # Check 10% fall in either index
+    # Check 10% fall in either index (only if index_returns present)
     index_fall = False
-    try:
-        for index, ret in index_returns.items():
-            if ret is not None and float(ret) <= -0.10:
-                index_fall = True
-                break
-    except (TypeError, ValueError):
-        return {
-            'state': 'HALT',
-            'would_have_tripped': True,
-            'kind': 'breaker',
-            'latched': True,
-            'reason': 'missing_input'
-        }
+    if index_returns is not None:
+        try:
+            for index, ret in index_returns.items():
+                if ret is not None and float(ret) <= -0.10:
+                    index_fall = True
+                    break
+        except (TypeError, ValueError):
+            # Malformed data - treat as no affirmative evidence
+            index_fall = False
 
     triggered = level_3_halt or index_fall
 

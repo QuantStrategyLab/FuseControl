@@ -1,530 +1,135 @@
 {
   "base_cells": {
-    "failed": 53,
-    "failures": [
-      {
-        "cell": "normal.V5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
-        ],
-        "row_id": "V5",
-        "scenario": "normal"
-      },
-      {
-        "cell": "normal.V6",
-        "diffs": [
-          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
-        ],
-        "row_id": "V6",
-        "scenario": "normal"
-      },
-      {
-        "cell": "normal.V7",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "V7",
-        "scenario": "normal"
-      },
-      {
-        "cell": "normal.O5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "O5",
-        "scenario": "normal"
-      },
-      {
-        "cell": "deposit.V5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
-        ],
-        "row_id": "V5",
-        "scenario": "deposit"
-      },
-      {
-        "cell": "deposit.V6",
-        "diffs": [
-          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
-        ],
-        "row_id": "V6",
-        "scenario": "deposit"
-      },
-      {
-        "cell": "deposit.V7",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "V7",
-        "scenario": "deposit"
-      },
-      {
-        "cell": "deposit.O5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "O5",
-        "scenario": "deposit"
-      },
-      {
-        "cell": "withdrawal.V5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
-        ],
-        "row_id": "V5",
-        "scenario": "withdrawal"
-      },
-      {
-        "cell": "withdrawal.V6",
-        "diffs": [
-          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
-        ],
-        "row_id": "V6",
-        "scenario": "withdrawal"
-      },
-      {
-        "cell": "withdrawal.V7",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "V7",
-        "scenario": "withdrawal"
-      },
-      {
-        "cell": "withdrawal.O5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "O5",
-        "scenario": "withdrawal"
-      },
-      {
-        "cell": "split.V2",
-        "diffs": [
-          "Outcome mismatch:\n  state: actual=NORMAL != expected=HALT\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=pending_corporate_action_TQQQ"
-        ],
-        "row_id": "V2",
-        "scenario": "split"
-      },
-      {
-        "cell": "split.V5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
-        ],
-        "row_id": "V5",
-        "scenario": "split"
-      },
-      {
-        "cell": "split.V6",
-        "diffs": [
-          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
-        ],
-        "row_id": "V6",
-        "scenario": "split"
-      },
-      {
-        "cell": "split.V7",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "V7",
-        "scenario": "split"
-      },
-      {
-        "cell": "split.O5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "O5",
-        "scenario": "split"
-      },
-      {
-        "cell": "reverse_split.V2",
-        "diffs": [
-          "Outcome mismatch:\n  state: actual=NORMAL != expected=HALT\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=pending_corporate_action_SOXL"
-        ],
-        "row_id": "V2",
-        "scenario": "reverse_split"
-      },
-      {
-        "cell": "reverse_split.V5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
-        ],
-        "row_id": "V5",
-        "scenario": "reverse_split"
-      },
-      {
-        "cell": "reverse_split.V6",
-        "diffs": [
-          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
-        ],
-        "row_id": "V6",
-        "scenario": "reverse_split"
-      },
-      {
-        "cell": "reverse_split.V7",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "V7",
-        "scenario": "reverse_split"
-      },
-      {
-        "cell": "reverse_split.O5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "O5",
-        "scenario": "reverse_split"
-      },
-      {
-        "cell": "stale.V5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
-        ],
-        "row_id": "V5",
-        "scenario": "stale"
-      },
-      {
-        "cell": "stale.V6",
-        "diffs": [
-          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
-        ],
-        "row_id": "V6",
-        "scenario": "stale"
-      },
-      {
-        "cell": "stale.V7",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "V7",
-        "scenario": "stale"
-      },
-      {
-        "cell": "stale.O1",
-        "diffs": [
-          "Outcome mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=stale_or_missing_input"
-        ],
-        "row_id": "O1",
-        "scenario": "stale"
-      },
-      {
-        "cell": "stale.O5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "O5",
-        "scenario": "stale"
-      },
-      {
-        "cell": "missing.V5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
-        ],
-        "row_id": "V5",
-        "scenario": "missing"
-      },
-      {
-        "cell": "missing.V6",
-        "diffs": [
-          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
-        ],
-        "row_id": "V6",
-        "scenario": "missing"
-      },
-      {
-        "cell": "missing.V7",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "V7",
-        "scenario": "missing"
-      },
-      {
-        "cell": "missing.O1",
-        "diffs": [
-          "Outcome mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=stale_or_missing_input"
-        ],
-        "row_id": "O1",
-        "scenario": "missing"
-      },
-      {
-        "cell": "missing.O5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "O5",
-        "scenario": "missing"
-      },
-      {
-        "cell": "restart.V5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
-        ],
-        "row_id": "V5",
-        "scenario": "restart"
-      },
-      {
-        "cell": "restart.V6",
-        "diffs": [
-          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
-        ],
-        "row_id": "V6",
-        "scenario": "restart"
-      },
-      {
-        "cell": "restart.V7",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "V7",
-        "scenario": "restart"
-      },
-      {
-        "cell": "restart.O5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "O5",
-        "scenario": "restart"
-      },
-      {
-        "cell": "tier_change.L0",
-        "diffs": [
-          "Outcome mismatch:\n  outputs.cap_breached: actual=False != expected=True\n  outputs.increases_blocked: actual=False != expected=True"
-        ],
-        "row_id": "L0",
-        "scenario": "tier_change"
-      },
-      {
-        "cell": "tier_change.V5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
-        ],
-        "row_id": "V5",
-        "scenario": "tier_change"
-      },
-      {
-        "cell": "tier_change.V6",
-        "diffs": [
-          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
-        ],
-        "row_id": "V6",
-        "scenario": "tier_change"
-      },
-      {
-        "cell": "tier_change.V7",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "V7",
-        "scenario": "tier_change"
-      },
-      {
-        "cell": "tier_change.O5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "O5",
-        "scenario": "tier_change"
-      },
-      {
-        "cell": "tier_change.O9",
-        "diffs": [
-          "Outcome mismatch:\n  state: actual=NORMAL != expected=HALT\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=unauthorized_change"
-        ],
-        "row_id": "O9",
-        "scenario": "tier_change"
-      },
-      {
-        "cell": "tier_change.J1",
-        "diffs": [
-          "Outcome mismatch:\n  outputs.headroom: actual=-5000.0 != expected=0\n  outputs.above_cap: actual=False != expected=True\n  outputs.above_trim_threshold: actual=False != expected=True"
-        ],
-        "row_id": "J1",
-        "scenario": "tier_change"
-      },
-      {
-        "cell": "holiday.V5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
-        ],
-        "row_id": "V5",
-        "scenario": "holiday"
-      },
-      {
-        "cell": "holiday.V6",
-        "diffs": [
-          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
-        ],
-        "row_id": "V6",
-        "scenario": "holiday"
-      },
-      {
-        "cell": "holiday.V7",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "V7",
-        "scenario": "holiday"
-      },
-      {
-        "cell": "holiday.O2",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=market_closed"
-        ],
-        "row_id": "O2",
-        "scenario": "holiday"
-      },
-      {
-        "cell": "holiday.O5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "O5",
-        "scenario": "holiday"
-      },
-      {
-        "cell": "half_day.V5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
-        ],
-        "row_id": "V5",
-        "scenario": "half_day"
-      },
-      {
-        "cell": "half_day.V6",
-        "diffs": [
-          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
-        ],
-        "row_id": "V6",
-        "scenario": "half_day"
-      },
-      {
-        "cell": "half_day.V7",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "V7",
-        "scenario": "half_day"
-      },
-      {
-        "cell": "half_day.O2",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=market_closed"
-        ],
-        "row_id": "O2",
-        "scenario": "half_day"
-      },
-      {
-        "cell": "half_day.O5",
-        "diffs": [
-          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
-        ],
-        "row_id": "O5",
-        "scenario": "half_day"
-      }
-    ],
-    "passed": 211,
+    "failed": 0,
+    "failures": [],
+    "passed": 264,
     "total": 264
   },
-  "bundle_hash": "cdd35a72d22e992f10d3ad21fdc49eef04610853919777c852a3e90d1550d06b",
+  "bundle_hash": "b8ff60cdb65d54ea8bd5f6f5c5e361bdb260c919c232618efe500b8cb737428a",
   "description": "FUSE-1 trip matrix execution results",
-  "engine_hash": "7ab2d18ef2bec2139bdbca9cff861baeebacffa0b535b67df5f5c99c8500503d",
+  "engine_hash": "6155ff623a253ce296fc0bdce4f0b2e93c290dd6f49c7e2db9e93ae4c23c7452",
   "freeze_hash": "efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50",
   "successor_cases": {
-    "failed": 13,
+    "failed": 11,
     "failures": [
       {
         "case": "SUC-01",
         "diffs": [
-          "State persistence not yet implemented in skeleton"
+          "Step 1 row V2 mismatch:\n  reason: actual=pending_corporate_action_TQQQ != expected=pending_corporate_action",
+          "Step 1 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: unexpected in actual",
+          "Step 2 row V2 mismatch:\n  reason: actual=pending_corporate_action_TQQQ != expected=pending_corporate_action_carried",
+          "Step 2 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: unexpected in actual",
+          "Step 3 row V2 mismatch:\n  reason: actual=none != expected=exact_reconciliation_auto_clear",
+          "Step 3 effective state mismatch:\n  account: unexpected in actual\n  fund:TQQQ: actual=NO-NEW-RISK != expected=NORMAL\n  joint: unexpected in actual\n  symbol:TQQQ: unexpected in actual"
         ]
       },
       {
         "case": "SUC-02",
         "diffs": [
-          "State persistence not yet implemented in skeleton"
-        ]
-      },
-      {
-        "case": "SUC-03",
-        "diffs": [
-          "State persistence not yet implemented in skeleton"
+          "Step 2 row V2 mismatch:\n  state: actual=NORMAL != expected=HALT\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_prior_mismatch",
+          "Step 3 execution error: 'list' object has no attribute 'get'"
         ]
       },
       {
         "case": "SUC-04",
         "diffs": [
-          "State persistence not yet implemented in skeleton"
+          "Step 3 row O5 mismatch:\n  state: actual=NORMAL != expected=HALT\n  latched: actual=False != expected=True\n  reason: actual=unresolved_fail_closed != expected=third_rejection_in_session",
+          "Step 3 effective state mismatch:\n  joint: unexpected in actual",
+          "Step 4 row O5 mismatch:\n  state: actual=NORMAL != expected=HALT\n  latched: actual=False != expected=True\n  reason: actual=unresolved_fail_closed != expected=latched_third_rejection",
+          "Step 4 effective state mismatch:\n  joint: unexpected in actual"
         ]
       },
       {
         "case": "SUC-05",
         "diffs": [
-          "State persistence not yet implemented in skeleton"
+          "Step 1 row O1 mismatch:\n  reason: actual=stale_or_missing_input != expected=missing_required_source_market_data",
+          "Step 2 row O1 mismatch:\n  reason: actual=stale_or_missing_input != expected=missing_required_source_index_returns",
+          "Step 3 row O1 mismatch:\n  reason: actual=stale_or_missing_input != expected=missing_required_source_volatility",
+          "Step 4 row O1 mismatch:\n  reason: actual=stale_or_missing_input != expected=missing_required_source_positions",
+          "Step 5 row O1 mismatch:\n  reason: actual=stale_or_missing_input != expected=missing_required_source_broker_reconciliation",
+          "Step 6 row O1 mismatch:\n  reason: actual=stale_or_missing_input != expected=missing_required_source_session_calendar",
+          "Step 7 row O1 mismatch:\n  state: actual=NO-NEW-RISK != expected=NORMAL\n  would_have_tripped: actual=True != expected=False\n  reason: actual=stale_or_missing_input != expected=none"
         ]
       },
       {
         "case": "SUC-06",
         "diffs": [
-          "State persistence not yet implemented in skeleton"
+          "Step 1 row V4 mismatch:\n  reason: actual=extreme_volatility != expected=volatility_at_or_above_2x",
+          "Step 2 row V4 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=volatility_below_2x_but_not_yet_cleared",
+          "Step 3 row V4 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=volatility_below_2x_but_not_yet_cleared",
+          "Step 4 row V4 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=volatility_below_2x_but_not_yet_cleared",
+          "Step 6 row V4 mismatch:\n  reason: actual=none != expected=cleared_after_ten_sessions"
         ]
       },
       {
         "case": "SUC-07",
         "diffs": [
-          "State persistence not yet implemented in skeleton"
+          "Step 1 row V4 mismatch:\n  state: actual=NORMAL != expected=None\n  would_have_tripped: actual=False != expected=None\n  kind: actual=interlock != expected=None\n  latched: actual=False != expected=None",
+          "Step 2 row V4 mismatch:\n  state: actual=NORMAL != expected=None\n  would_have_tripped: actual=False != expected=None\n  kind: actual=interlock != expected=None\n  latched: actual=False != expected=None"
         ]
       },
       {
         "case": "SUC-08",
         "diffs": [
-          "State persistence not yet implemented in skeleton"
+          "Step 1 row V5 mismatch:\n  state: actual=NORMAL != expected=none\n  reason: actual=decay_excess != expected=excess_beyond_tolerance",
+          "Step 2 row V5 mismatch:\n  state: actual=NORMAL != expected=none\n  reason: actual=decay_excess != expected=excess_beyond_tolerance\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=39",
+          "Step 3 row V5 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  reason: actual=decay_excess != expected=escalated_to_v1_treatment\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=40\n  outputs.escalated_to_v1: actual=False != expected=True",
+          "Step 3 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: unexpected in actual",
+          "Step 4 row V5 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  reason: actual=decay_excess != expected=escalated_to_v1_treatment\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=70\n  outputs.escalated_to_v1: actual=False != expected=True",
+          "Step 4 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: unexpected in actual"
         ]
       },
       {
         "case": "SUC-09",
         "diffs": [
-          "State persistence not yet implemented in skeleton"
+          "Step 1 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=True\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=order_timeout",
+          "Step 1 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: missing in actual",
+          "Step 2 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=True\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=awaiting_original_order_status",
+          "Step 2 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: missing in actual",
+          "Step 3 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=True\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=unrecognized_status_for_original_order",
+          "Step 3 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: missing in actual",
+          "Step 4 row O4 mismatch:\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=original_order_terminal_status_received",
+          "Step 4 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: missing in actual"
         ]
       },
       {
         "case": "SUC-10",
         "diffs": [
-          "State persistence not yet implemented in skeleton"
-        ]
-      },
-      {
-        "case": "SUC-11",
-        "diffs": [
-          "State persistence not yet implemented in skeleton"
+          "Step 1 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=None\n  kind: actual=breaker != expected=None\n  latched: actual=False != expected=None",
+          "Step 2 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=True\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=awaiting_original_order_status_after_restart",
+          "Step 2 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: missing in actual"
         ]
       },
       {
         "case": "SUC-12",
         "diffs": [
-          "State persistence not yet implemented in skeleton"
+          "Step 1 row L2 mismatch:\n  reason: actual=drawdown_threshold != expected=drawdown_at_2D_over_3",
+          "Step 1 effective state mismatch:\n  account: actual=HALT != expected=NO-NEW-RISK\n  joint: unexpected in actual",
+          "Step 2 row L2 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_prior_trip",
+          "Step 3 row L2 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_survives_deposit",
+          "Step 4 execution error: 'list' object has no attribute 'get'"
         ]
       },
       {
         "case": "SUC-13",
         "diffs": [
-          "State persistence not yet implemented in skeleton"
+          "Step 1 row V1 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=tracking_deviation_exceeds_0_75pp",
+          "Step 1 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: unexpected in actual",
+          "Step 2 row V1 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_prior_trip",
+          "Step 2 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: unexpected in actual",
+          "Step 3 execution error: 'list' object has no attribute 'get'"
         ]
       }
     ],
-    "passed": 0,
+    "passed": 2,
     "total": 13
   },
   "summary": {
-    "failed_base": 53,
-    "failed_successor": 13,
+    "failed_base": 0,
+    "failed_successor": 11,
     "failed_tier": 0,
-    "passed_base": 211,
-    "passed_successor": 0,
+    "passed_base": 264,
+    "passed_successor": 2,
     "passed_tier": 132,
     "total_base": 264,
     "total_successor": 13,

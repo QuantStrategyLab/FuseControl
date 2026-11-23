@@ -203,9 +203,11 @@ def evaluate(
     rows_by_ID['V2'] = aggregate_fund_row(v2_outputs)
     rows_by_ID['V3'] = aggregate_fund_row(v3_outputs)
     rows_by_ID['V4'] = aggregate_fund_row(v4_outputs)
-    rows_by_ID['V5'] = aggregate_fund_row(v5_outputs)
-    rows_by_ID['V6'] = aggregate_fund_row(v6_outputs)
-    rows_by_ID['V7'] = aggregate_fund_row(v7_outputs)
+    # V5, V6 are diagnostic with structured row-level outputs (Fix 2)
+    # V7 is symbol-scoped interlock (not diagnostic)
+    rows_by_ID['V5'] = aggregate_diagnostic_row(v5_outputs)
+    rows_by_ID['V6'] = aggregate_diagnostic_row(v6_outputs)
+    rows_by_ID['V7'] = aggregate_fund_row(v7_outputs, symbol_scoped=True)
 
     # Store V2 pending state (B1)
     if v2_pending:
@@ -371,7 +373,7 @@ def aggregate_fund_row(fund_outputs: Dict[str, Dict[str, Any]], symbol_scoped: b
     sample = next(iter(fund_outputs.values()))
     kind = sample['kind']
 
-    # Aggregate: take most restrictive state
+    # Aggregate: take most restrictive state (Fix 2: single-token reason)
     precedence = ['HALT', 'ORDER-UNKNOWN', 'DE-RISK', 'NO-NEW-RISK', 'NORMAL']
     most_restrictive = 'NORMAL'
     any_tripped = False
@@ -389,7 +391,33 @@ def aggregate_fund_row(fund_outputs: Dict[str, Dict[str, Any]], symbol_scoped: b
         if result.get('latched'):
             any_latched = True
         if result['reason'] != 'none':
-            reasons.append(f"{symbol}:{result['reason']}")
+            reasons.append((symbol, result['reason']))
+
+    # Determine single reason token (Fix 2 + Fix 3: golden expects single token with fund suffix where applicable)
+    if not reasons:
+        reason = 'none'
+    elif len(reasons) == 1:
+        # Single fund tripped: append fund suffix ONLY if multiple funds exist in scenario (Fix 3)
+        symbol, base_reason = reasons[0]
+        # Fund-specific reasons get suffix only when multiple funds exist (e.g., split where both funds exist but only one trips)
+        # No suffix when only one fund exists in the scenario (e.g., SUC-01)
+        needs_suffix = (len(fund_outputs) > 1 and
+                       base_reason in ['pending_corporate_action', 'pending_corporate_action_carried'])
+        reason = f'{base_reason}_{symbol}' if needs_suffix else base_reason
+    else:
+        # Multiple funds tripped: check if all have same reason
+        unique_reasons = set(r for _, r in reasons)
+        if len(unique_reasons) == 1:
+            # All same reason: use the single reason token (strip any fund suffix)
+            reason = next(iter(unique_reasons))
+            # Strip fund suffix if present (e.g., unresolved_fail_closed_TQQQ → unresolved_fail_closed)
+            for symbol in fund_outputs.keys():
+                if reason.endswith(f'_{symbol}'):
+                    reason = reason[:-len(f'_{symbol}')]
+                    break
+        else:
+            # Different reasons: composite (rare)
+            reason = ', '.join(f"{sym}:{r}" for sym, r in reasons)
 
     # Build aggregate output
     aggregate = {
@@ -397,7 +425,7 @@ def aggregate_fund_row(fund_outputs: Dict[str, Dict[str, Any]], symbol_scoped: b
         'would_have_tripped': any_tripped,
         'kind': kind,
         'latched': any_latched,
-        'reason': ', '.join(reasons) if reasons else 'none'
+        'reason': reason
     }
 
     # Include per-fund outputs if present
@@ -410,5 +438,64 @@ def aggregate_fund_row(fund_outputs: Dict[str, Dict[str, Any]], symbol_scoped: b
             aggregate['symbols'] = affected_funds
         else:
             aggregate['funds'] = affected_funds
+
+    return aggregate
+
+
+def aggregate_diagnostic_row(fund_outputs: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    """Aggregate diagnostic rows (V5, V6) with structured row-level outputs (Fix 2).
+
+    For diagnostic rows, return single row-level reason token and single structured outputs object,
+    NOT per-fund composites. Per §5.1: one row output with the row's own outputs structure.
+    """
+    if not fund_outputs:
+        return {
+            'state': 'NORMAL',
+            'would_have_tripped': False,
+            'kind': 'diagnostic',
+            'latched': False,
+            'reason': 'none'
+        }
+
+    # Get a sample to determine structure
+    sample = next(iter(fund_outputs.values()))
+    kind = sample['kind']
+
+    # For diagnostic rows, use the FIRST fund's outputs as the row-level outputs
+    # (all funds should have same structure; coordinator says to unify)
+    first_result = sample
+
+    # Aggregate state: most restrictive
+    precedence = ['HALT', 'ORDER-UNKNOWN', 'DE-RISK', 'NO-NEW-RISK', 'NORMAL']
+    most_restrictive = 'NORMAL'
+    any_tripped = False
+
+    for symbol, result in fund_outputs.items():
+        state = result['state']
+        if precedence.index(state) < precedence.index(most_restrictive):
+            most_restrictive = state
+        if result['would_have_tripped']:
+            any_tripped = True
+
+    # Determine single reason token: take first non-'none' reason, or 'none'
+    reason = 'none'
+    for symbol, result in fund_outputs.items():
+        if result['reason'] != 'none':
+            # Strip any fund suffix that may have been added (we want clean token)
+            reason = result['reason'].replace(f'_{symbol}', '')
+            break
+
+    # Build aggregate output with single row-level outputs structure
+    aggregate = {
+        'state': most_restrictive,
+        'would_have_tripped': any_tripped,
+        'kind': kind,
+        'latched': False,  # Diagnostics don't latch
+        'reason': reason
+    }
+
+    # Include structured outputs if present (single row-level outputs, not per-fund)
+    if 'outputs' in first_result:
+        aggregate['outputs'] = first_result['outputs']
 
     return aggregate

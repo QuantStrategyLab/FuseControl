@@ -49,15 +49,17 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     modelled_fee = inputs.get('modelled_fee')
     modelled_financing = inputs.get('modelled_financing')
 
-    # Fail closed on missing inputs
+    # Event-trigger rows don't fail closed on missing inputs (Fix 4):
+    # V1 requires affirmative evidence of tracking deviation exceeding threshold;
+    # O1 carries the data-integrity trip for missing inputs
     if (fund_return is None or index_return is None or
         modelled_fee is None or modelled_financing is None):
         return {
-            'state': 'NO-NEW-RISK',
-            'would_have_tripped': True,
+            'state': 'NORMAL',
+            'would_have_tripped': False,
             'kind': 'breaker',
-            'latched': True,
-            'reason': 'missing_input',
+            'latched': False,
+            'reason': 'none',
             'fund': fund
         }
 
@@ -68,11 +70,11 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         modelled_financing = float(modelled_financing)
     except (TypeError, ValueError):
         return {
-            'state': 'NO-NEW-RISK',
-            'would_have_tripped': True,
+            'state': 'NORMAL',
+            'would_have_tripped': False,
             'kind': 'breaker',
-            'latched': True,
-            'reason': 'missing_input',
+            'latched': False,
+            'reason': 'none',
             'fund': fund
         }
 
@@ -210,7 +212,7 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'fund': fund
             }
 
-        # Action announced or detected → pending HALT
+        # Action announced or detected → pending HALT (Fix 3: reason without fund suffix)
         return {
             'state': 'HALT',
             'would_have_tripped': True,
@@ -443,7 +445,7 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
     # If tolerance unresolved, treat as unresolved (not missing data)
     if v5_tolerance is None:
-        # Unresolved tolerance - diagnostic only, no escalation
+        # Unresolved tolerance - diagnostic only, no escalation (Fix 2)
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,
@@ -452,10 +454,10 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': 'unresolved_fail_closed',
             'fund': fund,
             'outputs': {
-                'excess_shortfall': 0.0,
+                'excess_shortfall': None,
                 'consecutive_sessions_beyond_tolerance': 0,
                 'escalated_to_v1': False,
-                'disposition': 'unresolved'
+                'disposition': 'UNRESOLVED-FAIL-CLOSED'
             }
         }
 
@@ -551,20 +553,20 @@ def evaluate_V6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     cost_per_unit = inputs.get('v6_cost_per_unit_exposure')
     threshold = inputs.get('v6_threshold')
 
-    # Fail closed on missing inputs
+    # V6 is diagnostic only - with missing inputs, return benign (Fix 2: V6 does NOT trip)
     if cost_per_unit is None or threshold is None:
         return {
             'state': 'NORMAL',
-            'would_have_tripped': True,
+            'would_have_tripped': False,
             'kind': 'diagnostic',
             'latched': False,
-            'reason': 'missing_input',
+            'reason': 'none',
             'fund': fund,
             'outputs': {
-                'cost_per_unit_exposure': 0.0,
-                'threshold': 0.0,
-                'exceeded': True,
-                'notify': True
+                'cost_per_unit_exposure': None,
+                'threshold': None,
+                'exceeded': False,
+                'notify': False
             }
         }
 

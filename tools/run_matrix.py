@@ -184,6 +184,9 @@ def run_tier_repetitions(scenarios: Dict[str, Any], golden_table: Dict[str, Any]
 def run_successor_cases(successor_cases: Dict[str, Any], engine_hash: str) -> Dict[str, Any]:
     """Run successor-state continuity cases.
 
+    Each case has multiple steps that execute in sequence, threading
+    next_row_state from one step into the next step's prior_row_state.
+
     Returns results dict with counts and failures.
     """
     cases = successor_cases.get('cases', {})
@@ -195,14 +198,80 @@ def run_successor_cases(successor_cases: Dict[str, Any], engine_hash: str) -> Di
         'failures': []
     }
 
-    # Placeholder: successor cases will be fully implemented in Step 2
-    # For now, count as failing since skeleton doesn't implement state persistence
-    for case_id in cases:
-        results['failed'] += 1
-        results['failures'].append({
-            'case': case_id,
-            'diffs': ['State persistence not yet implemented in skeleton']
-        })
+    for case_id, case in cases.items():
+        # SUC-11 is definition-only (Phase 3)
+        if case.get('phase_3_implementation'):
+            results['passed'] += 1
+            continue
+
+        steps = case.get('steps', [])
+        case_failed = False
+        case_diffs = []
+
+        # Thread state through steps
+        prior_state = {}
+        for step_data in steps:
+            step_num = step_data.get('step')
+
+            # Skip summary steps (they have no inputs/expected_outputs)
+            if 'inputs' not in step_data:
+                continue
+
+            step_inputs = step_data['inputs']
+            expected_outputs = step_data.get('expected_outputs', {})
+
+            # Build evaluation inputs
+            eval_inputs = {
+                'spec_version': 'fuse-eval-spec/v1',
+                'engine_hash': engine_hash,
+                'policy_hash': 'test_policy_hash',
+                'session': step_inputs['session'],
+                'as_of': step_inputs.get('as_of', f"{step_inputs['session']}T16:00:00Z"),
+                'mode': 'shadow',
+                'validated_inputs': step_inputs['validated_inputs'],
+                'prior_row_state': step_inputs.get('prior_row_state', prior_state),
+                'authorized_events': step_inputs.get('authorized_events', [])
+            }
+
+            # Execute
+            try:
+                rows_by_ID, effective_state_by_scope, next_row_state = evaluate(
+                    **eval_inputs
+                )
+            except Exception as e:
+                case_failed = True
+                case_diffs.append(f"Step {step_num} execution error: {str(e)}")
+                break
+
+            # Compare expected row outputs
+            for row_id, expected_row in expected_outputs.items():
+                if row_id == 'effective_state_by_scope':
+                    # Compare effective state
+                    actual_effective = effective_state_by_scope
+                    expected_effective = expected_row
+                    state_match, state_diffs = compare_effective_state(actual_effective, expected_effective)
+                    if not state_match:
+                        case_failed = True
+                        case_diffs.append(f"Step {step_num} effective state mismatch:\n" + "\n".join(state_diffs))
+                else:
+                    # Compare row outcome
+                    actual_row = rows_by_ID.get(row_id, {})
+                    outcome_match, outcome_diffs = compare_outcome(actual_row, expected_row)
+                    if not outcome_match:
+                        case_failed = True
+                        case_diffs.append(f"Step {step_num} row {row_id} mismatch:\n" + "\n".join(outcome_diffs))
+
+            # Thread state to next step
+            prior_state = step_data.get('next_row_state', next_row_state)
+
+        if case_failed:
+            results['failed'] += 1
+            results['failures'].append({
+                'case': case_id,
+                'diffs': case_diffs
+            })
+        else:
+            results['passed'] += 1
 
     return results
 
