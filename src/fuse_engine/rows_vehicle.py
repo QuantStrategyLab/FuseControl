@@ -376,7 +376,20 @@ def evaluate_V4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'fund': fund
         }
 
-    # Not triggered - check clearing progress (B4: increment at most once per session)
+    # Not triggered - check if we're in clearing mode
+    # Only in clearing if we have a positive clearing count (prior trip)
+    if clearing_count == 0:
+        # Never tripped, benign
+        return {
+            'state': 'NORMAL',
+            'would_have_tripped': False,
+            'kind': 'interlock',
+            'latched': False,
+            'reason': 'none',
+            'fund': fund
+        }
+
+    # In clearing mode - check progress (B4: increment at most once per session)
     if last_increment_session == session:
         # Already incremented this session - return current count
         new_count = clearing_count

@@ -14,39 +14,48 @@ def evaluate_O1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Clearing: Clears after one session of fresh data
     Mechanism B3: fail closed when ANY required source is missing/NaN/stale
     """
-    # Required sources per §4.3 and §5.4
-    required_sources = [
-        'bankroll',
-        'high_water_mark',
-        'joint_exposure',
-        'max_loss_cap',
-        'tier',
-        'volatility',  # B3: volatility is required
-        'index_one_session_returns'  # B3: index returns are required
+    # B3: Check source records for staleness
+    source_records = inputs.get('source_records', {})
+
+    # Required source records
+    required_source_names = [
+        'market_data',
+        'index_returns',
+        'volatility',
+        'positions',
+        'broker_reconciliation',
+        'session_calendar'
     ]
 
-    # B3: Check if ANY required source is missing/NaN/stale
+    # Check if any required source is stale (age_sessions > 1)
     missing_sources = []
-    for source in required_sources:
-        value = inputs.get(source)
+    for source_name in required_source_names:
+        source_record = source_records.get(source_name)
+        if source_record is None:
+            missing_sources.append(source_name)
+            continue
+
+        age_sessions = source_record.get('age_sessions')
+        if age_sessions is None or age_sessions > 1:
+            missing_sources.append(source_name)
+
+    # Also check required top-level inputs
+    required_values = ['bankroll', 'high_water_mark', 'joint_exposure', 'max_loss_cap', 'tier']
+    for key in required_values:
+        value = inputs.get(key)
         if value is None:
-            missing_sources.append(source)
+            missing_sources.append(key)
             continue
 
         # Check for NaN/invalid
-        if source in ['bankroll', 'high_water_mark', 'joint_exposure', 'max_loss_cap']:
+        if key != 'tier':
             try:
                 val = float(value)
                 import math
                 if math.isnan(val) or math.isinf(val):
-                    missing_sources.append(source)
+                    missing_sources.append(key)
             except (TypeError, ValueError):
-                missing_sources.append(source)
-
-    # Check staleness - inputs should have staleness indicators
-    stale_indicator = inputs.get('o1_has_stale_data', False)
-    if stale_indicator:
-        missing_sources.append('stale_data')
+                missing_sources.append(key)
 
     # B3: If ANY source is missing/stale, fail closed - NO silent passes
     if missing_sources:
@@ -91,8 +100,8 @@ def evaluate_O2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     State contribution: Order suppression (no control state)
     """
     # Evaluate trigger
-    calendar_status = inputs.get('o2_calendar_status')
-    exchange_status = inputs.get('o2_exchange_status')
+    calendar_status = inputs.get('session_calendar_status')
+    exchange_status = inputs.get('exchange_status')
 
     # Fail closed on missing inputs
     if calendar_status is None or exchange_status is None:
@@ -157,12 +166,16 @@ def evaluate_O3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'reason': 'latched_prior_trip'
             }
 
-    # Evaluate trigger
-    reconciliation_status = inputs.get('o3_reconciliation_status')
-    mismatch_beyond_tolerance = inputs.get('o3_mismatch_beyond_tolerance')
+    # Evaluate trigger using positions and broker reconciliation
+    positions_cash = inputs.get('positions_cash')
+    broker_cash = inputs.get('broker_cash')
+    reconciliation_tolerance = inputs.get('reconciliation_tolerance', 1.0)
 
-    # Fail closed on missing inputs
-    if reconciliation_status is None or mismatch_beyond_tolerance is None:
+    # Also check fund-level positions
+    funds = inputs.get('funds', {})
+
+    # Fail closed only if reconciliation data completely missing
+    if positions_cash is None or broker_cash is None:
         return {
             'state': 'HALT',
             'would_have_tripped': True,
@@ -171,8 +184,21 @@ def evaluate_O3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': 'missing_input'
         }
 
+    # Check cash reconciliation
+    cash_mismatch = abs(positions_cash - broker_cash) > reconciliation_tolerance
+
+    # Check fund position reconciliation
+    position_mismatch = False
+    for symbol, fund_data in funds.items():
+        ledger_value = fund_data.get('ledger_value')
+        broker_value = fund_data.get('broker_value')
+        if ledger_value is not None and broker_value is not None:
+            if abs(ledger_value - broker_value) > reconciliation_tolerance:
+                position_mismatch = True
+                break
+
     # Check trigger
-    if mismatch_beyond_tolerance:
+    if cash_mismatch or position_mismatch:
         return {
             'state': 'HALT',
             'would_have_tripped': True,
@@ -495,9 +521,9 @@ def evaluate_O6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'reason': 'latched_prior_trip'
             }
 
-    # Evaluate trigger
-    loaded_hash = inputs.get('o6_loaded_policy_hash')
-    registered_hash = inputs.get('o6_registered_policy_hash')
+    # Evaluate trigger - use input keys directly from scenario
+    loaded_hash = inputs.get('loaded_policy_hash')
+    registered_hash = inputs.get('registered_policy_hash')
 
     # Fail closed on missing inputs
     if loaded_hash is None or registered_hash is None:
