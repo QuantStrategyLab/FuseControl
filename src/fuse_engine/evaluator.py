@@ -297,11 +297,14 @@ def evaluate(
     o2_result = rows_ops.evaluate_O2(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['O2'] = o2_result
 
-    # O3 - reconciliation mismatch
+    # O3 - reconciliation mismatch (canonical format per Q6)
     o3_result = rows_ops.evaluate_O3(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['O3'] = o3_result
     if o3_result['latched']:
-        st.set_latch(next_row_state, 'O3', 'account', True, o3_result['reason'])
+        # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
+        prior_latch = cst.get_account_latch(prior_row_state, 'O3')
+        trip_session = prior_latch['trip_session'] if prior_latch else session
+        cst.set_account_latch(next_row_state, 'O3', trip_session)
 
     # O4 - order timeout (canonical format per Q6, enumerate from all sources)
     o4_outputs = {}
@@ -344,27 +347,36 @@ def evaluate(
         latched = o5_result['latched']
         cst.set_o5_state(next_row_state, count, session, latched)
 
-    # O6 - policy hash mismatch
+    # O6 - policy hash mismatch (canonical format per Q6)
     o6_result = rows_ops.evaluate_O6(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['O6'] = o6_result
     if o6_result['latched']:
-        st.set_latch(next_row_state, 'O6', 'account', True, o6_result['reason'])
+        # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
+        prior_latch = cst.get_account_latch(prior_row_state, 'O6')
+        trip_session = prior_latch['trip_session'] if prior_latch else session
+        cst.set_account_latch(next_row_state, 'O6', trip_session)
 
-    # O7 - dead man's switch
+    # O7 - dead man's switch (canonical format per Q6)
     o7_result = rows_ops.evaluate_O7(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['O7'] = o7_result
     if o7_result['latched']:
-        st.set_latch(next_row_state, 'O7', 'account', True, o7_result['reason'])
+        # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
+        prior_latch = cst.get_account_latch(prior_row_state, 'O7')
+        trip_session = prior_latch['trip_session'] if prior_latch else session
+        cst.set_account_latch(next_row_state, 'O7', trip_session)
 
     # O8 - kill switch
     o8_result = rows_ops.evaluate_O8(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['O8'] = o8_result
 
-    # O9 - unauthorized parameter change
+    # O9 - unauthorized parameter change (canonical format per Q6)
     o9_result = rows_ops.evaluate_O9(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['O9'] = o9_result
     if o9_result['latched']:
-        st.set_latch(next_row_state, 'O9', 'account', True, o9_result['reason'])
+        # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
+        prior_latch = cst.get_account_latch(prior_row_state, 'O9')
+        trip_session = prior_latch['trip_session'] if prior_latch else session
+        cst.set_account_latch(next_row_state, 'O9', trip_session)
 
     # J1 - joint exposure limit
     j1_result = rows_ops.evaluate_J1(validated_inputs, prior_row_state, authorized_events)

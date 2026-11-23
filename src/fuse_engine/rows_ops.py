@@ -165,9 +165,9 @@ def evaluate_O3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     State contribution: HALT
     Clearing: Owner re-arms after reconciliation
     """
-    # Check for prior latch
-    prior_latch = st.get_latch(prior_state, 'O3', 'account')
-    if prior_latch and prior_latch['latched']:
+    # Check for prior latch (canonical format per Q6)
+    prior_latch = cst.get_account_latch(prior_state, 'O3')
+    if prior_latch:
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
@@ -547,9 +547,9 @@ def evaluate_O6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     State contribution: HALT
     Clearing: Owner re-arms
     """
-    # Check for prior latch
-    prior_latch = st.get_latch(prior_state, 'O6', 'account')
-    if prior_latch and prior_latch['latched']:
+    # Check for prior latch (canonical format per Q6)
+    prior_latch = cst.get_account_latch(prior_state, 'O6')
+    if prior_latch:
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
@@ -611,9 +611,9 @@ def evaluate_O7(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     State contribution: No exposure increase
     Clearing: Human re-arm
     """
-    # Check for prior latch
-    prior_latch = st.get_latch(prior_state, 'O7', 'account')
-    if prior_latch and prior_latch['latched']:
+    # Check for prior latch (canonical format per Q6)
+    prior_latch = cst.get_account_latch(prior_state, 'O7')
+    if prior_latch:
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
@@ -701,9 +701,9 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     State contribution: HALT
     Clearing: Owner re-arms
     """
-    # Check for prior latch
-    prior_latch = st.get_latch(prior_state, 'O9', 'account')
-    if prior_latch and prior_latch['latched']:
+    # Check for prior latch (canonical format per Q6)
+    prior_latch = cst.get_account_latch(prior_state, 'O9')
+    if prior_latch:
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
