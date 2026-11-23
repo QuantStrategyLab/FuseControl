@@ -282,31 +282,14 @@ def evaluate(
     if o4_pending:
         next_row_state['O4_pending'] = o4_pending
 
-    # O5 - pre-trade limits (B2: per-session rejection counter)
+    # O5 - pre-trade limits (B2 canonical format per Q6)
     o5_result = rows_ops.evaluate_O5(validated_inputs, prior_row_state, authorized_events, session)
     rows_by_ID['O5'] = o5_result
-    if o5_result['latched']:
-        st.set_latch(next_row_state, 'O5', 'account', True, o5_result['reason'])
-        # Store rejection count in latch details for SUC-04
-        last_rejection_session = st.get_prior_state(prior_row_state, 'O5_last_rejection_session', {}).get('account', session)
-        rejection_count = o5_result.get('rejection_count_this_session', 3)
-        st.set_counter(next_row_state, 'O5', 'account', 'rejections', rejection_count, session=session)
-    # Update O5 rejection counter (B2: per-session)
-    elif o5_result['would_have_tripped']:
-        # Get current count from prior state
-        last_rejection_session = st.get_prior_state(prior_row_state, 'O5_last_rejection_session', {}).get('account')
-        if last_rejection_session == session:
-            # Same session - increment
-            rejection_count = st.get_counter(prior_row_state, 'O5', 'account', 'rejections', session=session, default=0)
-        else:
-            # Different session - reset to 0 then increment
-            rejection_count = 0
-        new_count = rejection_count + 1
-        st.set_counter(next_row_state, 'O5', 'account', 'rejections', new_count, session=session)
-        # Track last rejection session
-        if 'O5_last_rejection_session' not in next_row_state:
-            next_row_state['O5_last_rejection_session'] = {}
-        next_row_state['O5_last_rejection_session']['account'] = session
+    # O5 state: row emits rejection_count_this_session, we store it with session and latch
+    if o5_result['would_have_tripped']:
+        count = o5_result.get('rejection_count_this_session', 1)
+        latched = o5_result['latched']
+        cst.set_o5_state(next_row_state, count, session, latched)
 
     # O6 - policy hash mismatch
     o6_result = rows_ops.evaluate_O6(validated_inputs, prior_row_state, authorized_events)

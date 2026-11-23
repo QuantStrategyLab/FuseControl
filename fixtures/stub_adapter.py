@@ -168,13 +168,19 @@ def evaluate(
             'O9': 'breaker'
         }[row_id]
 
-        rows_by_ID[row_id] = {
+        row = {
             'state': 'NORMAL',
             'would_have_tripped': False,
             'kind': kind,
             'latched': False,
             'reason': 'none'
         }
+
+        # O5 emits rejection_count_this_session per Q6
+        if row_id == 'O5':
+            row['rejection_count_this_session'] = 0
+
+        rows_by_ID[row_id] = row
 
     # O4 - symbol scope
     rows_by_ID['O4'] = {

@@ -2,6 +2,7 @@
 
 from typing import Any, Dict, Optional, List
 from . import state as st
+from . import canonical_state as cst
 
 
 def evaluate_O1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
@@ -392,12 +393,18 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Scope: account
     State contribution: HALT on third rejection
     Clearing: Owner re-arms
-    Mechanism B2: rejection count is per-session, third rejection latches HALT
+    Mechanism B2: rejection count is per-session (canonical format per Q6),
+                  third rejection latches HALT
     Required inputs: o5_collar (or fail closed)
     """
+    # Get prior O5 state from canonical format
+    o5_state = cst.get_o5_state(prior_state)
+    prior_latched = o5_state['latched']
+    prior_count = o5_state['rejection_count']
+    last_rejection_session = o5_state['last_rejection_session']
+
     # Check for prior latch (SUC-04: third rejection)
-    prior_latch = st.get_latch(prior_state, 'O5', 'account')
-    if prior_latch and prior_latch['latched']:
+    if prior_latched:
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
@@ -415,15 +422,20 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'would_have_tripped': True,
                 'kind': 'breaker',
                 'latched': True,
-                'reason': 'latched_third_rejection'
+                'reason': 'latched_third_rejection',
+                'rejection_count_this_session': prior_count  # Emit per Q6
             }
+
+    # B2: New session resets a free counter; latch survives
+    if last_rejection_session != session:
+        rejection_count = 0
+    else:
+        rejection_count = prior_count
 
     # Evaluate trigger - fail closed if collar unresolved per §4.5
     o5_collar = inputs.get('o5_collar')
     if o5_collar is None:
         # Unresolved collar - fail closed, counts as one rejection
-        # B2: Get rejection count for this session
-        rejection_count = st.get_counter(prior_state, 'O5', 'account', 'rejections', session=session, default=0)
         new_count = rejection_count + 1
 
         if new_count >= 3:
@@ -433,7 +445,8 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'would_have_tripped': True,
                 'kind': 'breaker',
                 'latched': True,
-                'reason': 'third_rejection_in_session'
+                'reason': 'third_rejection_in_session',
+                'rejection_count_this_session': new_count  # Emit per Q6
             }
 
         # First or second rejection
@@ -442,7 +455,8 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'would_have_tripped': True,
             'kind': 'breaker',
             'latched': False,
-            'reason': 'unresolved_fail_closed'
+            'reason': 'unresolved_fail_closed',
+            'rejection_count_this_session': new_count  # Emit per Q6
         }
 
     # Check other pre-trade limits
@@ -504,8 +518,7 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
     # If any violations, count as rejection
     if violations:
-        # B2: Get rejection count for this session
-        rejection_count = st.get_counter(prior_state, 'O5', 'account', 'rejections', session=session, default=0)
+        # B2: rejection already counted in earlier path, use the same logic
         new_count = rejection_count + 1
 
         if new_count >= 3:
@@ -515,7 +528,8 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'would_have_tripped': True,
                 'kind': 'breaker',
                 'latched': True,
-                'reason': 'third_rejection_in_session'
+                'reason': 'third_rejection_in_session',
+                'rejection_count_this_session': new_count  # Emit per Q6
             }
 
         # First or second rejection
@@ -524,7 +538,8 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'would_have_tripped': True,
             'kind': 'breaker',
             'latched': False,
-            'reason': 'pre_trade_limit_violation'
+            'reason': 'pre_trade_limit_violation',
+            'rejection_count_this_session': new_count  # Emit per Q6
         }
 
     # No violations
