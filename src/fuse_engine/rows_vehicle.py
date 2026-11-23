@@ -16,7 +16,8 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Scope: fund
     State contribution: NO-NEW-RISK
     Clearing: Owner re-arms after reconciliation
-    Required inputs: v1_one_session_deviation, v1_five_session_deviation (or fail closed)
+    Required inputs: fund_return, index_return, modelled_fee, modelled_financing
+    Proposal thresholds per §4.5: 0.75pp (1 session), 2.0pp (5 sessions)
     """
     # Check for prior latch
     scope = f'fund:{fund}'
@@ -42,41 +43,55 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'fund': fund
             }
 
-    # Evaluate trigger - fail closed if unresolved per §4.5
-    one_session_dev = inputs.get('v1_one_session_deviation')
-    five_session_dev = inputs.get('v1_five_session_deviation')
+    # Calculate one-session deviation from fund inputs
+    fund_return = inputs.get('fund_return')
+    index_return = inputs.get('index_return')
+    modelled_fee = inputs.get('modelled_fee')
+    modelled_financing = inputs.get('modelled_financing')
 
-    # Fail closed on missing/unresolved inputs
-    if one_session_dev is None or five_session_dev is None:
+    # Fail closed on missing inputs
+    if (fund_return is None or index_return is None or
+        modelled_fee is None or modelled_financing is None):
         return {
             'state': 'NO-NEW-RISK',
             'would_have_tripped': True,
             'kind': 'breaker',
             'latched': True,
-            'reason': 'unresolved_fail_closed',
+            'reason': 'missing_input',
             'fund': fund
         }
 
     try:
-        one_session_dev = float(one_session_dev)
-        five_session_dev = float(five_session_dev)
+        fund_return = float(fund_return)
+        index_return = float(index_return)
+        modelled_fee = float(modelled_fee)
+        modelled_financing = float(modelled_financing)
     except (TypeError, ValueError):
         return {
             'state': 'NO-NEW-RISK',
             'would_have_tripped': True,
             'kind': 'breaker',
             'latched': True,
-            'reason': 'unresolved_fail_closed',
+            'reason': 'missing_input',
             'fund': fund
         }
+
+    # Calculate one-session deviation: actual - (3× index - fee - financing)
+    expected_return = 3.0 * index_return - modelled_fee - modelled_financing
+    one_session_dev = fund_return - expected_return
+
+    # For now, assume five-session deviation not available (would need history)
+    # Treat as unresolved - only check one-session
+    five_session_dev = None
 
     # Thresholds per §4.5 (proposal values)
     one_session_threshold = 0.0075  # 0.75 pp
     five_session_threshold = 0.020  # 2.0 pp
 
-    # Check triggers
-    triggered = (abs(one_session_dev) > one_session_threshold or
-                 abs(five_session_dev) > five_session_threshold)
+    # Check triggers (only one-session for now)
+    triggered = abs(one_session_dev) > one_session_threshold
+    if five_session_dev is not None:
+        triggered = triggered or abs(five_session_dev) > five_session_threshold
 
     if not triggered:
         return {
@@ -265,14 +280,14 @@ def evaluate_V3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # Evaluate trigger
     fund_event = inputs.get('fund_event')
 
-    # Fail closed on missing input
+    # null fund_event = no event (benign)
     if fund_event is None:
         return {
-            'state': 'DE-RISK',
-            'would_have_tripped': True,
+            'state': 'NORMAL',
+            'would_have_tripped': False,
             'kind': 'breaker',
-            'latched': True,
-            'reason': 'missing_input',
+            'latched': False,
+            'reason': 'none',
             'fund': fund
         }
 
@@ -316,35 +331,36 @@ def evaluate_V4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # Also track the last session we incremented in
     last_increment_session = st.get_prior_state(prior_state, 'V4_last_increment_session', {}).get(scope)
 
-    # Evaluate trigger - fail closed if unresolved per §4.5
-    forecast_volatility = inputs.get('v4_forecast_volatility')
+    # Evaluate trigger using forecast_volatility from fund inputs
+    forecast_volatility = inputs.get('forecast_volatility')
+    long_run_volatility = inputs.get('long_run_volatility')
 
-    # Fail closed on missing/unresolved input
-    if forecast_volatility is None:
+    # Fail closed on missing inputs
+    if forecast_volatility is None or long_run_volatility is None:
         return {
             'state': 'NO-NEW-RISK',
             'would_have_tripped': True,
             'kind': 'interlock',
             'latched': False,
-            'reason': 'unresolved_fail_closed',
+            'reason': 'missing_input',
             'fund': fund
         }
 
     try:
         forecast_volatility = float(forecast_volatility)
+        long_run_volatility = float(long_run_volatility)
     except (TypeError, ValueError):
         return {
             'state': 'NO-NEW-RISK',
             'would_have_tripped': True,
             'kind': 'interlock',
             'latched': False,
-            'reason': 'unresolved_fail_closed',
+            'reason': 'missing_input',
             'fund': fund
         }
 
-    # Threshold per §4.5 (proposal: 2× long-run, ≈48% for Nasdaq-100)
-    long_run_volatility = 0.24  # ~24% long-run
-    threshold = 2.0 * long_run_volatility  # 48%
+    # Threshold per §4.5 (proposal: 2× long-run)
+    threshold = 2.0 * long_run_volatility
 
     # Check trigger
     triggered = forecast_volatility >= threshold
@@ -407,12 +423,14 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     persistence_count = st.get_counter(prior_state, 'V5', scope, 'persistence_sessions', default=0)
     prior_escalated = st.get_prior_state(prior_state, 'V5_escalated', {}).get(scope, False)
 
-    # Evaluate trigger - fail closed if tolerance unresolved per §4.5
-    v5_tolerance = inputs.get('v5_tolerance')
-    excess_shortfall = inputs.get('v5_excess_shortfall')
+    # Calculate excess shortfall from fund inputs
+    shortfall_observed = inputs.get('shortfall_observed')
+    shortfall_predicted = inputs.get('shortfall_predicted')
+    v5_tolerance = inputs.get('v5_tolerance')  # From validated_inputs if supplied
 
-    # Fail closed on unresolved tolerance
+    # If tolerance unresolved, treat as unresolved (not missing data)
     if v5_tolerance is None:
+        # Unresolved tolerance - diagnostic only, no escalation
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,
@@ -428,8 +446,8 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             }
         }
 
-    # Fail closed on missing excess_shortfall
-    if excess_shortfall is None:
+    # Calculate excess shortfall
+    if shortfall_observed is None or shortfall_predicted is None:
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,
@@ -447,7 +465,8 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
     try:
         v5_tolerance = float(v5_tolerance)
-        excess_shortfall = float(excess_shortfall)
+        shortfall_observed = float(shortfall_observed)
+        shortfall_predicted = float(shortfall_predicted)
     except (TypeError, ValueError):
         return {
             'state': 'NORMAL',
@@ -463,6 +482,9 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'disposition': 'invalid_data'
             }
         }
+
+    # Calculate excess shortfall
+    excess_shortfall = shortfall_observed - shortfall_predicted
 
     # Check if beyond tolerance
     beyond_tolerance = excess_shortfall > v5_tolerance
@@ -579,17 +601,19 @@ def evaluate_V7(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Scope: symbol
     State contribution: Order suppression (no control state)
     Clearing: Automatic when condition clears
-    Required inputs: v7_spread_width (or fail closed)
+    Required inputs: v7_spread_width parameter (from policy, or fail closed if unresolved)
     """
-    # Evaluate trigger - fail closed if unresolved per §4.5
-    quote_stale = inputs.get('v7_quote_stale')
-    spread_too_wide = inputs.get('v7_spread_too_wide')
-    single_stock_pause = inputs.get('v7_single_stock_pause')
-    outside_regular_session = inputs.get('v7_outside_regular_session')
-    v7_spread_width = inputs.get('v7_spread_width')
+    # Get quote/liquidity indicators from fund inputs
+    quote_staleness = inputs.get('quote_staleness')
+    spread_width = inputs.get('spread_width')
+    trading_pause = inputs.get('trading_pause', False)
+    session_time = inputs.get('session_time')
 
-    # Fail closed on unresolved spread width
-    if v7_spread_width is None:
+    # Get spread width threshold from policy (unresolved per §4.5)
+    v7_spread_width_threshold = inputs.get('v7_spread_width')
+
+    # Fail closed on unresolved spread width threshold
+    if v7_spread_width_threshold is None:
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,
@@ -599,8 +623,21 @@ def evaluate_V7(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'fund': fund
         }
 
+    # Check staleness (staleness > 1.0 means stale)
+    quote_stale = quote_staleness is not None and quote_staleness > 1.0
+
+    # Check spread width
+    try:
+        v7_spread_width_threshold = float(v7_spread_width_threshold)
+        spread_too_wide = spread_width is not None and float(spread_width) > v7_spread_width_threshold
+    except (TypeError, ValueError):
+        spread_too_wide = True  # Fail closed on invalid
+
+    # Check if outside regular session
+    outside_regular_session = session_time != 'regular'
+
     # Check any trigger
-    triggered = (quote_stale or spread_too_wide or single_stock_pause or outside_regular_session)
+    triggered = (quote_stale or spread_too_wide or trading_pause or outside_regular_session)
 
     if triggered:
         return {

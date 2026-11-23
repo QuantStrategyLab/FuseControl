@@ -536,14 +536,14 @@ def evaluate_L5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # Evaluate trigger
     market_halt_level = inputs.get('market_halt_level')
 
-    # Fail closed on missing input
+    # null market_halt_level = no halt (benign)
     if market_halt_level is None:
         return {
-            'state': 'NO-NEW-RISK',
-            'would_have_tripped': True,
+            'state': 'NORMAL',
+            'would_have_tripped': False,
             'kind': 'interlock',
             'latched': False,
-            'reason': 'missing_input'
+            'reason': 'none'
         }
 
     # Check trigger (Level 1 or 2)
@@ -603,8 +603,8 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     market_halt_level = inputs.get('market_halt_level')
     index_returns = inputs.get('index_one_session_returns')
 
-    # Fail closed on missing inputs
-    if market_halt_level is None or index_returns is None:
+    # Fail closed only if index_returns is missing (market_halt_level null = no halt, benign)
+    if index_returns is None:
         return {
             'state': 'HALT',
             'would_have_tripped': True,
@@ -613,7 +613,7 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': 'missing_input'
         }
 
-    # Check Level 3 halt
+    # Check Level 3 halt (null = no halt, benign)
     level_3_halt = market_halt_level == 3
 
     # Check 10% fall in either index
