@@ -257,13 +257,21 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'fund': fund
             }
 
-        # Action announced or detected → pending HALT (Fix 3: reason without fund suffix)
+        # Action announced or detected → pending HALT
+        # V2 branch order (Q6): repeated announcement of same action = carried
+        if prior_pending and prior_pending.get('type') == action_type:
+            # Same action repeated - carried forward
+            reason = 'pending_corporate_action_carried'
+        else:
+            # New action announced
+            reason = 'pending_corporate_action'
+
         return {
             'state': 'HALT',
             'would_have_tripped': True,
             'kind': 'interlock_or_breaker',
             'latched': False,
-            'reason': 'pending_corporate_action',
+            'reason': reason,
             'fund': fund
         }
 
