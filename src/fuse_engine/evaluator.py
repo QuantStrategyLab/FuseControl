@@ -228,11 +228,15 @@ def evaluate(
             # Clear pending on exact reconciliation (Q4)
             cst.clear_v2_pending_adjustment(next_row_state, symbol)
 
-        # V3 - fund event
+        # V3 - fund event (canonical format per Q6)
         v3_result = rows_vehicle.evaluate_V3(fund_inputs, prior_row_state, authorized_events, symbol)
         v3_outputs[symbol] = v3_result
         if v3_result['latched']:
-            st.set_latch(next_row_state, 'V3', f'fund:{symbol}', True, v3_result['reason'])
+            # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
+            prior_latch = cst.get_fund_latch(prior_row_state, 'V3', symbol)
+            trip_session = prior_latch['trip_session'] if prior_latch else session
+            details = {'reason': v3_result['reason'], 'fund_event': v3_result.get('fund_event')}
+            cst.set_fund_latch(next_row_state, 'V3', symbol, trip_session, details)
 
         # V4 - extreme volatility (B4 canonical format per Q6)
         v4_result = rows_vehicle.evaluate_V4(fund_inputs, prior_row_state, authorized_events, symbol, session)
