@@ -132,13 +132,19 @@ class TestReplayProof(unittest.TestCase):
                     'index_return': 0.005,
                     'modelled_fee': 0.0001,
                     'modelled_financing': 0.0001,
-                    'shortfall_vs_model': 0.005,  # Excess beyond tolerance
-                    'tolerance': 0.003  # V5 tolerance
+                    'shortfall_observed': 0.008,  # Observed shortfall
+                    'shortfall_predicted': 0.003,  # Predicted shortfall
+                    'v5_tolerance': 0.003  # V5 tolerance: 0.008 - 0.003 = 0.005 > 0.003
                 }
             },
             'tier': 'balanced',
             'tier_loss_budget_D': 0.30,
-            'bankroll': 100000
+            'bankroll': 100000,
+            'positions_cash': 0,
+            'broker_cash': 0,
+            'loaded_policy_hash': 'test',
+            'registered_policy_hash': 'test',
+            'one_session_loss': 0.0
         }
 
         # Build state with V5 count 39
@@ -197,7 +203,8 @@ class TestReplayProof(unittest.TestCase):
             'tier': 'balanced',
             'tier_loss_budget_D': 0.30,
             'bankroll': 100000,
-            'authorized_events': [{'type': 'deposit', 'amount': 10000, 'session': '2026-01-06'}]
+            'high_water_mark': 100000,
+            'flow_event': {'type': 'deposit', 'amount': 10000, 'session': '2026-01-06'}
         }
 
         # Serialize-restore
@@ -208,13 +215,13 @@ class TestReplayProof(unittest.TestCase):
         # Interrupted path
         rows_restored, _, state_restored = evaluate(
             'fuse-eval-spec/v1', 'test', 'test', '2026-01-06', '2026-01-06T16:00:00Z', 'shadow',
-            inputs, prior_restored, {'authorized_events': inputs['authorized_events']}
+            inputs, prior_restored, {}
         )
 
         # Uninterrupted control
         rows_uninterrupted, _, state_uninterrupted = evaluate(
             'fuse-eval-spec/v1', 'test', 'test', '2026-01-06', '2026-01-06T16:00:00Z', 'shadow',
-            inputs, prior, {'authorized_events': inputs['authorized_events']}
+            inputs, prior, {}
         )
 
         # Assert equality
@@ -245,10 +252,11 @@ class TestReplayProof(unittest.TestCase):
             'funds': {},
             'tier': 'balanced',
             'tier_loss_budget_D': 0.30,
-            'bankroll': 100000
+            'bankroll': 100000,
+            'high_water_mark': 100000
         }
 
-        events = [{'type': 'owner_rearm', 'row': 'L2', 'scope': 'account', 'session': '2026-01-10'}]
+        events = {'account': [{'type': 'rearm', 'row': 'L2', 'session': '2026-01-10'}]}
 
         # Serialize-restore
         prior_json = canonical_json(prior)
@@ -257,13 +265,13 @@ class TestReplayProof(unittest.TestCase):
         # Interrupted
         rows_restored, _, state_restored = evaluate(
             'fuse-eval-spec/v1', 'test', 'test', '2026-01-10', '2026-01-10T16:00:00Z', 'shadow',
-            inputs, prior_restored, {'authorized_events': events}
+            inputs, prior_restored, events
         )
 
         # Uninterrupted
         rows_uninterrupted, _, state_uninterrupted = evaluate(
             'fuse-eval-spec/v1', 'test', 'test', '2026-01-10', '2026-01-10T16:00:00Z', 'shadow',
-            inputs, prior, {'authorized_events': events}
+            inputs, prior, events
         )
 
         # Assert equality
@@ -285,10 +293,16 @@ class TestReplayProof(unittest.TestCase):
         # Step 1: Order timeout
         inputs1 = {
             'funds': {},
-            'pending_orders': [{'symbol': 'TQQQ', 'original_order_id': 'order_X', 'status': 'pending'}],
+            'pending_orders': {'TQQQ': {'order_id': 'order_X', 'status': 'pending', 'timeout': True}},
             'tier': 'balanced',
             'tier_loss_budget_D': 0.30,
-            'bankroll': 100000
+            'bankroll': 100000,
+            'high_water_mark': 100000,
+            'positions_cash': 0,
+            'broker_cash': 0,
+            'loaded_policy_hash': 'test',
+            'registered_policy_hash': 'test',
+            'one_session_loss': 0.0
         }
         _, _, state1 = evaluate(
             'fuse-eval-spec/v1', 'test', 'test', '2026-01-05', '2026-01-05T16:00:00Z', 'shadow',
@@ -305,7 +319,7 @@ class TestReplayProof(unittest.TestCase):
 
         inputs2 = {
             'funds': {},
-            'pending_orders': [],  # No fresh report
+            'pending_orders': {},  # No fresh report
             'tier': 'balanced',
             'tier_loss_budget_D': 0.30,
             'bankroll': 100000,
@@ -328,8 +342,8 @@ class TestReplayProof(unittest.TestCase):
         self.assertEqual(rows_restored, rows_uninterrupted)
         self.assertEqual(state2_restored, state2_uninterrupted)
 
-        # Verify order preserved after restart
-        self.assertEqual(rows_restored['O4']['reason'], 'awaiting_original_order_status_after_restart')
+        # Verify order preserved after restart (reason is 'awaiting_original_order_status' per rows_ops.py:264-273)
+        self.assertEqual(rows_restored['O4']['reason'], 'awaiting_original_order_status')
         self.assertEqual(state2_restored['O4']['TQQQ']['original_order_id'], 'order_X')
         assert_no_private_aliases(state2_restored, "O4 after restart")
 
@@ -339,7 +353,7 @@ class TestReplayProof(unittest.TestCase):
 
         inputs3 = {
             **inputs2,
-            'pending_orders': [{'symbol': 'TQQQ', 'original_order_id': 'order_X', 'status': 'filled'}],
+            'pending_orders': {'TQQQ': {'order_id': 'order_X', 'status': 'filled'}},
             'restart_marker': False
         }
 
@@ -376,12 +390,19 @@ class TestReplayProof(unittest.TestCase):
                     'index_return': 0.005,
                     'modelled_fee': 0.0001,
                     'modelled_financing': 0.0001,
-                    'shortfall_vs_model': 0.005
+                    'shortfall_observed': 0.008,
+                    'shortfall_predicted': 0.003,
+                    'v5_tolerance': 0.003
                 }
             },
             'tier': 'balanced',
             'tier_loss_budget_D': 0.30,
-            'bankroll': 100000
+            'bankroll': 100000,
+            'positions_cash': 0,
+            'broker_cash': 0,
+            'loaded_policy_hash': 'test',
+            'registered_policy_hash': 'test',
+            'one_session_loss': 0.0
         }
 
         # First evaluation on 2026-01-05
@@ -469,11 +490,11 @@ class TestReplayProof(unittest.TestCase):
         self.assertEqual(rows_restored, rows_uninterrupted)
         self.assertEqual(state_restored, state_uninterrupted)
 
-        # Verify TQQQ tripped (new), SOXL preserved (count 5 unchanged)
+        # Verify TQQQ tripped (new), SOXL advances (count 5→6)
         self.assertIn('TQQQ', state_restored['V4'])
         self.assertEqual(state_restored['V4']['TQQQ']['clearing_counter'], 0)
         self.assertIn('SOXL', state_restored['V4'])
-        self.assertEqual(state_restored['V4']['SOXL']['clearing_counter'], 5)
+        self.assertEqual(state_restored['V4']['SOXL']['clearing_counter'], 6)  # Advances on this session
         assert_no_private_aliases(state_restored, "Two-fund V4 state")
 
 
