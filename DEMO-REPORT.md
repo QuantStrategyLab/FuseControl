@@ -190,7 +190,7 @@ Batteries F1-A05 through F1-A13 not implemented:
 |---------|--------|--------|-------|---|
 | Base cells | **264** | 0 | 264 | **100%** |
 | Tier repetitions | **132** | 0 | 132 | **100%** |
-| Successor cases | 2 | 11 | 13 | 15.4% |
+| Successor cases | 4 | 9 | 13 | 30.8% |
 
 ### Remaining Successor Case Issues
 
@@ -257,22 +257,23 @@ Phase 3 delivers conformance fixtures and acceptance bundle per FUSE-1 demonstra
 **Commits by slice:**
 - Phase 1: `750dc28` (W1 spec), `c5e1a46` (W2 goldens)
 - Phase 2: `352b2ba` (W3 state+loss), `146fa64` (W3 vehicle+ops), `0d15be3` (W4 pre-fix), `8210838` (W4 fix round)
-- Phase 3: `7d27ccb` (W5 conformance), `<pending>` (W6 acceptance bundle)
+- Phase 3: `7d27ccb` (W5 conformance), `bd82da1` (W6 acceptance bundle)
+- Phase 2D/2E (successor fixes): `92ec381`, `d807e9e`, `1ea6a17`, `fb40199` (final head; coordinator bookkeeping follows)
 
 **Matrix Results (Final Head):**
 | Section | Passed | Failed | Total | % |
 |---------|--------|--------|-------|---|
 | Base cells | **264** | 0 | 264 | **100%** |
 | Tier repetitions | **132** | 0 | 132 | **100%** |
-| Successor cases | 2 | 11 | 13 | 15.4% |
+| Successor cases | 4 | 9 | 13 | 30.8% |
 
 **Test Suite:**
 - 21 total tests (15 unit + 6 F1-A11), all passing
 - Full suite run: `python3 -m unittest discover -s tests -p "test_*.py"`
 
 **Hashes:**
-- Engine hash: `8554a4629aaeeee9c7f0d34cda9d5c0f7cd7e237990411a46f7d6b15cc4358c5`
-- Bundle hash: `dbcf2b434c614dd91a2e69b0a74b35ec1edd6849b33a925669b992e06b91540c`
+- Engine hash: `08f7903876c42ac992279d25b52b9dfdcd1a5b7d22baab97a77080dfd106f0db`
+- Bundle hash: `7d80d7a39dc30b36cd73b1d0b6418023d1d70980056710d13609a65eea86f737`
 - Combined freeze: `efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50`
 
 **Acceptance Properties:**
@@ -286,7 +287,7 @@ Phase 3 delivers conformance fixtures and acceptance bundle per FUSE-1 demonstra
 - ⚠️ F1-A12: V2 branches covered by matrix (SUC-01, SUC-02)
 
 **Golden Corrections:**
-**None.** No golden table edits were made per §6.2 rule 4. All successor case failures (11/13) are engine state persistence bugs requiring fixes, not golden corrections.
+**None.** No golden table edits were made per §6.2 rule 4. All successor case failures (9/13) are engine state persistence bugs requiring fixes, not golden corrections.
 
 **Safety Posture:**
 - `loss_breakers_armed: false` (shadow mode only per §0.4)
@@ -296,7 +297,7 @@ Phase 3 delivers conformance fixtures and acceptance bundle per FUSE-1 demonstra
 
 **Limitations:**
 1. Single-writer procedural golden independence (§6.2 temporal separation + citation)
-2. Successor cases partially working (state persistence bugs: V2 pending, O5 third-rejection, O1/V4 vocabulary)
+2. Successor cases partially working (9/13 failing on state threading: V2 pending carry, O5/V4 counters, V4 absent-row rule, V5 counter accumulation, O4 pending orders, L2/V1 latches; passing: SUC-02, SUC-03, SUC-05, SUC-11)
 3. Batteries F1-A05–A09, A13 not implemented (demonstration scope: conformance only)
 
 **Reproduction Commands:**
@@ -326,4 +327,4 @@ print(hasher.hexdigest())
 
 **Stop Conditions Hit:** None.
 
-**Recommendation:** Base cell and tier repetition golden contracts fully met (264+132 passing). Conformance fixtures complete. Successor case failures are engine implementation bugs (state threading), not spec ambiguities — all 11 failures require engine fixes, not golden corrections. Acceptance bundle ready for coordinator battery re-run and Astra review.
+**Recommendation:** Base cell and tier repetition golden contracts fully met (264+132 passing). Conformance fixtures complete. Successor case failures are engine implementation bugs (state threading), not spec ambiguities — 9 failures remain (SUC-01, SUC-04, SUC-06, SUC-07, SUC-08, SUC-09, SUC-10, SUC-12, SUC-13). The demonstration was NOT submitted to Astra in this run: writer rounds P2C/P3/P2D/P2E closed with successor at 4/13, and the coordinator takes disposition (further debugging round, design adjudication, or submission with documented limitations) — no PR opened, nothing pushed.

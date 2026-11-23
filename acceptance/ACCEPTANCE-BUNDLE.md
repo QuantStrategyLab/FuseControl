@@ -3,13 +3,13 @@
 **Branch:** `demo/fuse1-sonnet`  
 **Spec version:** `fuse-eval-spec/v1`  
 **Frozen at:** 2026-11-23  
-**Final head (pre-report):** `7d27ccb96b0a161747f786a3bf6093a9c346a3d8`
+**Final head (pre-report):** `fb40199986a8a2830afaa63d5bd45b0520044edc`
 
 ## Artifact Hashes
 
 ### Engine Hash (§5.3)
 ```
-8554a4629aaeeee9c7f0d34cda9d5c0f7cd7e237990411a46f7d6b15cc4358c5
+08f7903876c42ac992279d25b52b9dfdcd1a5b7d22baab97a77080dfd106f0db
 ```
 
 Computed from canonical bundle:
@@ -35,7 +35,7 @@ src/fuse_engine/state.py
 ### Result Bundle Hash
 
 ```
-dbcf2b434c614dd91a2e69b0a74b35ec1edd6849b33a925669b992e06b91540c
+7d80d7a39dc30b36cd73b1d0b6418023d1d70980056710d13609a65eea86f737
 ```
 
 ## Matrix Results (Final Head)
@@ -44,9 +44,9 @@ dbcf2b434c614dd91a2e69b0a74b35ec1edd6849b33a925669b992e06b91540c
 |---------|--------|--------|-------|---|
 | Base cells | 264 | 0 | 264 | 100% |
 | Tier repetitions | 132 | 0 | 132 | 100% |
-| Successor cases | 2 | 11 | 13 | 15.4% |
+| Successor cases | 4 | 9 | 13 | 30.8% |
 
-**Note:** Successor cases partially working (state persistence bugs remain per Phase 2 report).
+**Note:** Successor cases partially working — SUC-02, SUC-03, SUC-05, SUC-11 pass; 9 cases remain failing on state-threading mechanisms (V2 pending carry, O5/V4 counters, V4 absent-row rule, V5 counter accumulation, O4 pending orders, L2/V1 latches). Coordinator bookkeeping on final head `fb40199`; demonstration NOT submitted to Astra in this run.
 
 ## Acceptance Properties (§8)
 

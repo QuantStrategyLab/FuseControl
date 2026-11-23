@@ -1,33 +1,16 @@
 {
   "base_cells": {
-    "failed": 2,
-    "failures": [
-      {
-        "cell": "stale.O1",
-        "diffs": [
-          "Outcome mismatch:\n  reason: actual=missing_required_source_volatility != expected=stale_or_missing_input"
-        ],
-        "row_id": "O1",
-        "scenario": "stale"
-      },
-      {
-        "cell": "missing.O1",
-        "diffs": [
-          "Outcome mismatch:\n  reason: actual=missing_required_source_index_returns != expected=stale_or_missing_input"
-        ],
-        "row_id": "O1",
-        "scenario": "missing"
-      }
-    ],
-    "passed": 262,
+    "failed": 0,
+    "failures": [],
+    "passed": 264,
     "total": 264
   },
-  "bundle_hash": "dbcf2b434c614dd91a2e69b0a74b35ec1edd6849b33a925669b992e06b91540c",
+  "bundle_hash": "7d80d7a39dc30b36cd73b1d0b6418023d1d70980056710d13609a65eea86f737",
   "description": "FUSE-1 trip matrix execution results",
-  "engine_hash": "8554a4629aaeeee9c7f0d34cda9d5c0f7cd7e237990411a46f7d6b15cc4358c5",
+  "engine_hash": "08f7903876c42ac992279d25b52b9dfdcd1a5b7d22baab97a77080dfd106f0db",
   "freeze_hash": "efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50",
   "successor_cases": {
-    "failed": 11,
+    "failed": 9,
     "failures": [
       {
         "case": "SUC-01",
@@ -38,29 +21,10 @@
         ]
       },
       {
-        "case": "SUC-02",
-        "diffs": [
-          "Step 2 row V2 mismatch:\n  state: actual=NORMAL != expected=HALT\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_prior_mismatch",
-          "Step 3 row V2 mismatch:\n  reason: actual=none != expected=authorized_rearm"
-        ]
-      },
-      {
         "case": "SUC-04",
         "diffs": [
           "Step 3 row O5 mismatch:\n  state: actual=NORMAL != expected=HALT\n  latched: actual=False != expected=True\n  reason: actual=unresolved_fail_closed != expected=third_rejection_in_session",
           "Step 4 row O5 mismatch:\n  state: actual=NORMAL != expected=HALT\n  latched: actual=False != expected=True\n  reason: actual=unresolved_fail_closed != expected=latched_third_rejection"
-        ]
-      },
-      {
-        "case": "SUC-05",
-        "diffs": [
-          "Step 1 row O1 mismatch:\n  reason: actual=stale_or_missing_input != expected=missing_required_source_market_data",
-          "Step 2 row O1 mismatch:\n  reason: actual=stale_or_missing_input != expected=missing_required_source_index_returns",
-          "Step 3 row O1 mismatch:\n  reason: actual=stale_or_missing_input != expected=missing_required_source_volatility",
-          "Step 4 row O1 mismatch:\n  reason: actual=stale_or_missing_input != expected=missing_required_source_positions",
-          "Step 5 row O1 mismatch:\n  reason: actual=stale_or_missing_input != expected=missing_required_source_broker_reconciliation",
-          "Step 6 row O1 mismatch:\n  reason: actual=stale_or_missing_input != expected=missing_required_source_session_calendar",
-          "Step 7 row O1 mismatch:\n  state: actual=NO-NEW-RISK != expected=NORMAL\n  would_have_tripped: actual=True != expected=False\n  reason: actual=stale_or_missing_input != expected=none"
         ]
       },
       {
@@ -129,15 +93,15 @@
         ]
       }
     ],
-    "passed": 2,
+    "passed": 4,
     "total": 13
   },
   "summary": {
-    "failed_base": 2,
-    "failed_successor": 11,
+    "failed_base": 0,
+    "failed_successor": 9,
     "failed_tier": 0,
-    "passed_base": 262,
-    "passed_successor": 2,
+    "passed_base": 264,
+    "passed_successor": 4,
     "passed_tier": 132,
     "total_base": 264,
     "total_successor": 13,
