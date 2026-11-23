@@ -5,103 +5,22 @@
     "passed": 264,
     "total": 264
   },
-  "bundle_hash": "7d80d7a39dc30b36cd73b1d0b6418023d1d70980056710d13609a65eea86f737",
+  "bundle_hash": "44b73d60fe5ae331c4b78255b897f4269a91b66191dba9db8295fb72a9ba1a06",
   "description": "FUSE-1 trip matrix execution results",
-  "engine_hash": "08f7903876c42ac992279d25b52b9dfdcd1a5b7d22baab97a77080dfd106f0db",
-  "freeze_hash": "efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50",
+  "engine_hash": "a79a6ca3eb63276d025ae29d9c659df4f1b81b552f75ad43caa122062456ca6a",
+  "freeze_hash": "499641a2185131bccc49f93c1784eab3fd226336d6ac0edc66a1d983df1d89f1",
   "successor_cases": {
-    "failed": 9,
-    "failures": [
-      {
-        "case": "SUC-01",
-        "diffs": [
-          "Step 2 row V2 mismatch:\n  reason: actual=pending_corporate_action != expected=pending_corporate_action_carried",
-          "Step 3 row V2 mismatch:\n  reason: actual=none != expected=exact_reconciliation_auto_clear",
-          "Step 3 effective state mismatch:\n  fund:TQQQ: actual=NO-NEW-RISK != expected=NORMAL"
-        ]
-      },
-      {
-        "case": "SUC-04",
-        "diffs": [
-          "Step 3 row O5 mismatch:\n  state: actual=NORMAL != expected=HALT\n  latched: actual=False != expected=True\n  reason: actual=unresolved_fail_closed != expected=third_rejection_in_session",
-          "Step 4 row O5 mismatch:\n  state: actual=NORMAL != expected=HALT\n  latched: actual=False != expected=True\n  reason: actual=unresolved_fail_closed != expected=latched_third_rejection"
-        ]
-      },
-      {
-        "case": "SUC-06",
-        "diffs": [
-          "Step 2 row V4 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=volatility_below_2x_but_not_yet_cleared",
-          "Step 3 row V4 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=volatility_below_2x_but_not_yet_cleared",
-          "Step 4 row V4 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=volatility_below_2x_but_not_yet_cleared",
-          "Step 6 row V4 mismatch:\n  reason: actual=none != expected=cleared_after_ten_sessions"
-        ]
-      },
-      {
-        "case": "SUC-07",
-        "diffs": [
-          "Step 1 row V4 mismatch:\n  state: actual=NORMAL != expected=None\n  would_have_tripped: actual=False != expected=None\n  kind: actual=interlock != expected=None\n  latched: actual=False != expected=None",
-          "Step 2 row V4 mismatch:\n  state: actual=NORMAL != expected=None\n  would_have_tripped: actual=False != expected=None\n  kind: actual=interlock != expected=None\n  latched: actual=False != expected=None"
-        ]
-      },
-      {
-        "case": "SUC-08",
-        "diffs": [
-          "Step 1 row V5 mismatch:\n  state: actual=NORMAL != expected=none",
-          "Step 2 row V5 mismatch:\n  state: actual=NORMAL != expected=none\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=39",
-          "Step 3 row V5 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  reason: actual=excess_beyond_tolerance != expected=escalated_to_v1_treatment\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=40\n  outputs.escalated_to_v1: actual=False != expected=True",
-          "Step 4 row V5 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  reason: actual=excess_beyond_tolerance != expected=escalated_to_v1_treatment\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=70\n  outputs.escalated_to_v1: actual=False != expected=True"
-        ]
-      },
-      {
-        "case": "SUC-09",
-        "diffs": [
-          "Step 1 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=True\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=order_timeout",
-          "Step 1 effective state mismatch:\n  symbol:TQQQ: missing in actual",
-          "Step 2 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=True\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=awaiting_original_order_status",
-          "Step 2 effective state mismatch:\n  symbol:TQQQ: missing in actual",
-          "Step 3 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=True\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=unrecognized_status_for_original_order",
-          "Step 3 effective state mismatch:\n  symbol:TQQQ: missing in actual",
-          "Step 4 row O4 mismatch:\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=original_order_terminal_status_received",
-          "Step 4 effective state mismatch:\n  symbol:TQQQ: missing in actual"
-        ]
-      },
-      {
-        "case": "SUC-10",
-        "diffs": [
-          "Step 1 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=None\n  kind: actual=breaker != expected=None\n  latched: actual=False != expected=None",
-          "Step 2 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=True\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=awaiting_original_order_status_after_restart",
-          "Step 2 effective state mismatch:\n  symbol:TQQQ: missing in actual"
-        ]
-      },
-      {
-        "case": "SUC-12",
-        "diffs": [
-          "Step 1 effective state mismatch:\n  account: actual=HALT != expected=NO-NEW-RISK",
-          "Step 2 row L2 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_prior_trip",
-          "Step 3 row L2 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_survives_deposit",
-          "Step 4 row L2 mismatch:\n  reason: actual=drawdown_at_2D_over_3 != expected=latched_survives_tier_change",
-          "Step 5 row L2 mismatch:\n  state: actual=NO-NEW-RISK != expected=NORMAL\n  would_have_tripped: actual=True != expected=False\n  latched: actual=True != expected=False\n  reason: actual=drawdown_at_2D_over_3 != expected=authorized_rearm"
-        ]
-      },
-      {
-        "case": "SUC-13",
-        "diffs": [
-          "Step 1 row V1 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=tracking_deviation_exceeds_0_75pp",
-          "Step 2 row V1 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_prior_trip",
-          "Step 3 row V1 mismatch:\n  reason: actual=none != expected=authorized_rearm",
-          "Step 3 effective state mismatch:\n  fund:TQQQ: actual=NO-NEW-RISK != expected=NORMAL"
-        ]
-      }
-    ],
-    "passed": 4,
+    "failed": 0,
+    "failures": [],
+    "passed": 13,
     "total": 13
   },
   "summary": {
     "failed_base": 0,
-    "failed_successor": 9,
+    "failed_successor": 0,
     "failed_tier": 0,
     "passed_base": 264,
-    "passed_successor": 4,
+    "passed_successor": 13,
     "passed_tier": 132,
     "total_base": 264,
     "total_successor": 13,
