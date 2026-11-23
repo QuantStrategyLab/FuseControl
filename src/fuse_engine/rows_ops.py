@@ -73,16 +73,22 @@ def evaluate_O1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             }
 
         # Still in trip state
-        # SUC-05 uses specific source names, base scenarios use generic reason
-        # Determine which format to use based on context
+        # Determine reason format: source-specific vs generic
+        # SUC-05 (source enumeration testing) has top-level fields None → source-specific tokens
+        # Base scenarios (normal operation) have top-level fields present → generic tokens
+
+        # Check if we're in source enumeration mode (SUC-05): top-level required fields are None
+        source_enumeration_mode = all(
+            inputs.get(key) is None
+            for key in ['bankroll', 'high_water_mark', 'joint_exposure', 'max_loss_cap']
+        )
+
         first_missing = missing_sources[0]
-        # For SUC-05, check if only ONE source is missing (enumeration case)
-        # For base scenarios (stale/missing), use generic reason
-        if len(missing_sources) == 1 and first_missing in required_source_names:
-            # Single source missing - use specific reason (SUC-05)
+        if source_enumeration_mode and len(missing_sources) == 1 and first_missing in required_source_names:
+            # Source enumeration test (SUC-05) - use source-specific reason
             reason = f'missing_required_source_{first_missing}'
         else:
-            # Multiple sources or non-source field - use generic reason
+            # Normal operation (base scenarios) - use generic reason
             reason = 'stale_or_missing_input'
 
         return {
