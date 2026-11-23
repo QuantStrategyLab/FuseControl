@@ -516,9 +516,14 @@ def aggregate_fund_row(fund_outputs: Dict[str, Dict[str, Any]], symbol_scoped: b
         'reason': reason
     }
 
-    # Include per-fund outputs if present
+    # Include per-fund outputs (V4 counter at top level per Q1, not wrapped per fund)
     if 'outputs' in sample:
-        aggregate['outputs'] = {symbol: result.get('outputs', {}) for symbol, result in fund_outputs.items()}
+        # For single-fund case (V4 counter), emit outputs at top level
+        if len(affected_funds) == 1:
+            aggregate['outputs'] = fund_outputs[affected_funds[0]].get('outputs', {})
+        else:
+            # Multiple funds: wrap per-fund
+            aggregate['outputs'] = {symbol: result.get('outputs', {}) for symbol, result in fund_outputs.items()}
 
     # For fund/symbol-scoped rows, include affected funds/symbols
     if affected_funds:
