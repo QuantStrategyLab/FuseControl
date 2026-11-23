@@ -1,0 +1,539 @@
+{
+  "base_cells": {
+    "failed": 53,
+    "failures": [
+      {
+        "cell": "normal.V5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
+        ],
+        "row_id": "V5",
+        "scenario": "normal"
+      },
+      {
+        "cell": "normal.V6",
+        "diffs": [
+          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
+        ],
+        "row_id": "V6",
+        "scenario": "normal"
+      },
+      {
+        "cell": "normal.V7",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "V7",
+        "scenario": "normal"
+      },
+      {
+        "cell": "normal.O5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "O5",
+        "scenario": "normal"
+      },
+      {
+        "cell": "deposit.V5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
+        ],
+        "row_id": "V5",
+        "scenario": "deposit"
+      },
+      {
+        "cell": "deposit.V6",
+        "diffs": [
+          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
+        ],
+        "row_id": "V6",
+        "scenario": "deposit"
+      },
+      {
+        "cell": "deposit.V7",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "V7",
+        "scenario": "deposit"
+      },
+      {
+        "cell": "deposit.O5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "O5",
+        "scenario": "deposit"
+      },
+      {
+        "cell": "withdrawal.V5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
+        ],
+        "row_id": "V5",
+        "scenario": "withdrawal"
+      },
+      {
+        "cell": "withdrawal.V6",
+        "diffs": [
+          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
+        ],
+        "row_id": "V6",
+        "scenario": "withdrawal"
+      },
+      {
+        "cell": "withdrawal.V7",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "V7",
+        "scenario": "withdrawal"
+      },
+      {
+        "cell": "withdrawal.O5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "O5",
+        "scenario": "withdrawal"
+      },
+      {
+        "cell": "split.V2",
+        "diffs": [
+          "Outcome mismatch:\n  state: actual=NORMAL != expected=HALT\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=pending_corporate_action_TQQQ"
+        ],
+        "row_id": "V2",
+        "scenario": "split"
+      },
+      {
+        "cell": "split.V5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
+        ],
+        "row_id": "V5",
+        "scenario": "split"
+      },
+      {
+        "cell": "split.V6",
+        "diffs": [
+          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
+        ],
+        "row_id": "V6",
+        "scenario": "split"
+      },
+      {
+        "cell": "split.V7",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "V7",
+        "scenario": "split"
+      },
+      {
+        "cell": "split.O5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "O5",
+        "scenario": "split"
+      },
+      {
+        "cell": "reverse_split.V2",
+        "diffs": [
+          "Outcome mismatch:\n  state: actual=NORMAL != expected=HALT\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=pending_corporate_action_SOXL"
+        ],
+        "row_id": "V2",
+        "scenario": "reverse_split"
+      },
+      {
+        "cell": "reverse_split.V5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
+        ],
+        "row_id": "V5",
+        "scenario": "reverse_split"
+      },
+      {
+        "cell": "reverse_split.V6",
+        "diffs": [
+          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
+        ],
+        "row_id": "V6",
+        "scenario": "reverse_split"
+      },
+      {
+        "cell": "reverse_split.V7",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "V7",
+        "scenario": "reverse_split"
+      },
+      {
+        "cell": "reverse_split.O5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "O5",
+        "scenario": "reverse_split"
+      },
+      {
+        "cell": "stale.V5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
+        ],
+        "row_id": "V5",
+        "scenario": "stale"
+      },
+      {
+        "cell": "stale.V6",
+        "diffs": [
+          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
+        ],
+        "row_id": "V6",
+        "scenario": "stale"
+      },
+      {
+        "cell": "stale.V7",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "V7",
+        "scenario": "stale"
+      },
+      {
+        "cell": "stale.O1",
+        "diffs": [
+          "Outcome mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=stale_or_missing_input"
+        ],
+        "row_id": "O1",
+        "scenario": "stale"
+      },
+      {
+        "cell": "stale.O5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "O5",
+        "scenario": "stale"
+      },
+      {
+        "cell": "missing.V5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
+        ],
+        "row_id": "V5",
+        "scenario": "missing"
+      },
+      {
+        "cell": "missing.V6",
+        "diffs": [
+          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
+        ],
+        "row_id": "V6",
+        "scenario": "missing"
+      },
+      {
+        "cell": "missing.V7",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "V7",
+        "scenario": "missing"
+      },
+      {
+        "cell": "missing.O1",
+        "diffs": [
+          "Outcome mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=stale_or_missing_input"
+        ],
+        "row_id": "O1",
+        "scenario": "missing"
+      },
+      {
+        "cell": "missing.O5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "O5",
+        "scenario": "missing"
+      },
+      {
+        "cell": "restart.V5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
+        ],
+        "row_id": "V5",
+        "scenario": "restart"
+      },
+      {
+        "cell": "restart.V6",
+        "diffs": [
+          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
+        ],
+        "row_id": "V6",
+        "scenario": "restart"
+      },
+      {
+        "cell": "restart.V7",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "V7",
+        "scenario": "restart"
+      },
+      {
+        "cell": "restart.O5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "O5",
+        "scenario": "restart"
+      },
+      {
+        "cell": "tier_change.L0",
+        "diffs": [
+          "Outcome mismatch:\n  outputs.cap_breached: actual=False != expected=True\n  outputs.increases_blocked: actual=False != expected=True"
+        ],
+        "row_id": "L0",
+        "scenario": "tier_change"
+      },
+      {
+        "cell": "tier_change.V5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
+        ],
+        "row_id": "V5",
+        "scenario": "tier_change"
+      },
+      {
+        "cell": "tier_change.V6",
+        "diffs": [
+          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
+        ],
+        "row_id": "V6",
+        "scenario": "tier_change"
+      },
+      {
+        "cell": "tier_change.V7",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "V7",
+        "scenario": "tier_change"
+      },
+      {
+        "cell": "tier_change.O5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "O5",
+        "scenario": "tier_change"
+      },
+      {
+        "cell": "tier_change.O9",
+        "diffs": [
+          "Outcome mismatch:\n  state: actual=NORMAL != expected=HALT\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=unauthorized_change"
+        ],
+        "row_id": "O9",
+        "scenario": "tier_change"
+      },
+      {
+        "cell": "tier_change.J1",
+        "diffs": [
+          "Outcome mismatch:\n  outputs.headroom: actual=-5000.0 != expected=0\n  outputs.above_cap: actual=False != expected=True\n  outputs.above_trim_threshold: actual=False != expected=True"
+        ],
+        "row_id": "J1",
+        "scenario": "tier_change"
+      },
+      {
+        "cell": "holiday.V5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
+        ],
+        "row_id": "V5",
+        "scenario": "holiday"
+      },
+      {
+        "cell": "holiday.V6",
+        "diffs": [
+          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
+        ],
+        "row_id": "V6",
+        "scenario": "holiday"
+      },
+      {
+        "cell": "holiday.V7",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "V7",
+        "scenario": "holiday"
+      },
+      {
+        "cell": "holiday.O2",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=market_closed"
+        ],
+        "row_id": "O2",
+        "scenario": "holiday"
+      },
+      {
+        "cell": "holiday.O5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "O5",
+        "scenario": "holiday"
+      },
+      {
+        "cell": "half_day.V5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed\n  outputs.excess_shortfall: actual=0.0 != expected=None\n  outputs.disposition: actual=benign != expected=UNRESOLVED-FAIL-CLOSED"
+        ],
+        "row_id": "V5",
+        "scenario": "half_day"
+      },
+      {
+        "cell": "half_day.V6",
+        "diffs": [
+          "Outcome mismatch:\n  outputs.cost_per_unit_exposure: actual=0.0 != expected=None\n  outputs.threshold: actual=0.0 != expected=None"
+        ],
+        "row_id": "V6",
+        "scenario": "half_day"
+      },
+      {
+        "cell": "half_day.V7",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "V7",
+        "scenario": "half_day"
+      },
+      {
+        "cell": "half_day.O2",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=market_closed"
+        ],
+        "row_id": "O2",
+        "scenario": "half_day"
+      },
+      {
+        "cell": "half_day.O5",
+        "diffs": [
+          "Outcome mismatch:\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=unresolved_fail_closed"
+        ],
+        "row_id": "O5",
+        "scenario": "half_day"
+      }
+    ],
+    "passed": 211,
+    "total": 264
+  },
+  "bundle_hash": "cdd35a72d22e992f10d3ad21fdc49eef04610853919777c852a3e90d1550d06b",
+  "description": "FUSE-1 trip matrix execution results",
+  "engine_hash": "7ab2d18ef2bec2139bdbca9cff861baeebacffa0b535b67df5f5c99c8500503d",
+  "freeze_hash": "efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50",
+  "successor_cases": {
+    "failed": 13,
+    "failures": [
+      {
+        "case": "SUC-01",
+        "diffs": [
+          "State persistence not yet implemented in skeleton"
+        ]
+      },
+      {
+        "case": "SUC-02",
+        "diffs": [
+          "State persistence not yet implemented in skeleton"
+        ]
+      },
+      {
+        "case": "SUC-03",
+        "diffs": [
+          "State persistence not yet implemented in skeleton"
+        ]
+      },
+      {
+        "case": "SUC-04",
+        "diffs": [
+          "State persistence not yet implemented in skeleton"
+        ]
+      },
+      {
+        "case": "SUC-05",
+        "diffs": [
+          "State persistence not yet implemented in skeleton"
+        ]
+      },
+      {
+        "case": "SUC-06",
+        "diffs": [
+          "State persistence not yet implemented in skeleton"
+        ]
+      },
+      {
+        "case": "SUC-07",
+        "diffs": [
+          "State persistence not yet implemented in skeleton"
+        ]
+      },
+      {
+        "case": "SUC-08",
+        "diffs": [
+          "State persistence not yet implemented in skeleton"
+        ]
+      },
+      {
+        "case": "SUC-09",
+        "diffs": [
+          "State persistence not yet implemented in skeleton"
+        ]
+      },
+      {
+        "case": "SUC-10",
+        "diffs": [
+          "State persistence not yet implemented in skeleton"
+        ]
+      },
+      {
+        "case": "SUC-11",
+        "diffs": [
+          "State persistence not yet implemented in skeleton"
+        ]
+      },
+      {
+        "case": "SUC-12",
+        "diffs": [
+          "State persistence not yet implemented in skeleton"
+        ]
+      },
+      {
+        "case": "SUC-13",
+        "diffs": [
+          "State persistence not yet implemented in skeleton"
+        ]
+      }
+    ],
+    "passed": 0,
+    "total": 13
+  },
+  "summary": {
+    "failed_base": 53,
+    "failed_successor": 13,
+    "failed_tier": 0,
+    "passed_base": 211,
+    "passed_successor": 0,
+    "passed_tier": 132,
+    "total_base": 264,
+    "total_successor": 13,
+    "total_tier": 132
+  },
+  "tier_repetitions": {
+    "failed": 0,
+    "failures": [],
+    "passed": 132,
+    "total": 132
+  }
+}
