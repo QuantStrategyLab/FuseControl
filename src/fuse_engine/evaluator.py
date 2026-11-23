@@ -110,28 +110,30 @@ def evaluate(
     if l3_result['latched']:
         st.set_latch(next_row_state, 'L3', 'account', True, l3_result['reason'])
 
-    # L4 - one-session loss D/10 breaker
+    # L4 - one-session loss D/10 breaker (canonical per Q6)
     l4_result = rows_loss.evaluate_L4(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['L4'] = l4_result
     if l4_result['latched']:
-        st.set_latch(next_row_state, 'L4', 'account', True, l4_result['reason'])
+        cst.set_account_latch(next_row_state, 'L4', session)
 
     # L5 - market halt L1/L2 interlock (canonical format per Q6)
     l5_result = rows_loss.evaluate_L5(validated_inputs, prior_row_state, authorized_events, session)
     rows_by_ID['L5'] = l5_result
-    # Update L5 fresh session counter if not triggered
+    # Update L5 fresh session counter
     fresh_count = cst.get_l5_fresh_count(prior_row_state)
     if not l5_result['would_have_tripped']:
         cst.set_l5_fresh_count(next_row_state, fresh_count + 1)
     else:
         cst.set_l5_fresh_count(next_row_state, 0)
-        # Note: L5 latch will be migrated when L5 row function is updated
+    # L5 latch (if needed) uses general account latch accessor
+    if l5_result.get('latched'):
+        cst.set_account_latch(next_row_state, 'L5', session)
 
-    # L6 - market halt L3 or 10% index fall breaker
+    # L6 - market halt L3 or 10% index fall breaker (canonical per Q6)
     l6_result = rows_loss.evaluate_L6(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['L6'] = l6_result
     if l6_result['latched']:
-        st.set_latch(next_row_state, 'L6', 'account', True, l6_result['reason'])
+        cst.set_account_latch(next_row_state, 'L6', session)
 
     # ==== VEHICLE ROWS (V1-V7) - Fund/symbol scope ====
 

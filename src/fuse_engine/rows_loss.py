@@ -323,11 +323,11 @@ def evaluate_L3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Kind: breaker
     Scope: account
     State contribution: DE-RISK
-    Clearing: Owner card with 30-day cooling-off; loss record not cleared
+    Clearing: Owner card with 30-day cooling-off; loss record not cleared (canonical per Q6)
     """
-    # Check for prior latch
-    prior_latch = st.get_latch(prior_state, 'L3', 'account')
-    if prior_latch and prior_latch['latched']:
+    # Check for prior latch from canonical format
+    prior_latch = cst.get_l3_latch(prior_state)
+    if prior_latch:
         # Check for authorized re-arm
         rearm = False
         cooling_off_days_remaining = prior_latch['details'].get('cooling_off_days_remaining', 30)
@@ -455,11 +455,11 @@ def evaluate_L4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Kind: breaker
     Scope: account
     State contribution: NO-NEW-RISK
-    Clearing: Owner acknowledges, not before next session
+    Clearing: Owner acknowledges, not before next session (canonical per Q6)
     """
-    # Check for prior latch
-    prior_latch = st.get_latch(prior_state, 'L4', 'account')
-    if prior_latch and prior_latch['latched']:
+    # Check for prior latch from canonical format
+    prior_latch = cst.get_account_latch(prior_state, 'L4')
+    if prior_latch:
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
@@ -548,13 +548,13 @@ def evaluate_L5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Kind: interlock
     Scope: account
     State contribution: NO-NEW-RISK
-    Clearing: Clears after one clean session
+    Clearing: Clears after one clean session (canonical per Q6)
     """
-    # Check for prior active state
-    fresh_session_count = st.get_counter(prior_state, 'L5', 'account', 'fresh_sessions', default=0)
-    prior_latch = st.get_latch(prior_state, 'L5', 'account')
+    # Check for prior active state from canonical format
+    fresh_session_count = cst.get_l5_fresh_count(prior_state)
+    prior_latch = cst.get_account_latch(prior_state, 'L5')
 
-    if prior_latch and prior_latch['latched']:
+    if prior_latch:
         # Interlock clearing: one clean session needed
         if fresh_session_count >= 1:
             # Clear
@@ -616,11 +616,11 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Kind: breaker
     Scope: account
     State contribution: HALT
-    Clearing: Owner re-arms after reconciliation
+    Clearing: Owner re-arms after reconciliation (canonical per Q6)
     """
-    # Check for prior latch
-    prior_latch = st.get_latch(prior_state, 'L6', 'account')
-    if prior_latch and prior_latch['latched']:
+    # Check for prior latch from canonical format
+    prior_latch = cst.get_account_latch(prior_state, 'L6')
+    if prior_latch:
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
