@@ -378,13 +378,6 @@ def get_account_latch(prior_state: Optional[Dict], row_id: str) -> Optional[Dict
                 'details': row_state.get('details', {})
             }
 
-    # Fall back to old format for compatibility during migration
-    old_key = f'{row_id}_latch'
-    if old_key in prior_state:
-        latch = prior_state[old_key].get('account')
-        if latch and latch.get('latched'):
-            return latch
-
     return None
 
 
@@ -415,14 +408,6 @@ def get_fund_latch(prior_state: Optional[Dict], row_id: str, fund: str) -> Optio
                 'trip_session': fund_state.get('trip_session'),
                 'details': fund_state.get('details', {})
             }
-
-    # Fall back to old format
-    old_key = f'{row_id}_latch'
-    if old_key in prior_state:
-        scope = f'fund:{fund}'
-        latch = prior_state[old_key].get(scope)
-        if latch and latch.get('latched'):
-            return latch
 
     return None
 
