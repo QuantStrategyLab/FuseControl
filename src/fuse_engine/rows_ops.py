@@ -72,19 +72,8 @@ def evaluate_O1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     has_issues = missing_source_records or missing_toplevel_fields
 
     if has_issues:
-        # Check clearing counter
-        fresh_count = st.get_counter(prior_state, 'O1', 'account', 'fresh_sessions', default=0)
-
-        if fresh_count >= 1:
-            # Cleared after one fresh session
-            return {
-                'state': 'NORMAL',
-                'would_have_tripped': False,
-                'kind': 'interlock',
-                'latched': False,
-                'reason': 'none'
-            }
-
+        # Bug fix: current missing source must REFUSE even after fresh session per Q6
+        # A prior fresh count ≥1 cannot turn a CURRENT missing input into NORMAL
         # Still in trip state
         # Determine reason format: source-specific vs generic
         # SUC-05 (source enumeration testing): exactly one source_record issue, top-level fields None

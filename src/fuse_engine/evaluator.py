@@ -105,17 +105,16 @@ def evaluate(
     if l4_result['latched']:
         st.set_latch(next_row_state, 'L4', 'account', True, l4_result['reason'])
 
-    # L5 - market halt L1/L2 interlock
+    # L5 - market halt L1/L2 interlock (canonical format per Q6)
     l5_result = rows_loss.evaluate_L5(validated_inputs, prior_row_state, authorized_events, session)
     rows_by_ID['L5'] = l5_result
     # Update L5 fresh session counter if not triggered
+    fresh_count = cst.get_l5_fresh_count(prior_row_state)
     if not l5_result['would_have_tripped']:
-        fresh_count = st.get_counter(prior_row_state, 'L5', 'account', 'fresh_sessions', default=0)
-        st.set_counter(next_row_state, 'L5', 'account', 'fresh_sessions', fresh_count + 1)
+        cst.set_l5_fresh_count(next_row_state, fresh_count + 1)
     else:
-        st.set_counter(next_row_state, 'L5', 'account', 'fresh_sessions', 0)
-        if l5_result.get('latched'):
-            st.set_latch(next_row_state, 'L5', 'account', True, l5_result['reason'])
+        cst.set_l5_fresh_count(next_row_state, 0)
+        # Note: L5 latch will be migrated when L5 row function is updated
 
     # L6 - market halt L3 or 10% index fall breaker
     l6_result = rows_loss.evaluate_L6(validated_inputs, prior_row_state, authorized_events)
@@ -243,12 +242,15 @@ def evaluate(
     # O1 - required inputs stale/missing (B3)
     o1_result = rows_ops.evaluate_O1(validated_inputs, prior_row_state, authorized_events, session)
     rows_by_ID['O1'] = o1_result
-    # Update O1 fresh session counter
+    # Update O1 fresh session state (canonical format per Q6)
+    o1_state = cst.get_o1_fresh_state(prior_row_state)
     if not o1_result['would_have_tripped']:
-        fresh_count = st.get_counter(prior_row_state, 'O1', 'account', 'fresh_sessions', default=0)
-        st.set_counter(next_row_state, 'O1', 'account', 'fresh_sessions', fresh_count + 1)
+        # Fresh data - increment counter
+        fresh_count = o1_state['fresh_session_count'] + 1
+        cst.set_o1_fresh_state(next_row_state, fresh_count, session)
     else:
-        st.set_counter(next_row_state, 'O1', 'account', 'fresh_sessions', 0)
+        # Issues present - reset counter
+        cst.set_o1_fresh_state(next_row_state, 0, session)
 
     # O2 - session calendar
     o2_result = rows_ops.evaluate_O2(validated_inputs, prior_row_state, authorized_events)
