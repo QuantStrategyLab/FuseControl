@@ -162,6 +162,9 @@ def run_base_cells(scenarios: Dict[str, Any], golden_table: Dict[str, Any], engi
 def run_tier_repetitions(scenarios: Dict[str, Any], golden_table: Dict[str, Any], engine_hash: str) -> Dict[str, Any]:
     """Run tier repetitions for tier-parameterized rows (L0-L4, J1 × 3 tiers).
 
+    Real parameterized runner per Slice 4(a): executes engine with tier-specific
+    fixtures and compares actual outputs. Required for F1-A04 claim.
+
     Returns results dict with counts and failures.
     """
     tier_repetitions = golden_table.get('tier_repetitions', {})
@@ -173,11 +176,75 @@ def run_tier_repetitions(scenarios: Dict[str, Any], golden_table: Dict[str, Any]
         'failures': []
     }
 
-    # Placeholder: tier repetitions will be fully implemented in Step 2
-    # For now, count as passing since skeleton doesn't implement tier logic yet
-    for cell_key in tier_repetitions:
+    # Tier-specific parameters (from U-01)
+    tier_params = {
+        'conservative': {'D': 0.15, 'joint_cap_ratio': 0.4},
+        'balanced': {'D': 0.30, 'joint_cap_ratio': 0.5},
+        'aggressive': {'D': 0.50, 'joint_cap_ratio': 0.6}
+    }
+
+    for cell_key, cell_data in tier_repetitions.items():
         results['total'] += 1
-        results['passed'] += 1
+
+        scenario_name = cell_data['scenario']
+        row_id = cell_data['row_id']
+        tier = cell_data['tier']
+        expected_outcome = cell_data['outcome']
+
+        # Get base scenario inputs
+        scenario = scenarios['scenarios'][scenario_name]
+        inputs = scenario['inputs']['validated_inputs'].copy()
+
+        # Apply tier-specific parameters
+        inputs['tier'] = tier
+        tier_param = tier_params[tier]
+        inputs['tier_loss_budget_D'] = tier_param['D']
+
+        # Note: The golden tier repetitions appear to use the scenario's existing
+        # bankroll, tier_joint_cap, and max_loss_cap values without modification.
+        # This suggests tier repetitions test the row logic with different tier
+        # parameters but keep the scenario's base financial values.
+        # Only tier and tier_loss_budget_D are changed.
+
+        # Run evaluator
+        try:
+            rows, _, _ = evaluate(
+                spec_version='fuse-eval-spec/v1',
+                engine_hash=engine_hash,
+                policy_hash='test-policy',
+                session=scenario['inputs']['session'],
+                as_of=scenario['inputs']['as_of'],
+                mode='shadow',
+                validated_inputs=inputs,
+                prior_row_state={},
+                authorized_events={}
+            )
+
+            actual_row = rows.get(row_id, {})
+
+            # Compare against expected outcome
+            matches, diff_msgs = compare_outcome(actual_row, expected_outcome)
+            if not matches:
+                results['failed'] += 1
+                results['failures'].append({
+                    'cell_key': cell_key,
+                    'scenario': scenario_name,
+                    'row_id': row_id,
+                    'tier': tier,
+                    'diff': diff_msgs
+                })
+            else:
+                results['passed'] += 1
+
+        except Exception as e:
+            results['failed'] += 1
+            results['failures'].append({
+                'cell_key': cell_key,
+                'scenario': scenario_name,
+                'row_id': row_id,
+                'tier': tier,
+                'error': str(e)
+            })
 
     return results
 
