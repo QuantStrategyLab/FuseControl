@@ -299,7 +299,7 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
     # B6: If we have a prior pending order, check if this is the same order
     if prior_pending:
-        prior_order_id = prior_pending.get('order_id')
+        prior_order_id = prior_pending.get('original_order_id')
 
         # If this is a different order, the original is still unknown (SUC-09 step 2)
         if order_id != prior_order_id:
