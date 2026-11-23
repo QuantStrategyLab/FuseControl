@@ -134,8 +134,16 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     scope = f'fund:{fund}'
 
     # Check for prior mismatch latch
+    # B1: Check BOTH standard latch format AND custom latched_mismatches format (SUC-02)
     prior_latch = st.get_latch(prior_state, 'V2', scope)
-    if prior_latch and prior_latch['latched']:
+    has_standard_latch = prior_latch and prior_latch['latched']
+
+    # Also check for latched_mismatches (custom V2 format)
+    prior_v2 = prior_state.get('V2', {}) if prior_state else {}
+    prior_mismatches = prior_v2.get('latched_mismatches', {})
+    has_mismatch_latch = fund in prior_mismatches
+
+    if has_standard_latch or has_mismatch_latch:
         # Latched mismatch - only owner can re-arm
         rearm = False
         if authorized_events:
@@ -157,6 +165,16 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'kind': 'interlock_or_breaker',
                 'latched': True,
                 'reason': 'latched_prior_mismatch',
+                'fund': fund
+            }
+        else:
+            # Re-armed - clear the latch
+            return {
+                'state': 'NORMAL',
+                'would_have_tripped': False,
+                'kind': 'interlock_or_breaker',
+                'latched': False,
+                'reason': 'authorized_rearm',
                 'fund': fund
             }
 

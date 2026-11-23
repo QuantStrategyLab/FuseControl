@@ -145,8 +145,33 @@ def evaluate(
         # V2 - corporate action
         v2_result = rows_vehicle.evaluate_V2(fund_inputs, prior_row_state, authorized_events, symbol)
         v2_outputs[symbol] = v2_result
+
+        # B1: Store V2 latches and mismatch details (SUC-02)
         if v2_result['latched']:
             st.set_latch(next_row_state, 'V2', f'fund:{symbol}', True, v2_result['reason'])
+
+            # Store or carry forward latched_mismatches
+            if 'V2' not in next_row_state:
+                next_row_state['V2'] = {}
+            if 'latched_mismatches' not in next_row_state['V2']:
+                next_row_state['V2']['latched_mismatches'] = {}
+
+            # For new reconciliation_mismatch, store mismatch details
+            if v2_result['reason'] == 'reconciliation_mismatch':
+                corporate_action = fund_inputs.get('corporate_action', {})
+                next_row_state['V2']['latched_mismatches'][symbol] = {
+                    'type': corporate_action.get('type'),
+                    'ledger_value': fund_inputs.get('ledger_value'),
+                    'broker_value': fund_inputs.get('broker_value'),
+                    'mismatch': abs(fund_inputs.get('ledger_value', 0) - fund_inputs.get('broker_value', 0))
+                }
+            # For persisting latch (latched_prior_mismatch), carry forward details
+            elif v2_result['reason'] == 'latched_prior_mismatch':
+                prior_v2 = prior_row_state.get('V2', {}) if prior_row_state else {}
+                prior_mismatches = prior_v2.get('latched_mismatches', {})
+                if symbol in prior_mismatches:
+                    next_row_state['V2']['latched_mismatches'][symbol] = prior_mismatches[symbol]
+
         # Update pending state (B1) - must check prior_row_state too
         prior_v2_state = prior_row_state.get('V2', {}) if prior_row_state else {}
         # Carry forward or create new pending
@@ -483,7 +508,11 @@ def aggregate_fund_row(fund_outputs: Dict[str, Dict[str, Any]], symbol_scoped: b
         if symbol_scoped:
             aggregate['symbols'] = affected_funds
         else:
-            aggregate['funds'] = affected_funds
+            # Use singular 'fund' for single-fund case, plural 'funds' for multiple
+            if len(affected_funds) == 1:
+                aggregate['fund'] = affected_funds[0]
+            else:
+                aggregate['funds'] = affected_funds
 
     return aggregate
 
