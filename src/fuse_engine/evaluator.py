@@ -130,7 +130,6 @@ def evaluate(
     v5_outputs = {}
     v6_outputs = {}
     v7_outputs = {}
-    v4_last_increment = {}
     v5_escalated = {}
 
     for symbol in fund_symbols:
@@ -193,37 +192,16 @@ def evaluate(
         if v3_result['latched']:
             st.set_latch(next_row_state, 'V3', f'fund:{symbol}', True, v3_result['reason'])
 
-        # V4 - extreme volatility (B4: session-keyed counter)
+        # V4 - extreme volatility (B4 canonical format per Q6)
         v4_result = rows_vehicle.evaluate_V4(fund_inputs, prior_row_state, authorized_events, symbol, session)
         v4_outputs[symbol] = v4_result
-        # Update V4 state based on result reason
-        if v4_result['reason'] in ['volatility_at_or_above_2x', 'volatility_below_2x_but_not_yet_cleared', 'cleared_after_ten_sessions']:
-            # Determine counter value from prior state
-            prior_v4 = prior_row_state.get('V4', {}) if prior_row_state else {}
-            prior_fund_state = prior_v4.get(symbol, {})
-            prior_counter = prior_fund_state.get('clearing_counter', 0)
-            prior_last_session = prior_fund_state.get('last_session_below_threshold')
-
-            # Calculate new counter
-            if v4_result['reason'] == 'volatility_at_or_above_2x':
-                new_counter = 0
-                new_last_session = None
-            elif prior_last_session == session:
-                # Same session - don't increment
-                new_counter = prior_counter
-                new_last_session = session
-            else:
-                # Different session - increment
-                new_counter = prior_counter + 1
-                new_last_session = session
-
-            # Store V4 state using the golden format
-            if 'V4' not in next_row_state:
-                next_row_state['V4'] = {}
-            next_row_state['V4'][symbol] = {
-                'clearing_counter': new_counter,
-                'last_session_below_threshold': new_last_session
-            }
+        # Update V4 state based on result reason - counter now in outputs
+        if v4_result['reason'] in ['volatility_at_or_above_2x', 'volatility_below_2x_but_not_yet_cleared']:
+            counter = v4_result.get('outputs', {}).get('clearing_counter', 0)
+            cst.set_v4_state(next_row_state, symbol, counter, session)
+        elif v4_result['reason'] == 'cleared_after_ten_sessions':
+            # At count 10, report 10 and remove the fund entry per Q1
+            cst.clear_v4_state(next_row_state, symbol)
 
         # V5 - decay monitor (B5: 40-session escalation)
         v5_result = rows_vehicle.evaluate_V5(fund_inputs, prior_row_state, authorized_events, symbol, session)
@@ -252,10 +230,7 @@ def evaluate(
     rows_by_ID['V6'] = aggregate_diagnostic_row(v6_outputs)
     rows_by_ID['V7'] = aggregate_fund_row(v7_outputs, symbol_scoped=True)
 
-    # V2 state now written inline using canonical accessors per Q6
-    # Store V4 last increment session (B4)
-    if v4_last_increment:
-        next_row_state['V4_last_increment_session'] = v4_last_increment
+    # V2 and V4 state now written inline using canonical accessors per Q6
     # Store V5 escalated state (B5)
     if v5_escalated:
         next_row_state['V5_escalated'] = v5_escalated

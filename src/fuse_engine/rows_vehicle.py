@@ -359,14 +359,19 @@ def evaluate_V4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Scope: fund
     State contribution: NO-NEW-RISK
     Clearing: Clears after ten sessions below the level
-    Mechanism B4: clearing counter increments at most once per session
+    Mechanism B4: clearing counter increments at most once per session (canonical format per Q6)
     """
-    scope = f'fund:{fund}'
+    # Get prior V4 state from canonical format
+    v4_state = cst.get_v4_state(prior_state, fund)
+    clearing_count = v4_state['clearing_counter']
+    last_session_below = v4_state['last_session_below_threshold']
 
-    # Get prior counter (B4: session-keyed to prevent multiple increments per session)
-    clearing_count = st.get_counter(prior_state, 'V4', scope, 'clearing_sessions', session=session, default=0)
-    # Also track the last session we incremented in
-    last_increment_session = st.get_prior_state(prior_state, 'V4_last_increment_session', {}).get(scope)
+    # Treat None (absent) as 0 for inactive, but present 0 means active after trip (flag 3)
+    if clearing_count is None:
+        clearing_count = 0
+        is_active = False
+    else:
+        is_active = True
 
     # Evaluate trigger using forecast_volatility from fund inputs
     forecast_volatility = inputs.get('forecast_volatility')
@@ -412,12 +417,13 @@ def evaluate_V4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'kind': 'interlock',
             'latched': False,
             'reason': 'volatility_at_or_above_2x',
-            'fund': fund
+            'fund': fund,
+            'outputs': {'clearing_counter': 0}
         }
 
     # Not triggered - check if we're in clearing mode
-    # Only in clearing if we have a positive clearing count (prior trip)
-    if clearing_count == 0:
+    # Only in clearing if active (prior trip exists, even if count=0)
+    if not is_active:
         # Never tripped, benign
         return {
             'state': 'NORMAL',
@@ -429,32 +435,34 @@ def evaluate_V4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         }
 
     # In clearing mode - check progress (B4: increment at most once per session)
-    if last_increment_session == session:
-        # Already incremented this session - return current count
+    if last_session_below == session:
+        # Already counted this session - don't increment
         new_count = clearing_count
     else:
-        # Different session or first time - safe to increment
+        # Different session - safe to increment
         new_count = clearing_count + 1
 
     if new_count >= 10:
-        # Cleared (SUC-06 step 6)
+        # Cleared (SUC-06 step 6) - report 10, caller will remove entry
         return {
             'state': 'NORMAL',
             'would_have_tripped': False,
             'kind': 'interlock',
             'latched': False,
             'reason': 'cleared_after_ten_sessions',
-            'fund': fund
+            'fund': fund,
+            'outputs': {'clearing_counter': 10}
         }
 
-    # Still clearing (SUC-06 steps 2-4)
+    # Still clearing (SUC-06 steps 2-4) - emit counter at outputs.clearing_counter per Q1
     return {
         'state': 'NO-NEW-RISK',
         'would_have_tripped': True,
         'kind': 'interlock',
         'latched': False,
         'reason': 'volatility_below_2x_but_not_yet_cleared',
-        'fund': fund
+        'fund': fund,
+        'outputs': {'clearing_counter': new_count}
         }
 
 
