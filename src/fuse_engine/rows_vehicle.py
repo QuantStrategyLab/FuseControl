@@ -20,10 +20,10 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Required inputs: fund_return, index_return, modelled_fee, modelled_financing
     Proposal thresholds per §4.5: 0.75pp (1 session), 2.0pp (5 sessions)
     """
-    # Check for prior latch
+    # Check for prior latch from canonical format (SUC-13)
     scope = f'fund:{fund}'
-    prior_latch = st.get_latch(prior_state, 'V1', scope)
-    if prior_latch and prior_latch['latched']:
+    prior_latch = cst.get_v1_latch(prior_state, fund)
+    if prior_latch:
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
@@ -37,16 +37,26 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                     rearm = True
                     break
 
-        if not rearm:
-            # Stay latched
+        if rearm:
+            # Q4 short-circuit: re-arm wins, return authorized_rearm WITHOUT re-evaluating
             return {
-                'state': 'NO-NEW-RISK',
-                'would_have_tripped': True,
+                'state': 'NORMAL',
+                'would_have_tripped': False,
                 'kind': 'breaker',
-                'latched': True,
-                'reason': 'latched_prior_trip',
+                'latched': False,
+                'reason': 'authorized_rearm',
                 'fund': fund
             }
+
+        # Stay latched without re-arm
+        return {
+            'state': 'NO-NEW-RISK',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': True,
+            'reason': 'latched_prior_trip',
+            'fund': fund
+        }
 
     # Calculate one-session deviation from fund inputs
     fund_return = inputs.get('fund_return')
@@ -110,13 +120,14 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'fund': fund
         }
 
-    # Trip and latch (SUC-13: specific reason string)
+    # Trip and latch (SUC-13: specific reason string, emit deviation per Q6)
     return {
         'state': 'NO-NEW-RISK',
         'would_have_tripped': True,
         'kind': 'breaker',
         'latched': True,
         'reason': 'tracking_deviation_exceeds_0_75pp',
+        'deviation': abs(one_session_dev),  # Emit deviation per Q6
         'fund': fund
     }
 

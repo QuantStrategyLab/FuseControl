@@ -84,11 +84,14 @@ def evaluate(
     l1_result = rows_loss.evaluate_L1(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['L1'] = l1_result
 
-    # L2 - drawdown 2D/3 breaker
+    # L2 - drawdown 2D/3 breaker (canonical format per Q6)
     l2_result = rows_loss.evaluate_L2(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['L2'] = l2_result
     if l2_result['latched']:
-        st.set_latch(next_row_state, 'L2', 'account', True, l2_result['reason'])
+        cst.set_l2_latch(next_row_state, session)
+    elif l2_result['reason'] == 'authorized_rearm':
+        # Q4: clear latch on authorized re-arm - serialize as {"L2":{}}
+        cst.clear_l2_latch(next_row_state)
 
     # L3 - drawdown D breaker
     l3_result = rows_loss.evaluate_L3(validated_inputs, prior_row_state, authorized_events)
@@ -134,11 +137,15 @@ def evaluate(
     for symbol in fund_symbols:
         fund_inputs = funds[symbol]
 
-        # V1 - tracking deviation
+        # V1 - tracking deviation (canonical format per Q6)
         v1_result = rows_vehicle.evaluate_V1(fund_inputs, prior_row_state, authorized_events, symbol)
         v1_outputs[symbol] = v1_result
         if v1_result['latched']:
-            st.set_latch(next_row_state, 'V1', f'fund:{symbol}', True, v1_result['reason'])
+            deviation = v1_result.get('deviation', 0.0)
+            cst.set_v1_latch(next_row_state, symbol, session, deviation)
+        elif v1_result['reason'] == 'authorized_rearm':
+            # Q4: clear latch on authorized re-arm - serialize as {"V1":{}}
+            cst.clear_v1_latch(next_row_state, symbol)
 
         # V2 - corporate action
         v2_result = rows_vehicle.evaluate_V2(fund_inputs, prior_row_state, authorized_events, symbol)

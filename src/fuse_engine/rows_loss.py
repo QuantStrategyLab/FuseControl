@@ -6,6 +6,7 @@ Thresholds are fractions of D (tier loss budget).
 
 from typing import Any, Dict, Optional
 from . import state as st
+from . import canonical_state as cst
 
 
 # Tier loss budgets (D) per spec §4.3 and spec.json
@@ -204,11 +205,11 @@ def evaluate_L2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Kind: breaker
     Scope: account
     State contribution: NO-NEW-RISK
-    Clearing: Owner re-arms via authorized_events
+    Clearing: Owner re-arms via authorized_events (canonical format per Q6)
     """
-    # Check for prior latch (SUC-12)
-    prior_latch = st.get_latch(prior_state, 'L2', 'account')
-    if prior_latch and prior_latch['latched']:
+    # Check for prior latch from canonical format (SUC-12)
+    prior_latch = cst.get_l2_latch(prior_state)
+    if prior_latch:
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
@@ -219,7 +220,17 @@ def evaluate_L2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                     rearm = True
                     break
 
-        if not rearm:
+        if rearm:
+            # Q4 short-circuit: re-arm wins, return authorized_rearm WITHOUT re-evaluating
+            return {
+                'state': 'NORMAL',
+                'would_have_tripped': False,
+                'kind': 'breaker',
+                'latched': False,
+                'reason': 'authorized_rearm'
+            }
+
+        # Stay latched without re-arm
             # Stay latched - check for specific latched conditions
             flow_event = inputs.get('flow_event')
             tier_change_event = inputs.get('tier_change_event')
