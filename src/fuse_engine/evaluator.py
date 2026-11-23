@@ -8,6 +8,7 @@ from . import rows_loss
 from . import rows_vehicle
 from . import rows_ops
 from . import state as st
+from . import canonical_state as cst
 
 
 # The 24 named row IDs per §4.3
@@ -129,7 +130,6 @@ def evaluate(
     v5_outputs = {}
     v6_outputs = {}
     v7_outputs = {}
-    v2_pending = {}
     v4_last_increment = {}
     v5_escalated = {}
 
@@ -146,48 +146,46 @@ def evaluate(
         v2_result = rows_vehicle.evaluate_V2(fund_inputs, prior_row_state, authorized_events, symbol)
         v2_outputs[symbol] = v2_result
 
-        # B1: Store V2 latches and mismatch details (SUC-02)
+        # B1: Store V2 latches and mismatch details (SUC-02) - canonical format per Q6
         if v2_result['latched']:
-            st.set_latch(next_row_state, 'V2', f'fund:{symbol}', True, v2_result['reason'])
-
-            # Store or carry forward latched_mismatches
-            if 'V2' not in next_row_state:
-                next_row_state['V2'] = {}
-            if 'latched_mismatches' not in next_row_state['V2']:
-                next_row_state['V2']['latched_mismatches'] = {}
-
             # For new reconciliation_mismatch, store mismatch details
             if v2_result['reason'] == 'reconciliation_mismatch':
                 corporate_action = fund_inputs.get('corporate_action', {})
-                next_row_state['V2']['latched_mismatches'][symbol] = {
+                mismatch_details = {
                     'type': corporate_action.get('type'),
                     'ledger_value': fund_inputs.get('ledger_value'),
                     'broker_value': fund_inputs.get('broker_value'),
                     'mismatch': abs(fund_inputs.get('ledger_value', 0) - fund_inputs.get('broker_value', 0))
                 }
+                cst.set_v2_latched_mismatch(next_row_state, symbol, mismatch_details)
             # For persisting latch (latched_prior_mismatch), carry forward details
             elif v2_result['reason'] == 'latched_prior_mismatch':
-                prior_v2 = prior_row_state.get('V2', {}) if prior_row_state else {}
-                prior_mismatches = prior_v2.get('latched_mismatches', {})
-                if symbol in prior_mismatches:
-                    next_row_state['V2']['latched_mismatches'][symbol] = prior_mismatches[symbol]
+                prior_mismatch = cst.get_v2_latched_mismatch(prior_row_state, symbol)
+                if prior_mismatch:
+                    cst.set_v2_latched_mismatch(next_row_state, symbol, prior_mismatch)
+        else:
+            # Clear latch on re-arm (Q4 short-circuit)
+            if v2_result['reason'] == 'authorized_rearm':
+                cst.clear_v2_latched_mismatch(next_row_state, symbol)
 
-        # Update pending state (B1) - must check prior_row_state too
-        prior_v2_state = prior_row_state.get('V2', {}) if prior_row_state else {}
-        # Carry forward or create new pending
+        # Update pending state (B1 canonical format per Q6)
         if v2_result['reason'] in ['pending_corporate_action', 'pending_corporate_action_carried']:
             corporate_action = fund_inputs.get('corporate_action')
             if isinstance(corporate_action, dict):
-                v2_pending[symbol] = {
+                pending = {
                     'type': corporate_action.get('type'),
                     'ratio': corporate_action.get('ratio'),
                     'awaiting_reconciliation': True
                 }
+                cst.set_v2_pending_adjustment(next_row_state, symbol, pending)
             else:
                 # Carry forward from prior (B1 continuity)
-                prior_pending = prior_v2_state.get('pending_adjustments', {}).get(symbol)
+                prior_pending = cst.get_v2_pending_adjustment(prior_row_state, symbol)
                 if prior_pending:
-                    v2_pending[symbol] = prior_pending
+                    cst.set_v2_pending_adjustment(next_row_state, symbol, prior_pending)
+        elif v2_result['reason'] == 'exact_reconciliation_auto_clear':
+            # Clear pending on exact reconciliation (Q4)
+            cst.clear_v2_pending_adjustment(next_row_state, symbol)
 
         # V3 - fund event
         v3_result = rows_vehicle.evaluate_V3(fund_inputs, prior_row_state, authorized_events, symbol)
@@ -254,14 +252,7 @@ def evaluate(
     rows_by_ID['V6'] = aggregate_diagnostic_row(v6_outputs)
     rows_by_ID['V7'] = aggregate_fund_row(v7_outputs, symbol_scoped=True)
 
-    # Store V2 pending state (B1 - old format for compatibility)
-    if v2_pending:
-        next_row_state['V2_pending'] = v2_pending
-    # Also store in V2 structure for golden compatibility
-    if v2_pending:
-        if 'V2' not in next_row_state:
-            next_row_state['V2'] = {}
-        next_row_state['V2']['pending_adjustments'] = v2_pending
+    # V2 state now written inline using canonical accessors per Q6
     # Store V4 last increment session (B4)
     if v4_last_increment:
         next_row_state['V4_last_increment_session'] = v4_last_increment

@@ -6,6 +6,7 @@ Thresholds per §4.5 disposition register.
 
 from typing import Any, Dict, Optional
 from . import state as st
+from . import canonical_state as cst
 
 
 def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
@@ -178,11 +179,8 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'fund': fund
             }
 
-    # Check for pending adjustment from prior state (B1)
-    prior_pending = None
-    if prior_state:
-        v2_state = prior_state.get('V2_pending', {})
-        prior_pending = v2_state.get(fund)
+    # Check for pending adjustment from prior state (B1 - canonical format per Q6)
+    prior_pending = cst.get_v2_pending_adjustment(prior_state, fund)
 
     # Get current corporate action input
     corporate_action = inputs.get('corporate_action')
