@@ -250,12 +250,9 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     """
     scope = f'symbol:{symbol}'
 
-    # B6: Check for prior ORDER-UNKNOWN with original order identity
-    prior_pending = None
+    # B6: Check for prior ORDER-UNKNOWN with original order identity (canonical per Q6)
     restart_marker = inputs.get('restart_marker', False)
-    if prior_state:
-        o4_state = prior_state.get('O4_pending', {}) if isinstance(prior_state.get('O4_pending', {}), dict) else {}
-        prior_pending = o4_state.get(scope)
+    prior_pending = cst.get_o4_pending_order(prior_state, symbol)
 
     # Get current pending order status
     pending_order = inputs.get('o4_pending_order') or inputs.get('pending_orders', {}).get(symbol)
@@ -272,7 +269,7 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'latched': False,
                 'reason': 'awaiting_original_order_status',
                 'symbol': symbol,
-                'original_order_id': prior_pending.get('order_id')
+                'original_order_id': prior_pending['original_order_id']
             }
         # No pending order
         return {

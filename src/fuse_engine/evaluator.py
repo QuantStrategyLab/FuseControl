@@ -63,11 +63,19 @@ def evaluate(
     funds = validated_inputs.get('funds', {})
     fund_symbols = list(funds.keys())
 
-    # Build the six scope keys: account, fund:SYMBOL for each fund, symbol:SYMBOL for each, joint
+    # Build scopes: enumerate symbols from funds, pending_orders, AND durable O4 (Q6 wiring)
+    # Include prior-only symbols so an order cannot disappear between calls
+    all_symbols = set(fund_symbols)
+    pending_orders = validated_inputs.get('pending_orders', {})
+    all_symbols.update(pending_orders.keys())
+    # Add symbols from durable O4 state
+    if prior_row_state and 'O4' in prior_row_state:
+        all_symbols.update(prior_row_state['O4'].keys())
+
     scopes = ['account']
     for symbol in fund_symbols:
         scopes.append(f'fund:{symbol}')
-    for symbol in fund_symbols:
+    for symbol in all_symbols:
         scopes.append(f'symbol:{symbol}')
     scopes.append('joint')
 
@@ -262,34 +270,37 @@ def evaluate(
     if o3_result['latched']:
         st.set_latch(next_row_state, 'O3', 'account', True, o3_result['reason'])
 
-    # O4 - order timeout (B6: keyed to original order ID)
+    # O4 - order timeout (canonical format per Q6, enumerate from all sources)
     o4_outputs = {}
-    o4_pending = {}
-    pending_orders = validated_inputs.get('pending_orders', {})
+    restart_marker = validated_inputs.get('restart_marker')
 
-    for symbol in fund_symbols:
-        # Get pending order from either fund_inputs or top-level pending_orders
-        fund_inputs = funds[symbol]
-        if 'o4_pending_order' in fund_inputs:
-            order_input = fund_inputs
-        elif symbol in pending_orders:
-            order_input = {**fund_inputs, 'o4_pending_order': pending_orders[symbol]}
-        else:
-            order_input = fund_inputs
+    for symbol in all_symbols:
+        # Build order input for this symbol
+        order_input = {}
+        if symbol in funds:
+            order_input = funds[symbol].copy()
+
+        # Add pending order if present
+        if symbol in pending_orders:
+            order_input['o4_pending_order'] = pending_orders[symbol]
+
+        # Forward restart_marker into O4 evaluation (Q6)
+        if restart_marker:
+            order_input['restart_marker'] = restart_marker
 
         o4_result = rows_ops.evaluate_O4(order_input, prior_row_state, authorized_events, symbol)
         o4_outputs[symbol] = o4_result
 
-        # Store pending order state (B6)
+        # Store O4 state using canonical accessors (Q6)
         if o4_result.get('original_order_id'):
-            o4_pending[f'symbol:{symbol}'] = {
-                'order_id': o4_result['original_order_id'],
-                'status': 'unknown'
-            }
+            order_id = o4_result['original_order_id']
+            status = 'unknown'
+            cst.set_o4_pending_order(next_row_state, symbol, order_id, status)
+        elif o4_result['reason'] == 'order_filled':
+            # Clear resolved order
+            cst.clear_o4_pending_order(next_row_state, symbol)
 
     rows_by_ID['O4'] = aggregate_fund_row(o4_outputs, symbol_scoped=True)
-    if o4_pending:
-        next_row_state['O4_pending'] = o4_pending
 
     # O5 - pre-trade limits (B2 canonical format per Q6)
     o5_result = rows_ops.evaluate_O5(validated_inputs, prior_row_state, authorized_events, session)
