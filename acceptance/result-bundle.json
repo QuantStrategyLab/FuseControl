@@ -5,9 +5,9 @@
     "passed": 264,
     "total": 264
   },
-  "bundle_hash": "b8ff60cdb65d54ea8bd5f6f5c5e361bdb260c919c232618efe500b8cb737428a",
+  "bundle_hash": "dad111605f4dd63b84d663cf62ac7c239bc023aed2bdf7990fc85041f33a5dd9",
   "description": "FUSE-1 trip matrix execution results",
-  "engine_hash": "6155ff623a253ce296fc0bdce4f0b2e93c290dd6f49c7e2db9e93ae4c23c7452",
+  "engine_hash": "879911d9468e65841ccf056dba1ec23d444bfa9870eb5eed3dfc5d83abfa775c",
   "freeze_hash": "efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50",
   "successor_cases": {
     "failed": 11,
@@ -15,12 +15,9 @@
       {
         "case": "SUC-01",
         "diffs": [
-          "Step 1 row V2 mismatch:\n  reason: actual=pending_corporate_action_TQQQ != expected=pending_corporate_action",
-          "Step 1 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: unexpected in actual",
-          "Step 2 row V2 mismatch:\n  reason: actual=pending_corporate_action_TQQQ != expected=pending_corporate_action_carried",
-          "Step 2 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: unexpected in actual",
+          "Step 2 row V2 mismatch:\n  reason: actual=pending_corporate_action != expected=pending_corporate_action_carried",
           "Step 3 row V2 mismatch:\n  reason: actual=none != expected=exact_reconciliation_auto_clear",
-          "Step 3 effective state mismatch:\n  account: unexpected in actual\n  fund:TQQQ: actual=NO-NEW-RISK != expected=NORMAL\n  joint: unexpected in actual\n  symbol:TQQQ: unexpected in actual"
+          "Step 3 effective state mismatch:\n  fund:TQQQ: actual=NO-NEW-RISK != expected=NORMAL"
         ]
       },
       {
@@ -34,9 +31,7 @@
         "case": "SUC-04",
         "diffs": [
           "Step 3 row O5 mismatch:\n  state: actual=NORMAL != expected=HALT\n  latched: actual=False != expected=True\n  reason: actual=unresolved_fail_closed != expected=third_rejection_in_session",
-          "Step 3 effective state mismatch:\n  joint: unexpected in actual",
-          "Step 4 row O5 mismatch:\n  state: actual=NORMAL != expected=HALT\n  latched: actual=False != expected=True\n  reason: actual=unresolved_fail_closed != expected=latched_third_rejection",
-          "Step 4 effective state mismatch:\n  joint: unexpected in actual"
+          "Step 4 row O5 mismatch:\n  state: actual=NORMAL != expected=HALT\n  latched: actual=False != expected=True\n  reason: actual=unresolved_fail_closed != expected=latched_third_rejection"
         ]
       },
       {
@@ -74,22 +69,20 @@
           "Step 1 row V5 mismatch:\n  state: actual=NORMAL != expected=none\n  reason: actual=decay_excess != expected=excess_beyond_tolerance",
           "Step 2 row V5 mismatch:\n  state: actual=NORMAL != expected=none\n  reason: actual=decay_excess != expected=excess_beyond_tolerance\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=39",
           "Step 3 row V5 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  reason: actual=decay_excess != expected=escalated_to_v1_treatment\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=40\n  outputs.escalated_to_v1: actual=False != expected=True",
-          "Step 3 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: unexpected in actual",
-          "Step 4 row V5 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  reason: actual=decay_excess != expected=escalated_to_v1_treatment\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=70\n  outputs.escalated_to_v1: actual=False != expected=True",
-          "Step 4 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: unexpected in actual"
+          "Step 4 row V5 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  reason: actual=decay_excess != expected=escalated_to_v1_treatment\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=70\n  outputs.escalated_to_v1: actual=False != expected=True"
         ]
       },
       {
         "case": "SUC-09",
         "diffs": [
           "Step 1 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=True\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=order_timeout",
-          "Step 1 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: missing in actual",
+          "Step 1 effective state mismatch:\n  symbol:TQQQ: missing in actual",
           "Step 2 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=True\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=awaiting_original_order_status",
-          "Step 2 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: missing in actual",
+          "Step 2 effective state mismatch:\n  symbol:TQQQ: missing in actual",
           "Step 3 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=True\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=unrecognized_status_for_original_order",
-          "Step 3 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: missing in actual",
+          "Step 3 effective state mismatch:\n  symbol:TQQQ: missing in actual",
           "Step 4 row O4 mismatch:\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=original_order_terminal_status_received",
-          "Step 4 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: missing in actual"
+          "Step 4 effective state mismatch:\n  symbol:TQQQ: missing in actual"
         ]
       },
       {
@@ -97,14 +90,14 @@
         "diffs": [
           "Step 1 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=None\n  kind: actual=breaker != expected=None\n  latched: actual=False != expected=None",
           "Step 2 row O4 mismatch:\n  state: actual=NORMAL != expected=ORDER-UNKNOWN\n  would_have_tripped: actual=False != expected=True\n  kind: actual=breaker != expected=interlock_or_breaker\n  reason: actual=none != expected=awaiting_original_order_status_after_restart",
-          "Step 2 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: missing in actual"
+          "Step 2 effective state mismatch:\n  symbol:TQQQ: missing in actual"
         ]
       },
       {
         "case": "SUC-12",
         "diffs": [
           "Step 1 row L2 mismatch:\n  reason: actual=drawdown_threshold != expected=drawdown_at_2D_over_3",
-          "Step 1 effective state mismatch:\n  account: actual=HALT != expected=NO-NEW-RISK\n  joint: unexpected in actual",
+          "Step 1 effective state mismatch:\n  account: actual=HALT != expected=NO-NEW-RISK",
           "Step 2 row L2 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_prior_trip",
           "Step 3 row L2 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_survives_deposit",
           "Step 4 execution error: 'list' object has no attribute 'get'"
@@ -114,9 +107,7 @@
         "case": "SUC-13",
         "diffs": [
           "Step 1 row V1 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=tracking_deviation_exceeds_0_75pp",
-          "Step 1 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: unexpected in actual",
           "Step 2 row V1 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_prior_trip",
-          "Step 2 effective state mismatch:\n  account: unexpected in actual\n  joint: unexpected in actual\n  symbol:TQQQ: unexpected in actual",
           "Step 3 execution error: 'list' object has no attribute 'get'"
         ]
       }

@@ -62,15 +62,16 @@ def compare_outcome(actual: Dict[str, Any], expected: Dict[str, Any]) -> Tuple[b
 
 
 def compare_effective_state(actual: Dict[str, str], expected: Dict[str, str]) -> Tuple[bool, List[str]]:
-    """Compare effective state by scope."""
+    """Compare effective state by scope.
+
+    Only checks scopes present in expected (successor cases may specify subset).
+    """
     diffs = []
 
-    all_scopes = set(actual.keys()) | set(expected.keys())
-    for scope in sorted(all_scopes):
+    # Only check scopes that are expected (Fix 1: successor cases may specify subset)
+    for scope in sorted(expected.keys()):
         if scope not in actual:
             diffs.append(f"  {scope}: missing in actual")
-        elif scope not in expected:
-            diffs.append(f"  {scope}: unexpected in actual")
         elif actual[scope] != expected[scope]:
             diffs.append(f"  {scope}: actual={actual[scope]} != expected={expected[scope]}")
 

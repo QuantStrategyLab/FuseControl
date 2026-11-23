@@ -157,27 +157,71 @@ Batteries F1-A05 through F1-A13 not implemented:
 
 **None.** No golden table edits were made per §6.2 rule 4. All 46 base cell mismatches and 13 successor case failures are engine implementation issues requiring fixes, not golden corrections.
 
+## Phase 2 FIX Round (Complete for base cells)
+
+**Commits:** `0d15be3` (pre-fix) → `8210838` (fix round complete)
+
+### Implementation (Checkpoint `8210838`)
+
+**Fix 1 - Successor harness**: Implemented real multi-step executor in `tools/run_matrix.py` that threads `next_row_state` through successive steps. SUC-11 marked as definition-only (Phase 3). Comparison logic updated to check only expected scopes.
+
+**Fix 2 - Fund-row output shape (V5, V6, V7)**: 
+- Added `aggregate_diagnostic_row()` for V5/V6 to emit single row-level structured outputs (not per-fund composites)
+- V5 unresolved case: `excess_shortfall: None`, `disposition: 'UNRESOLVED-FAIL-CLOSED'`
+- V6 missing inputs: benign (`would_have_tripped: false`, `reason: 'none'`)
+- Reason aggregation: single token (not `"TQQQ:..., SOXL:..."` composites); same-reason → single token
+
+**Fix 3 - Reason-token vocabulary**:
+- O1: `stale_or_missing_input` (not `missing_or_stale_input`)
+- O2: `market_closed` for holiday/half_day/closed
+- V2: `pending_corporate_action` in per-fund output; aggregation adds `_TQQQ` suffix only when multiple funds exist
+
+**Fix 4 - Semantic divergences**:
+- L6, V1: event-trigger rows don't fail closed on missing inputs (need affirmative evidence; O1 carries data-integrity trip)
+- O9: detects `tier_change_event` and checks `authorized_events` for tier_change_card; `reason: 'unauthorized_change'` when no card
+- L0, J1: tier_change re-based evaluation — report new tier limits in outputs but don't trip (`would_have_tripped: false`, `reason: 'none'`)
+
+### Current Results (Head `8210838`)
+
+**Engine hash:** `879911d9468e65841ccf056dba1ec23d444bfa9870eb5eed3dfc5d83abfa775c`  
+**Bundle hash:** `dad111605f4dd63b84d663cf62ac7c239bc023aed2bdf7990fc85041f33a5dd9`
+
+| Section | Passed | Failed | Total | % |
+|---------|--------|--------|-------|---|
+| Base cells | **264** | 0 | 264 | **100%** |
+| Tier repetitions | **132** | 0 | 132 | **100%** |
+| Successor cases | 2 | 11 | 13 | 15.4% |
+
+### Remaining Successor Case Issues
+
+11/13 successor cases failing due to:
+1. **State persistence bugs**: V2 latched mismatches not persisting (SUC-02), O5 third rejection not latching (SUC-04)
+2. **Reason vocabulary**: O1 needs specific source names (SUC-05: `missing_required_source_market_data` not `stale_or_missing_input`), V4 needs distinct reasons (SUC-06: `volatility_at_or_above_2x` vs `extreme_volatility`)
+3. **State threading**: next_row_state serialization/restore mechanics need verification
+
+**No golden table edits.** All 11 successor failures are engine implementation bugs.
+
+## Step 3: Testing Batteries (Not Started)
+
+Batteries F1-A05 through F1-A13 not implemented.
+
 ## Final Report
 
-**Status:** Phase 2 INCOMPLETE — Step 2 substantially complete (82.6% base cells, 100% tier reps), Step 3 not started.
+**Status:** Phase 2 FIX COMPLETE for base cells (264/264) and tier reps (132/132). Successor cases partially working (2/13) — state persistence and vocabulary issues remain.
 
-**Commits:** `750dc28` (skeleton baseline) → `0d15be3` (current head)
+**Commits:** `750dc28` (skeleton) → `0d15be3` (pre-fix) → `8210838` (fix round)
 
 **Progress:**
-- ✅ All 24 rows implemented with B1-B6 mechanisms
-- ✅ State management, canonical serialization, precedence resolution
-- ✅ All 132 tier repetitions passing
-- ⚠️ 46/264 base cells failing (systematic issues with input mapping, state persistence)
-- ❌ 0/13 successor cases passing (state continuity not working)
+- ✅ **264/264 base cells passing** (100%)
+- ✅ **132/132 tier repetitions passing** (100%)
+- ⚠️ 2/13 successor cases passing (state persistence bugs)
 - ❌ Step 3 batteries not implemented
 
 **Next Steps:**
-1. Debug remaining 46 base cell failures (input key mapping, row output structure)
-2. Fix state persistence for 13 successor cases (serialize/restore, state threading)
-3. Implement Step 3 batteries (F1-A05 through F1-A13)
-4. Extend unit test coverage
-5. Iterate until all 264 base + 13 successor pass
+1. Fix V2 latch persistence (B1 mechanism)
+2. Fix O5 third-rejection latch (B2 mechanism)
+3. Extend O1/V4 reason vocabulary (source-specific tokens)
+4. Verify state serialization round-trip
+5. Implement Step 3 batteries (F1-A05 through F1-A13)
 
-**Recommendation:** Continue iteration in new session with this report as context. No out-of-protocol golden edits needed; all failures are technical implementation issues.
-
-**No owner decision needed.** All failures are engine bugs, not spec ambiguities.
+**Recommendation:** All base cell and tier repetition golden contracts met. Successor case failures are engine state bugs, not spec ambiguities.
