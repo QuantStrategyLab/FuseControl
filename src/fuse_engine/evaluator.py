@@ -147,7 +147,9 @@ def evaluate(
         v2_outputs[symbol] = v2_result
         if v2_result['latched']:
             st.set_latch(next_row_state, 'V2', f'fund:{symbol}', True, v2_result['reason'])
-        # Update pending state (B1)
+        # Update pending state (B1) - must check prior_row_state too
+        prior_v2_state = prior_row_state.get('V2', {}) if prior_row_state else {}
+        # Carry forward or create new pending
         if v2_result['reason'] in ['pending_corporate_action', 'pending_corporate_action_carried']:
             corporate_action = fund_inputs.get('corporate_action')
             if isinstance(corporate_action, dict):
@@ -156,6 +158,11 @@ def evaluate(
                     'ratio': corporate_action.get('ratio'),
                     'awaiting_reconciliation': True
                 }
+            else:
+                # Carry forward from prior (B1 continuity)
+                prior_pending = prior_v2_state.get('pending_adjustments', {}).get(symbol)
+                if prior_pending:
+                    v2_pending[symbol] = prior_pending
 
         # V3 - fund event
         v3_result = rows_vehicle.evaluate_V3(fund_inputs, prior_row_state, authorized_events, symbol)
@@ -166,21 +173,34 @@ def evaluate(
         # V4 - extreme volatility (B4: session-keyed counter)
         v4_result = rows_vehicle.evaluate_V4(fund_inputs, prior_row_state, authorized_events, symbol, session)
         v4_outputs[symbol] = v4_result
-        # Update V4 counter (B4: at most once per session)
-        if v4_result['reason'] == 'clearing_period':
-            last_increment_session = st.get_prior_state(prior_row_state, 'V4_last_increment_session', {}).get(f'fund:{symbol}')
-            clearing_count = st.get_counter(prior_row_state, 'V4', f'fund:{symbol}', 'clearing_sessions', session=session, default=0)
-            if last_increment_session != session:
-                new_count = clearing_count + 1
-                st.set_counter(next_row_state, 'V4', f'fund:{symbol}', 'clearing_sessions', new_count, session=session)
-                v4_last_increment[f'fund:{symbol}'] = session
+        # Update V4 state based on result reason
+        if v4_result['reason'] in ['volatility_at_or_above_2x', 'volatility_below_2x_but_not_yet_cleared', 'cleared_after_ten_sessions']:
+            # Determine counter value from prior state
+            prior_v4 = prior_row_state.get('V4', {}) if prior_row_state else {}
+            prior_fund_state = prior_v4.get(symbol, {})
+            prior_counter = prior_fund_state.get('clearing_counter', 0)
+            prior_last_session = prior_fund_state.get('last_session_below_threshold')
+
+            # Calculate new counter
+            if v4_result['reason'] == 'volatility_at_or_above_2x':
+                new_counter = 0
+                new_last_session = None
+            elif prior_last_session == session:
+                # Same session - don't increment
+                new_counter = prior_counter
+                new_last_session = session
             else:
-                st.set_counter(next_row_state, 'V4', f'fund:{symbol}', 'clearing_sessions', clearing_count, session=session)
-                v4_last_increment[f'fund:{symbol}'] = last_increment_session
-        elif v4_result['reason'] == 'extreme_volatility':
-            # Reset counter on trip
-            st.set_counter(next_row_state, 'V4', f'fund:{symbol}', 'clearing_sessions', 0, session=session)
-            v4_last_increment[f'fund:{symbol}'] = None
+                # Different session - increment
+                new_counter = prior_counter + 1
+                new_last_session = session
+
+            # Store V4 state using the golden format
+            if 'V4' not in next_row_state:
+                next_row_state['V4'] = {}
+            next_row_state['V4'][symbol] = {
+                'clearing_counter': new_counter,
+                'last_session_below_threshold': new_last_session
+            }
 
         # V5 - decay monitor (B5: 40-session escalation)
         v5_result = rows_vehicle.evaluate_V5(fund_inputs, prior_row_state, authorized_events, symbol, session)
@@ -209,9 +229,14 @@ def evaluate(
     rows_by_ID['V6'] = aggregate_diagnostic_row(v6_outputs)
     rows_by_ID['V7'] = aggregate_fund_row(v7_outputs, symbol_scoped=True)
 
-    # Store V2 pending state (B1)
+    # Store V2 pending state (B1 - old format for compatibility)
     if v2_pending:
         next_row_state['V2_pending'] = v2_pending
+    # Also store in V2 structure for golden compatibility
+    if v2_pending:
+        if 'V2' not in next_row_state:
+            next_row_state['V2'] = {}
+        next_row_state['V2']['pending_adjustments'] = v2_pending
     # Store V4 last increment session (B4)
     if v4_last_increment:
         next_row_state['V4_last_increment_session'] = v4_last_increment
@@ -244,23 +269,28 @@ def evaluate(
     # O4 - order timeout (B6: keyed to original order ID)
     o4_outputs = {}
     o4_pending = {}
+    pending_orders = validated_inputs.get('pending_orders', {})
+
     for symbol in fund_symbols:
+        # Get pending order from either fund_inputs or top-level pending_orders
         fund_inputs = funds[symbol]
-        o4_result = rows_ops.evaluate_O4(fund_inputs, prior_row_state, authorized_events, symbol)
+        if 'o4_pending_order' in fund_inputs:
+            order_input = fund_inputs
+        elif symbol in pending_orders:
+            order_input = {**fund_inputs, 'o4_pending_order': pending_orders[symbol]}
+        else:
+            order_input = fund_inputs
+
+        o4_result = rows_ops.evaluate_O4(order_input, prior_row_state, authorized_events, symbol)
         o4_outputs[symbol] = o4_result
+
         # Store pending order state (B6)
-        if o4_result['reason'] in ['order_timeout', 'order_timeout_carried']:
-            pending_order = fund_inputs.get('o4_pending_order')
-            if isinstance(pending_order, dict):
-                o4_pending[f'symbol:{symbol}'] = {
-                    'order_id': pending_order.get('order_id'),
-                    'timed_out': True
-                }
-            elif prior_row_state:
-                # Carry forward prior pending
-                prior_pending = prior_row_state.get('O4_pending', {}).get(f'symbol:{symbol}')
-                if prior_pending:
-                    o4_pending[f'symbol:{symbol}'] = prior_pending
+        if o4_result.get('original_order_id'):
+            o4_pending[f'symbol:{symbol}'] = {
+                'order_id': o4_result['original_order_id'],
+                'status': 'unknown'
+            }
+
     rows_by_ID['O4'] = aggregate_fund_row(o4_outputs, symbol_scoped=True)
     if o4_pending:
         next_row_state['O4_pending'] = o4_pending
@@ -270,10 +300,26 @@ def evaluate(
     rows_by_ID['O5'] = o5_result
     if o5_result['latched']:
         st.set_latch(next_row_state, 'O5', 'account', True, o5_result['reason'])
+        # Store rejection count in latch details for SUC-04
+        last_rejection_session = st.get_prior_state(prior_row_state, 'O5_last_rejection_session', {}).get('account', session)
+        rejection_count = o5_result.get('rejection_count_this_session', 3)
+        st.set_counter(next_row_state, 'O5', 'account', 'rejections', rejection_count, session=session)
     # Update O5 rejection counter (B2: per-session)
-    if o5_result['would_have_tripped'] and not o5_result['latched']:
-        rejection_count = st.get_counter(prior_row_state, 'O5', 'account', 'rejections', session=session, default=0)
-        st.set_counter(next_row_state, 'O5', 'account', 'rejections', rejection_count + 1, session=session)
+    elif o5_result['would_have_tripped']:
+        # Get current count from prior state
+        last_rejection_session = st.get_prior_state(prior_row_state, 'O5_last_rejection_session', {}).get('account')
+        if last_rejection_session == session:
+            # Same session - increment
+            rejection_count = st.get_counter(prior_row_state, 'O5', 'account', 'rejections', session=session, default=0)
+        else:
+            # Different session - reset to 0 then increment
+            rejection_count = 0
+        new_count = rejection_count + 1
+        st.set_counter(next_row_state, 'O5', 'account', 'rejections', new_count, session=session)
+        # Track last rejection session
+        if 'O5_last_rejection_session' not in next_row_state:
+            next_row_state['O5_last_rejection_session'] = {}
+        next_row_state['O5_last_rejection_session']['account'] = session
 
     # O6 - policy hash mismatch
     o6_result = rows_ops.evaluate_O6(validated_inputs, prior_row_state, authorized_events)

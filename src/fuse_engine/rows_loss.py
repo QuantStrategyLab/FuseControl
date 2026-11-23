@@ -206,26 +206,38 @@ def evaluate_L2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     State contribution: NO-NEW-RISK
     Clearing: Owner re-arms via authorized_events
     """
-    # Check for prior latch
+    # Check for prior latch (SUC-12)
     prior_latch = st.get_latch(prior_state, 'L2', 'account')
     if prior_latch and prior_latch['latched']:
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
-            account_events = authorized_events.get('account', [])
-            for event in account_events:
-                if event.get('type') == 'rearm' and event.get('row_id') == 'L2':
+            # Handle both list and dict formats
+            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
+            for event in events_list:
+                if event.get('type') == 'rearm' and (event.get('row') == 'L2' or event.get('row_id') == 'L2'):
                     rearm = True
                     break
 
         if not rearm:
-            # Stay latched
+            # Stay latched - check for specific latched conditions
+            flow_event = inputs.get('flow_event')
+            tier_change_event = inputs.get('tier_change_event')
+
+            # Determine specific latched reason (SUC-12)
+            if flow_event and flow_event.get('type') == 'deposit':
+                reason = 'latched_survives_deposit'
+            elif tier_change_event:
+                reason = 'latched_survives_tier_change'
+            else:
+                reason = 'latched_prior_trip'
+
             return {
                 'state': 'NO-NEW-RISK',
                 'would_have_tripped': True,
                 'kind': 'breaker',
                 'latched': True,
-                'reason': 'latched_prior_trip'
+                'reason': reason
             }
 
     # Evaluate trigger
@@ -283,13 +295,13 @@ def evaluate_L2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': 'none'
         }
 
-    # Trip and latch
+    # Trip and latch (SUC-12 step 1: specific reason)
     return {
         'state': 'NO-NEW-RISK',
         'would_have_tripped': True,
         'kind': 'breaker',
         'latched': True,
-        'reason': 'drawdown_threshold'
+        'reason': 'drawdown_at_2D_over_3'
     }
 
 
@@ -310,8 +322,8 @@ def evaluate_L3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         cooling_off_days_remaining = prior_latch['details'].get('cooling_off_days_remaining', 30)
 
         if authorized_events:
-            account_events = authorized_events.get('account', [])
-            for event in account_events:
+            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
+            for event in events_list:
                 if event.get('type') == 'rearm' and event.get('row_id') == 'L3':
                     rearm = True
                     # Check if cooling-off period satisfied
@@ -440,9 +452,9 @@ def evaluate_L4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
-            account_events = authorized_events.get('account', [])
-            for event in account_events:
-                if event.get('type') == 'rearm' and event.get('row_id') == 'L4':
+            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
+            for event in events_list:
+                if event.get('type') == 'rearm' and (event.get('row') == 'L4' or event.get('row_id') == 'L4'):
                     # Must be next session or later
                     if event.get('sessions_since_trip', 0) >= 1:
                         rearm = True
@@ -601,9 +613,9 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
-            account_events = authorized_events.get('account', [])
-            for event in account_events:
-                if event.get('type') == 'rearm' and event.get('row_id') == 'L6':
+            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
+            for event in events_list:
+                if event.get('type') == 'rearm' and (event.get('row') == 'L6' or event.get('row_id') == 'L6'):
                     rearm = True
                     break
 

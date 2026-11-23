@@ -9,7 +9,7 @@
 
 ### Engine Hash (§5.3)
 ```
-879911d9468e65841ccf056dba1ec23d444bfa9870eb5eed3dfc5d83abfa775c
+8554a4629aaeeee9c7f0d34cda9d5c0f7cd7e237990411a46f7d6b15cc4358c5
 ```
 
 Computed from canonical bundle:
@@ -30,12 +30,12 @@ src/fuse_engine/state.py
 | `scenarios.json` | `37d4f48210368cbe981a780aed4c10434bbdfb1a328c4bb1c3f196371ac26a3b` |
 | `golden-table.json` | `5aaa940fbf8964bb99a6956e70be16bfe895a3dd0b8328c177a66d4c4b3343a2` |
 | `successor-cases.json` | `08ee38c966e4c2a8a9609e940c7ef0a4d82b9b60b527c2f5dad62e5fc0b994d3` |
-| **Combined freeze** | `c1bbfcd41e3148bf0cf42510b370a3bc5d3207d9dc393e3f1ddbb0f45ae1575b` |
+| **Combined freeze** | `efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50` |
 
 ### Result Bundle Hash
 
 ```
-dad111605f4dd63b84d663cf62ac7c239bc023aed2bdf7990fc85041f33a5dd9
+dbcf2b434c614dd91a2e69b0a74b35ec1edd6849b33a925669b992e06b91540c
 ```
 
 ## Matrix Results (Final Head)

@@ -271,9 +271,9 @@ Phase 3 delivers conformance fixtures and acceptance bundle per FUSE-1 demonstra
 - Full suite run: `python3 -m unittest discover -s tests -p "test_*.py"`
 
 **Hashes:**
-- Engine hash: `879911d9468e65841ccf056dba1ec23d444bfa9870eb5eed3dfc5d83abfa775c`
-- Bundle hash: `dad111605f4dd63b84d663cf62ac7c239bc023aed2bdf7990fc85041f33a5dd9`
-- Combined freeze: `c1bbfcd41e3148bf0cf42510b370a3bc5d3207d9dc393e3f1ddbb0f45ae1575b`
+- Engine hash: `8554a4629aaeeee9c7f0d34cda9d5c0f7cd7e237990411a46f7d6b15cc4358c5`
+- Bundle hash: `dbcf2b434c614dd91a2e69b0a74b35ec1edd6849b33a925669b992e06b91540c`
+- Combined freeze: `efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50`
 
 **Acceptance Properties:**
 - ✅ F1-A01: ID-set equality (gate script passes)

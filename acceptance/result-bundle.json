@@ -1,13 +1,30 @@
 {
   "base_cells": {
-    "failed": 0,
-    "failures": [],
-    "passed": 264,
+    "failed": 2,
+    "failures": [
+      {
+        "cell": "stale.O1",
+        "diffs": [
+          "Outcome mismatch:\n  reason: actual=missing_required_source_volatility != expected=stale_or_missing_input"
+        ],
+        "row_id": "O1",
+        "scenario": "stale"
+      },
+      {
+        "cell": "missing.O1",
+        "diffs": [
+          "Outcome mismatch:\n  reason: actual=missing_required_source_index_returns != expected=stale_or_missing_input"
+        ],
+        "row_id": "O1",
+        "scenario": "missing"
+      }
+    ],
+    "passed": 262,
     "total": 264
   },
-  "bundle_hash": "dad111605f4dd63b84d663cf62ac7c239bc023aed2bdf7990fc85041f33a5dd9",
+  "bundle_hash": "dbcf2b434c614dd91a2e69b0a74b35ec1edd6849b33a925669b992e06b91540c",
   "description": "FUSE-1 trip matrix execution results",
-  "engine_hash": "879911d9468e65841ccf056dba1ec23d444bfa9870eb5eed3dfc5d83abfa775c",
+  "engine_hash": "8554a4629aaeeee9c7f0d34cda9d5c0f7cd7e237990411a46f7d6b15cc4358c5",
   "freeze_hash": "efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50",
   "successor_cases": {
     "failed": 11,
@@ -24,7 +41,7 @@
         "case": "SUC-02",
         "diffs": [
           "Step 2 row V2 mismatch:\n  state: actual=NORMAL != expected=HALT\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_prior_mismatch",
-          "Step 3 execution error: 'list' object has no attribute 'get'"
+          "Step 3 row V2 mismatch:\n  reason: actual=none != expected=authorized_rearm"
         ]
       },
       {
@@ -49,7 +66,6 @@
       {
         "case": "SUC-06",
         "diffs": [
-          "Step 1 row V4 mismatch:\n  reason: actual=extreme_volatility != expected=volatility_at_or_above_2x",
           "Step 2 row V4 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=volatility_below_2x_but_not_yet_cleared",
           "Step 3 row V4 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=volatility_below_2x_but_not_yet_cleared",
           "Step 4 row V4 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  reason: actual=none != expected=volatility_below_2x_but_not_yet_cleared",
@@ -66,10 +82,10 @@
       {
         "case": "SUC-08",
         "diffs": [
-          "Step 1 row V5 mismatch:\n  state: actual=NORMAL != expected=none\n  reason: actual=decay_excess != expected=excess_beyond_tolerance",
-          "Step 2 row V5 mismatch:\n  state: actual=NORMAL != expected=none\n  reason: actual=decay_excess != expected=excess_beyond_tolerance\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=39",
-          "Step 3 row V5 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  reason: actual=decay_excess != expected=escalated_to_v1_treatment\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=40\n  outputs.escalated_to_v1: actual=False != expected=True",
-          "Step 4 row V5 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  reason: actual=decay_excess != expected=escalated_to_v1_treatment\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=70\n  outputs.escalated_to_v1: actual=False != expected=True"
+          "Step 1 row V5 mismatch:\n  state: actual=NORMAL != expected=none",
+          "Step 2 row V5 mismatch:\n  state: actual=NORMAL != expected=none\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=39",
+          "Step 3 row V5 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  reason: actual=excess_beyond_tolerance != expected=escalated_to_v1_treatment\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=40\n  outputs.escalated_to_v1: actual=False != expected=True",
+          "Step 4 row V5 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  reason: actual=excess_beyond_tolerance != expected=escalated_to_v1_treatment\n  outputs.consecutive_sessions_beyond_tolerance: actual=1 != expected=70\n  outputs.escalated_to_v1: actual=False != expected=True"
         ]
       },
       {
@@ -96,11 +112,11 @@
       {
         "case": "SUC-12",
         "diffs": [
-          "Step 1 row L2 mismatch:\n  reason: actual=drawdown_threshold != expected=drawdown_at_2D_over_3",
           "Step 1 effective state mismatch:\n  account: actual=HALT != expected=NO-NEW-RISK",
           "Step 2 row L2 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_prior_trip",
           "Step 3 row L2 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_survives_deposit",
-          "Step 4 execution error: 'list' object has no attribute 'get'"
+          "Step 4 row L2 mismatch:\n  reason: actual=drawdown_at_2D_over_3 != expected=latched_survives_tier_change",
+          "Step 5 row L2 mismatch:\n  state: actual=NO-NEW-RISK != expected=NORMAL\n  would_have_tripped: actual=True != expected=False\n  latched: actual=True != expected=False\n  reason: actual=drawdown_at_2D_over_3 != expected=authorized_rearm"
         ]
       },
       {
@@ -108,7 +124,8 @@
         "diffs": [
           "Step 1 row V1 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=tracking_deviation_exceeds_0_75pp",
           "Step 2 row V1 mismatch:\n  state: actual=NORMAL != expected=NO-NEW-RISK\n  would_have_tripped: actual=False != expected=True\n  latched: actual=False != expected=True\n  reason: actual=none != expected=latched_prior_trip",
-          "Step 3 execution error: 'list' object has no attribute 'get'"
+          "Step 3 row V1 mismatch:\n  reason: actual=none != expected=authorized_rearm",
+          "Step 3 effective state mismatch:\n  fund:TQQQ: actual=NO-NEW-RISK != expected=NORMAL"
         ]
       }
     ],
@@ -116,10 +133,10 @@
     "total": 13
   },
   "summary": {
-    "failed_base": 0,
+    "failed_base": 2,
     "failed_successor": 11,
     "failed_tier": 0,
-    "passed_base": 264,
+    "passed_base": 262,
     "passed_successor": 2,
     "passed_tier": 132,
     "total_base": 264,

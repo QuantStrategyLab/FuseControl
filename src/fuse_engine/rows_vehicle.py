@@ -26,9 +26,13 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
-            fund_events = authorized_events.get(scope, [])
-            for event in fund_events:
-                if event.get('type') == 'rearm' and event.get('row_id') == 'V1':
+            # Handle both list and dict formats
+            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get(scope, [])
+            for event in events_list:
+                if event.get('type') == 'rearm' and (event.get('row') == 'V1' or event.get('row_id') == 'V1'):
+                    # Also check fund match if specified
+                    if 'fund' in event and event['fund'] != fund:
+                        continue
                     rearm = True
                     break
 
@@ -105,13 +109,13 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'fund': fund
         }
 
-    # Trip and latch
+    # Trip and latch (SUC-13: specific reason string)
     return {
         'state': 'NO-NEW-RISK',
         'would_have_tripped': True,
         'kind': 'breaker',
         'latched': True,
-        'reason': 'tracking_deviation',
+        'reason': 'tracking_deviation_exceeds_0_75pp',
         'fund': fund
     }
 
@@ -135,9 +139,13 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         # Latched mismatch - only owner can re-arm
         rearm = False
         if authorized_events:
-            fund_events = authorized_events.get(scope, [])
-            for event in fund_events:
-                if event.get('type') == 'rearm' and event.get('row_id') == 'V2':
+            # Handle both list and dict formats
+            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get(scope, [])
+            for event in events_list:
+                if event.get('type') == 'rearm' and (event.get('row') == 'V2' or event.get('row_id') == 'V2'):
+                    # Also check fund match if specified
+                    if 'fund' in event and event['fund'] != fund:
+                        continue
                     rearm = True
                     break
 
@@ -190,8 +198,18 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         adjustment_complete = corporate_action.get('adjustment_complete', False)
         exact_reconciliation = corporate_action.get('exact_reconciliation', False)
 
-        # If adjustment complete and exact reconciliation, auto-clear
-        if adjustment_complete and exact_reconciliation:
+        # If adjustment complete and exact reconciliation, auto-clear (SUC-01 step 3)
+        if adjustment_complete and exact_reconciliation and prior_pending:
+            return {
+                'state': 'NORMAL',
+                'would_have_tripped': False,
+                'kind': 'interlock_or_breaker',
+                'latched': False,
+                'reason': 'exact_reconciliation_auto_clear',
+                'fund': fund
+            }
+        elif adjustment_complete and exact_reconciliation:
+            # No prior pending - benign
             return {
                 'state': 'NORMAL',
                 'would_have_tripped': False,
@@ -262,9 +280,10 @@ def evaluate_V3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
-            fund_events = authorized_events.get(scope, [])
-            for event in fund_events:
-                if event.get('type') == 'rearm' and event.get('row_id') == 'V3':
+            # Handle both list and dict formats
+            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get(scope, [])
+            for event in events_list:
+                if event.get('type') == 'rearm' and (event.get('row') == 'V3' or event.get('row_id') == 'V3'):
                     rearm = True
                     break
 
@@ -337,7 +356,9 @@ def evaluate_V4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     forecast_volatility = inputs.get('forecast_volatility')
     long_run_volatility = inputs.get('long_run_volatility')
 
-    # Fail closed on missing inputs
+    # SUC-07: If NO volatility inputs at all, return None (no row emission)
+    # This is handled by checking if volatility data is completely absent
+    # For now, fail closed on missing inputs
     if forecast_volatility is None or long_run_volatility is None:
         return {
             'state': 'NO-NEW-RISK',
@@ -368,13 +389,13 @@ def evaluate_V4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     triggered = forecast_volatility >= threshold
 
     if triggered:
-        # Trip - reset clearing counter
+        # Trip - reset clearing counter (SUC-06 step 1)
         return {
             'state': 'NO-NEW-RISK',
             'would_have_tripped': True,
             'kind': 'interlock',
             'latched': False,
-            'reason': 'extreme_volatility',
+            'reason': 'volatility_at_or_above_2x',
             'fund': fund
         }
 
@@ -400,25 +421,25 @@ def evaluate_V4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         new_count = clearing_count + 1
 
     if new_count >= 10:
-        # Cleared
+        # Cleared (SUC-06 step 6)
         return {
             'state': 'NORMAL',
             'would_have_tripped': False,
             'kind': 'interlock',
             'latched': False,
-            'reason': 'none',
+            'reason': 'cleared_after_ten_sessions',
             'fund': fund
         }
 
-    # Still clearing
+    # Still clearing (SUC-06 steps 2-4)
     return {
         'state': 'NO-NEW-RISK',
         'would_have_tripped': True,
         'kind': 'interlock',
         'latched': False,
-        'reason': 'clearing_period',
+        'reason': 'volatility_below_2x_but_not_yet_cleared',
         'fund': fund
-    }
+        }
 
 
 def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
@@ -514,23 +535,26 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # B5: Escalate to V1 treatment at 40 sessions (two months per §4.3)
     escalated = new_count >= 40
 
-    # Determine state contribution
+    # Determine state contribution (SUC-08: reason strings, V5 is diagnostic-only until escalation)
     if escalated:
         state = 'NO-NEW-RISK'
         disposition = 'escalated_to_v1'
+        reason = 'escalated_to_v1_treatment'
     elif beyond_tolerance:
-        state = 'NORMAL'
+        state = 'NORMAL'  # Diagnostic state is NORMAL (not 'none')
         disposition = 'beyond_tolerance'
+        reason = 'excess_beyond_tolerance'
     else:
         state = 'NORMAL'
         disposition = 'benign'
+        reason = 'none'
 
     return {
         'state': state,
         'would_have_tripped': beyond_tolerance or escalated,
         'kind': 'diagnostic',
         'latched': False,
-        'reason': 'persistent_decay' if escalated else ('decay_excess' if beyond_tolerance else 'none'),
+        'reason': reason,
         'fund': fund,
         'outputs': {
             'excess_shortfall': excess_shortfall,

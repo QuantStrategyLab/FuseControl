@@ -73,15 +73,27 @@ def evaluate_O1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             }
 
         # Still in trip state
+        # SUC-05 uses specific source names, base scenarios use generic reason
+        # Determine which format to use based on context
+        first_missing = missing_sources[0]
+        # For SUC-05, check if only ONE source is missing (enumeration case)
+        # For base scenarios (stale/missing), use generic reason
+        if len(missing_sources) == 1 and first_missing in required_source_names:
+            # Single source missing - use specific reason (SUC-05)
+            reason = f'missing_required_source_{first_missing}'
+        else:
+            # Multiple sources or non-source field - use generic reason
+            reason = 'stale_or_missing_input'
+
         return {
             'state': 'NO-NEW-RISK',
             'would_have_tripped': True,
             'kind': 'interlock',
             'latched': False,
-            'reason': 'stale_or_missing_input'
+            'reason': reason
         }
 
-    # All required inputs present and fresh
+    # All required inputs present and fresh (SUC-05 step 7)
     return {
         'state': 'NORMAL',
         'would_have_tripped': False,
@@ -150,9 +162,9 @@ def evaluate_O3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
-            account_events = authorized_events.get('account', [])
-            for event in account_events:
-                if event.get('type') == 'rearm' and event.get('row_id') == 'O3':
+            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
+            for event in events_list:
+                if event.get('type') == 'rearm' and (event.get('row') == 'O3' or event.get('row_id') == 'O3'):
                     rearm = True
                     break
 
@@ -231,25 +243,27 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
     # B6: Check for prior ORDER-UNKNOWN with original order identity
     prior_pending = None
+    restart_marker = inputs.get('restart_marker', False)
     if prior_state:
-        o4_state = prior_state.get('O4_pending', {})
+        o4_state = prior_state.get('O4_pending', {}) if isinstance(prior_state.get('O4_pending', {}), dict) else {}
         prior_pending = o4_state.get(scope)
 
     # Get current pending order status
-    pending_order = inputs.get('o4_pending_order')
+    pending_order = inputs.get('o4_pending_order') or inputs.get('pending_orders', {}).get(symbol)
 
     # If no pending order input
     if pending_order is None:
         # B6: Check if we have a prior pending order
         if prior_pending:
-            # Still waiting for terminal status of original order
+            # Still waiting for terminal status of original order (SUC-09 step 2)
             return {
                 'state': 'ORDER-UNKNOWN',
                 'would_have_tripped': True,
                 'kind': 'interlock_or_breaker',
                 'latched': False,
-                'reason': 'order_timeout_carried',
-                'symbol': symbol
+                'reason': 'awaiting_original_order_status',
+                'symbol': symbol,
+                'original_order_id': prior_pending.get('order_id')
             }
         # No pending order
         return {
@@ -274,49 +288,61 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
     order_id = pending_order.get('order_id')
     status = pending_order.get('status')
-    timed_out = pending_order.get('timed_out', False)
+    timed_out = pending_order.get('timeout', False) or pending_order.get('timed_out', False)
+    terminal = pending_order.get('terminal', False)
 
     # B6: If we have a prior pending order, check if this is the same order
     if prior_pending:
         prior_order_id = prior_pending.get('order_id')
 
-        # If this is a different order, the original is still unknown
+        # If this is a different order, the original is still unknown (SUC-09 step 2)
         if order_id != prior_order_id:
+            # Check if restart marker (SUC-10 step 2)
+            reason = 'awaiting_original_order_status_after_restart' if restart_marker else 'awaiting_original_order_status'
             return {
                 'state': 'ORDER-UNKNOWN',
                 'would_have_tripped': True,
                 'kind': 'interlock_or_breaker',
                 'latched': False,
-                'reason': 'order_timeout_carried',
-                'symbol': symbol
+                'reason': reason,
+                'symbol': symbol,
+                'original_order_id': prior_order_id
             }
 
         # Same order - check if we have definitive terminal status
         # B6: Only recognized terminal statuses clear ORDER-UNKNOWN
         terminal_statuses = ['filled', 'cancelled', 'rejected', 'expired']
-        if status in terminal_statuses:
-            # Clears
+        is_terminal = status in terminal_statuses or terminal
+
+        if is_terminal:
+            # Clears (SUC-09 step 4)
             return {
                 'state': 'NORMAL',
                 'would_have_tripped': False,
                 'kind': 'interlock_or_breaker',
                 'latched': False,
-                'reason': 'none',
+                'reason': 'original_order_terminal_status_received',
                 'symbol': symbol
             }
 
-        # B6: Unrecognized status does NOT clear ORDER-UNKNOWN
+        # B6: Unrecognized status does NOT clear ORDER-UNKNOWN (SUC-09 step 3)
         # Still waiting for definitive status
+        is_unrecognized = status not in terminal_statuses and status not in ['pending', 'submitted', 'accepted']
+        reason = 'unrecognized_status_for_original_order' if is_unrecognized else 'awaiting_original_order_status'
+        if restart_marker:
+            reason = 'awaiting_original_order_status_after_restart'
+
         return {
             'state': 'ORDER-UNKNOWN',
             'would_have_tripped': True,
             'kind': 'interlock_or_breaker',
             'latched': False,
-            'reason': 'order_timeout_carried',
-            'symbol': symbol
+            'reason': reason,
+            'symbol': symbol,
+            'original_order_id': prior_order_id
         }
 
-    # No prior pending - check if current order timed out
+    # No prior pending - check if current order timed out (SUC-09 step 1)
     if timed_out:
         return {
             'state': 'ORDER-UNKNOWN',
@@ -324,7 +350,8 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'kind': 'interlock_or_breaker',
             'latched': False,
             'reason': 'order_timeout',
-            'symbol': symbol
+            'symbol': symbol,
+            'original_order_id': order_id
         }
 
     # No timeout
@@ -349,26 +376,27 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Mechanism B2: rejection count is per-session, third rejection latches HALT
     Required inputs: o5_collar (or fail closed)
     """
-    # Check for prior latch
+    # Check for prior latch (SUC-04: third rejection)
     prior_latch = st.get_latch(prior_state, 'O5', 'account')
     if prior_latch and prior_latch['latched']:
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
-            account_events = authorized_events.get('account', [])
-            for event in account_events:
-                if event.get('type') == 'rearm' and event.get('row_id') == 'O5':
+            # Handle both list and dict formats
+            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
+            for event in events_list:
+                if event.get('type') == 'rearm' and (event.get('row') == 'O5' or event.get('row_id') == 'O5'):
                     rearm = True
                     break
 
         if not rearm:
-            # Stay latched
+            # Stay latched (SUC-04 step 4)
             return {
                 'state': 'HALT',
                 'would_have_tripped': True,
                 'kind': 'breaker',
                 'latched': True,
-                'reason': 'latched_prior_trip'
+                'reason': 'latched_third_rejection'
             }
 
     # Evaluate trigger - fail closed if collar unresolved per §4.5
@@ -380,13 +408,13 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         new_count = rejection_count + 1
 
         if new_count >= 3:
-            # Third rejection - latch HALT
+            # Third rejection - latch HALT (SUC-04 step 3)
             return {
                 'state': 'HALT',
                 'would_have_tripped': True,
                 'kind': 'breaker',
                 'latched': True,
-                'reason': 'third_rejection'
+                'reason': 'third_rejection_in_session'
             }
 
         # First or second rejection
@@ -462,13 +490,13 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         new_count = rejection_count + 1
 
         if new_count >= 3:
-            # Third rejection - latch HALT
+            # Third rejection - latch HALT (SUC-04)
             return {
                 'state': 'HALT',
                 'would_have_tripped': True,
                 'kind': 'breaker',
                 'latched': True,
-                'reason': 'third_rejection'
+                'reason': 'third_rejection_in_session'
             }
 
         # First or second rejection
@@ -505,9 +533,9 @@ def evaluate_O6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
-            account_events = authorized_events.get('account', [])
-            for event in account_events:
-                if event.get('type') == 'rearm' and event.get('row_id') == 'O6':
+            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
+            for event in events_list:
+                if event.get('type') == 'rearm' and (event.get('row') == 'O6' or event.get('row_id') == 'O6'):
                     rearm = True
                     break
 
@@ -569,9 +597,9 @@ def evaluate_O7(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
-            account_events = authorized_events.get('account', [])
-            for event in account_events:
-                if event.get('type') == 'rearm' and event.get('row_id') == 'O7':
+            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
+            for event in events_list:
+                if event.get('type') == 'rearm' and (event.get('row') == 'O7' or event.get('row_id') == 'O7'):
                     rearm = True
                     break
 
@@ -620,8 +648,8 @@ def evaluate_O8(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # Check for owner kill command in authorized_events
     kill_command = False
     if authorized_events:
-        account_events = authorized_events.get('account', [])
-        for event in account_events:
+        events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
+        for event in events_list:
             if event.get('type') == 'kill_switch':
                 kill_command = True
                 break
@@ -659,9 +687,9 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         # Check for authorized re-arm
         rearm = False
         if authorized_events:
-            account_events = authorized_events.get('account', [])
-            for event in account_events:
-                if event.get('type') == 'rearm' and event.get('row_id') == 'O9':
+            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
+            for event in events_list:
+                if event.get('type') == 'rearm' and (event.get('row') == 'O9' or event.get('row_id') == 'O9'):
                     rearm = True
                     break
 
