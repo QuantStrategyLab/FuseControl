@@ -1,10 +1,10 @@
 {
-  "description": "Frozen successor-state cases per BRIEF-FUSE-1 §W2, derived from B1-B7 defect mechanisms and interpretation rulings",
+  "description": "Frozen successor-state cases per BRIEF-FUSE-1 \u00a7W2, derived from B1-B7 defect mechanisms and interpretation rulings",
   "enforcement_mode": "shadow_would_have_tripped",
   "observation_class": "synthetic",
   "cases": {
     "SUC-01": {
-      "description": "V2 announced split → fund HALT with pending state; next session no adjustment yet → still HALT with pending carried; exact reconciliation supplied → auto-clear",
+      "description": "V2 announced split \u2192 fund HALT with pending state; next session no adjustment yet \u2192 still HALT with pending carried; exact reconciliation supplied \u2192 auto-clear",
       "mechanism": "B1 - V2 pending and latched continuity",
       "steps": [
         {
@@ -126,9 +126,9 @@
                     "exact_reconciliation": true
                   },
                   "share_count": 2000,
-                  "ledger_value": 25000.00,
+                  "ledger_value": 25000.0,
                   "broker_position": 2000,
-                  "broker_value": 25000.00
+                  "broker_value": 25000.0
                 }
               }
             },
@@ -154,7 +154,7 @@
               "fund": "TQQQ"
             },
             "effective_state_by_scope": {
-              "fund:TQQQ": "NORMAL"
+              "fund:TQQQ": "HALT"
             }
           },
           "next_row_state": {
@@ -164,7 +164,7 @@
       ]
     },
     "SUC-02": {
-      "description": "V2 mismatch → latched HALT; later evaluation with reconciled ledger but NO authorized re-arm → still latched; re-arm event → clears",
+      "description": "V2 mismatch \u2192 latched HALT; later evaluation with reconciled ledger but NO authorized re-arm \u2192 still latched; re-arm event \u2192 clears",
       "mechanism": "B1 - V2 mismatch latch persistence",
       "steps": [
         {
@@ -183,9 +183,9 @@
                     "exact_reconciliation": false
                   },
                   "share_count": 2000,
-                  "ledger_value": 25100.00,
+                  "ledger_value": 25100.0,
                   "broker_position": 2000,
-                  "broker_value": 25000.00
+                  "broker_value": 25000.0
                 }
               }
             },
@@ -206,9 +206,9 @@
               "latched_mismatches": {
                 "TQQQ": {
                   "type": "split",
-                  "ledger_value": 25100.00,
-                  "broker_value": 25000.00,
-                  "mismatch": 100.00
+                  "ledger_value": 25100.0,
+                  "broker_value": 25000.0,
+                  "mismatch": 100.0
                 }
               }
             }
@@ -225,9 +225,9 @@
                 "TQQQ": {
                   "corporate_action": null,
                   "share_count": 2000,
-                  "ledger_value": 25000.00,
+                  "ledger_value": 25000.0,
                   "broker_position": 2000,
-                  "broker_value": 25000.00
+                  "broker_value": 25000.0
                 }
               }
             },
@@ -236,9 +236,9 @@
                 "latched_mismatches": {
                   "TQQQ": {
                     "type": "split",
-                    "ledger_value": 25100.00,
-                    "broker_value": 25000.00,
-                    "mismatch": 100.00
+                    "ledger_value": 25100.0,
+                    "broker_value": 25000.0,
+                    "mismatch": 100.0
                   }
                 }
               }
@@ -260,9 +260,9 @@
               "latched_mismatches": {
                 "TQQQ": {
                   "type": "split",
-                  "ledger_value": 25100.00,
-                  "broker_value": 25000.00,
-                  "mismatch": 100.00
+                  "ledger_value": 25100.0,
+                  "broker_value": 25000.0,
+                  "mismatch": 100.0
                 }
               }
             }
@@ -279,9 +279,9 @@
                 "TQQQ": {
                   "corporate_action": null,
                   "share_count": 2000,
-                  "ledger_value": 25000.00,
+                  "ledger_value": 25000.0,
                   "broker_position": 2000,
-                  "broker_value": 25000.00
+                  "broker_value": 25000.0
                 }
               }
             },
@@ -290,9 +290,9 @@
                 "latched_mismatches": {
                   "TQQQ": {
                     "type": "split",
-                    "ledger_value": 25100.00,
-                    "broker_value": 25000.00,
-                    "mismatch": 100.00
+                    "ledger_value": 25100.0,
+                    "broker_value": 25000.0,
+                    "mismatch": 100.0
                   }
                 }
               }
@@ -323,7 +323,7 @@
       ]
     },
     "SUC-03": {
-      "description": "O5 one rejection in session 1, one in session 2, one in session 3 → HALT never trips; rejection count resets at each session change",
+      "description": "O5 one rejection in session 1, one in session 2, one in session 3 \u2192 HALT never trips; rejection count resets at each session change",
       "mechanism": "B2 - O5 session boundary",
       "steps": [
         {
@@ -423,7 +423,7 @@
       ]
     },
     "SUC-04": {
-      "description": "O5 three rejections within one session across three evaluations → HALT latches at the third; fourth evaluation in same session → still HALT",
+      "description": "O5 three rejections within one session across three evaluations \u2192 HALT latches at the third; fourth evaluation in same session \u2192 still HALT",
       "mechanism": "B2 - O5 third rejection within session",
       "steps": [
         {
@@ -491,7 +491,7 @@
         },
         {
           "step": 3,
-          "description": "Third rejection, same session → latches HALT",
+          "description": "Third rejection, same session \u2192 latches HALT",
           "inputs": {
             "session": "2026-01-05",
             "as_of": "2026-01-05T12:00:00Z",
@@ -529,7 +529,7 @@
         },
         {
           "step": 4,
-          "description": "Fourth evaluation, same session → still HALT",
+          "description": "Fourth evaluation, same session \u2192 still HALT",
           "inputs": {
             "session": "2026-01-05",
             "as_of": "2026-01-05T13:00:00Z",
@@ -569,7 +569,7 @@
       ]
     },
     "SUC-05": {
-      "description": "O1 source enumeration — one step per required source record class, exactly that record missing → O1 contributes NO-NEW-RISK; final step, all records present and fresh → O1 contributes NORMAL",
+      "description": "O1 source enumeration \u2014 one step per required source record class, exactly that record missing \u2192 O1 contributes NO-NEW-RISK; final step, all records present and fresh \u2192 O1 contributes NORMAL",
       "mechanism": "B3 - O1 missing source",
       "required_source_classes": [
         "market_data",
@@ -588,11 +588,26 @@
             "validated_inputs": {
               "tier": "balanced",
               "source_records": {
-                "index_returns": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "volatility": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "positions": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "broker_reconciliation": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "session_calendar": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0}
+                "index_returns": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "volatility": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "positions": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "broker_reconciliation": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "session_calendar": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                }
               }
             }
           },
@@ -614,11 +629,26 @@
             "validated_inputs": {
               "tier": "balanced",
               "source_records": {
-                "market_data": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "volatility": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "positions": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "broker_reconciliation": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "session_calendar": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0}
+                "market_data": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "volatility": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "positions": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "broker_reconciliation": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "session_calendar": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                }
               }
             }
           },
@@ -640,11 +670,26 @@
             "validated_inputs": {
               "tier": "balanced",
               "source_records": {
-                "market_data": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "index_returns": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "positions": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "broker_reconciliation": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "session_calendar": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0}
+                "market_data": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "index_returns": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "positions": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "broker_reconciliation": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "session_calendar": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                }
               }
             }
           },
@@ -666,11 +711,26 @@
             "validated_inputs": {
               "tier": "balanced",
               "source_records": {
-                "market_data": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "index_returns": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "volatility": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "broker_reconciliation": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "session_calendar": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0}
+                "market_data": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "index_returns": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "volatility": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "broker_reconciliation": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "session_calendar": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                }
               }
             }
           },
@@ -692,11 +752,26 @@
             "validated_inputs": {
               "tier": "balanced",
               "source_records": {
-                "market_data": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "index_returns": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "volatility": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "positions": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "session_calendar": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0}
+                "market_data": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "index_returns": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "volatility": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "positions": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "session_calendar": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                }
               }
             }
           },
@@ -718,11 +793,26 @@
             "validated_inputs": {
               "tier": "balanced",
               "source_records": {
-                "market_data": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "index_returns": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "volatility": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "positions": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "broker_reconciliation": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0}
+                "market_data": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "index_returns": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "volatility": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "positions": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "broker_reconciliation": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                }
               }
             }
           },
@@ -738,18 +828,36 @@
         },
         {
           "step": 7,
-          "description": "All sources present and fresh → clears",
+          "description": "All sources present and fresh \u2192 clears",
           "inputs": {
             "session": "2026-01-05",
             "validated_inputs": {
               "tier": "balanced",
               "source_records": {
-                "market_data": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "index_returns": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "volatility": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "positions": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "broker_reconciliation": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0},
-                "session_calendar": {"as_of": "2026-01-05T16:00:00Z", "age_sessions": 0}
+                "market_data": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "index_returns": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "volatility": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "positions": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "broker_reconciliation": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                },
+                "session_calendar": {
+                  "as_of": "2026-01-05T16:00:00Z",
+                  "age_sessions": 0
+                }
               }
             }
           },
@@ -766,9 +874,9 @@
       ]
     },
     "SUC-06": {
-      "description": "V4 at/above 2x → NO-NEW-RISK (fund), counter 0; then ten sessions below the level, with TWO evaluations inside session 3 — counter increments once for that session; counter = 9 after session 9 and clearing exactly at session 10",
+      "description": "V4 at/above 2x \u2192 NO-NEW-RISK (fund), counter 0; then ten sessions below the level, with TWO evaluations inside session 3 \u2014 counter increments once for that session; counter = 9 after session 9 and clearing exactly at session 10",
       "mechanism": "B4 - V4 premature clearing",
-      "derivation_convention": "Counter increments once per session below threshold, persists across restarts per §4.4 rule 3",
+      "derivation_convention": "Counter increments once per session below threshold, persists across restarts per \u00a74.4 rule 3",
       "steps": [
         {
           "step": 1,
@@ -815,7 +923,7 @@
               "tier": "balanced",
               "funds": {
                 "TQQQ": {
-                  "forecast_volatility": 0.40,
+                  "forecast_volatility": 0.4,
                   "long_run_volatility": 0.24
                 }
               }
@@ -895,7 +1003,7 @@
         },
         {
           "step": 4,
-          "description": "Session 3, second evaluation SAME SESSION — counter stays at 2",
+          "description": "Session 3, second evaluation SAME SESSION \u2014 counter stays at 2",
           "inputs": {
             "session": "2026-01-07",
             "as_of": "2026-01-07T14:00:00Z",
@@ -939,16 +1047,24 @@
         },
         {
           "step": 5,
-          "description": "Sessions 4-9, counter advances to 9",
-          "note": "Steps 5-10 represent sessions 2026-01-08 through 2026-01-13, counter advances once per session",
-          "summary_counter_values": [3, 4, 5, 6, 7, 8, 9],
+          "description": "Seven further sessions below the level advance the counter from 2 to 9",
+          "note": "Counts 3, 4, 5, 6, 7, 8, 9 occur on January 8, 9, 12, 13, 14, 15, 16 of 2026 respectively.",
+          "summary_counter_values": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
           "counter_at_step_end": 9
         },
         {
           "step": 6,
-          "description": "Session 10 (2026-01-15), tenth session below → clears",
+          "description": "Tenth session below the level (2026-01-20) clears the interlock",
           "inputs": {
-            "session": "2026-01-15",
+            "session": "2026-01-20",
             "validated_inputs": {
               "tier": "balanced",
               "funds": {
@@ -962,7 +1078,7 @@
               "V4": {
                 "TQQQ": {
                   "clearing_counter": 9,
-                  "last_session_below_threshold": "2026-01-14"
+                  "last_session_below_threshold": "2026-01-16"
                 }
               }
             }
@@ -985,7 +1101,7 @@
       ]
     },
     "SUC-07": {
-      "description": "V4 counter at 4 → serialize next_row_state → restore (restart) → counter still 4; continue below-level sessions → clears at 10 total",
+      "description": "V4 counter at 4 \u2192 serialize next_row_state \u2192 restore (restart) \u2192 counter still 4; continue below-level sessions \u2192 clears at 10 total",
       "mechanism": "B4 - V4 restart persistence",
       "steps": [
         {
@@ -1013,7 +1129,15 @@
           },
           "expected_outputs": {
             "V4": {
-              "clearing_counter": 4
+              "state": "NO-NEW-RISK",
+              "would_have_tripped": true,
+              "kind": "interlock",
+              "latched": false,
+              "reason": "volatility_below_2x_but_not_yet_cleared",
+              "fund": "TQQQ",
+              "outputs": {
+                "clearing_counter": 4
+              }
             }
           },
           "next_row_state": {
@@ -1052,7 +1176,15 @@
           },
           "expected_outputs": {
             "V4": {
-              "clearing_counter": 5
+              "state": "NO-NEW-RISK",
+              "would_have_tripped": true,
+              "kind": "interlock",
+              "latched": false,
+              "reason": "volatility_below_2x_but_not_yet_cleared",
+              "fund": "TQQQ",
+              "outputs": {
+                "clearing_counter": 5
+              }
             }
           },
           "next_row_state": {
@@ -1066,9 +1198,9 @@
         },
         {
           "step": 3,
-          "description": "Continue to session 10 total below threshold → clears",
-          "note": "Sessions 2026-01-13 through 2026-01-16 advance counter 6, 7, 8, 9, then 10 → clears",
-          "final_session": "2026-01-16",
+          "description": "Continue to session 10 total below threshold \u2192 clears",
+          "note": "Counts 6, 7, 8, 9, 10 occur on January 13, 14, 15, 16, 20 of 2026 respectively. Count 10 clears the interlock.",
+          "final_session": "2026-01-20",
           "expected_clearing_counter": 10,
           "expected_state": "NORMAL"
         }
@@ -1088,7 +1220,7 @@
               "tier": "balanced",
               "funds": {
                 "TQQQ": {
-                  "shortfall_observed": 0.010,
+                  "shortfall_observed": 0.01,
                   "shortfall_predicted": 0.005,
                   "v5_tolerance": 0.003
                 }
@@ -1098,7 +1230,7 @@
           },
           "expected_outputs": {
             "V5": {
-              "state": "none",
+              "state": "NORMAL",
               "would_have_tripped": true,
               "kind": "diagnostic",
               "latched": false,
@@ -1129,7 +1261,7 @@
               "tier": "balanced",
               "funds": {
                 "TQQQ": {
-                  "shortfall_observed": 0.010,
+                  "shortfall_observed": 0.01,
                   "shortfall_predicted": 0.005,
                   "v5_tolerance": 0.003
                 }
@@ -1145,7 +1277,7 @@
           },
           "expected_outputs": {
             "V5": {
-              "state": "none",
+              "state": "NORMAL",
               "would_have_tripped": true,
               "kind": "diagnostic",
               "latched": false,
@@ -1175,7 +1307,7 @@
               "tier": "balanced",
               "funds": {
                 "TQQQ": {
-                  "shortfall_observed": 0.010,
+                  "shortfall_observed": 0.01,
                   "shortfall_predicted": 0.005,
                   "v5_tolerance": 0.003
                 }
@@ -1204,7 +1336,7 @@
               }
             },
             "effective_state_by_scope": {
-              "fund:TQQQ": "NO-NEW-RISK"
+              "fund:TQQQ": "HALT"
             }
           },
           "next_row_state": {
@@ -1226,7 +1358,7 @@
               "tier": "balanced",
               "funds": {
                 "TQQQ": {
-                  "shortfall_observed": 0.010,
+                  "shortfall_observed": 0.01,
                   "shortfall_predicted": 0.005,
                   "v5_tolerance": 0.003
                 }
@@ -1256,14 +1388,14 @@
               }
             },
             "effective_state_by_scope": {
-              "fund:TQQQ": "NO-NEW-RISK"
+              "fund:TQQQ": "HALT"
             }
           }
         }
       ]
     },
     "SUC-09": {
-      "description": "O4 order A times out → ORDER-UNKNOWN (symbol A); terminal report for different order B → A unchanged; unrecognized status string for A → A unchanged; definitive terminal status for A → clears",
+      "description": "O4 order A times out \u2192 ORDER-UNKNOWN (symbol A); terminal report for different order B \u2192 A unchanged; unrecognized status string for A \u2192 A unchanged; definitive terminal status for A \u2192 clears",
       "mechanism": "B6 - O4 original-order identity",
       "steps": [
         {
@@ -1295,7 +1427,7 @@
               "original_order_id": "order_A"
             },
             "effective_state_by_scope": {
-              "symbol:TQQQ": "ORDER-UNKNOWN"
+              "symbol:TQQQ": "HALT"
             }
           },
           "next_row_state": {
@@ -1309,7 +1441,7 @@
         },
         {
           "step": 2,
-          "description": "Terminal report for different order B on TQQQ → A unchanged",
+          "description": "Terminal report for different order B on TQQQ \u2192 A unchanged",
           "inputs": {
             "session": "2026-01-06",
             "validated_inputs": {
@@ -1343,7 +1475,7 @@
               "original_order_id": "order_A"
             },
             "effective_state_by_scope": {
-              "symbol:TQQQ": "ORDER-UNKNOWN"
+              "symbol:TQQQ": "HALT"
             }
           },
           "next_row_state": {
@@ -1357,7 +1489,7 @@
         },
         {
           "step": 3,
-          "description": "Unrecognized status string for order A → A unchanged",
+          "description": "Unrecognized status string for order A \u2192 A unchanged",
           "inputs": {
             "session": "2026-01-07",
             "validated_inputs": {
@@ -1390,7 +1522,7 @@
               "original_order_id": "order_A"
             },
             "effective_state_by_scope": {
-              "symbol:TQQQ": "ORDER-UNKNOWN"
+              "symbol:TQQQ": "HALT"
             }
           },
           "next_row_state": {
@@ -1404,7 +1536,7 @@
         },
         {
           "step": 4,
-          "description": "Definitive terminal status for order A → clears",
+          "description": "Definitive terminal status for order A \u2192 clears",
           "inputs": {
             "session": "2026-01-08",
             "validated_inputs": {
@@ -1437,7 +1569,7 @@
               "symbol": "TQQQ"
             },
             "effective_state_by_scope": {
-              "symbol:TQQQ": "NORMAL"
+              "symbol:TQQQ": "HALT"
             }
           },
           "next_row_state": {
@@ -1471,6 +1603,10 @@
           "expected_outputs": {
             "O4": {
               "state": "ORDER-UNKNOWN",
+              "would_have_tripped": true,
+              "kind": "interlock_or_breaker",
+              "latched": false,
+              "reason": "order_timeout",
               "symbol": "TQQQ",
               "original_order_id": "order_X"
             }
@@ -1521,7 +1657,7 @@
               "original_order_id": "order_X"
             },
             "effective_state_by_scope": {
-              "symbol:TQQQ": "ORDER-UNKNOWN"
+              "symbol:TQQQ": "HALT"
             }
           },
           "next_row_state": {
@@ -1536,7 +1672,7 @@
       ]
     },
     "SUC-11": {
-      "description": "Reserved for Phase 3 stub-swap deep-shape fixture — deep recursive shape comparison of full row outputs including V4/V5/V6 nested fields; negative control with injected nested mismatch must be detected",
+      "description": "Reserved for Phase 3 stub-swap deep-shape fixture \u2014 deep recursive shape comparison of full row outputs including V4/V5/V6 nested fields; negative control with injected nested mismatch must be detected",
       "mechanism": "B7 - F1-A10/D7 row shape",
       "phase_3_implementation": true,
       "expected_deep_shape_checks": [
@@ -1547,8 +1683,8 @@
       ]
     },
     "SUC-12": {
-      "description": "L2 trips at drawdown >= 2D/3 → latched NO-NEW-RISK; drawdown recedes, then deposit, then tier_change evaluations → still latched; authorized re-arm event → clears",
-      "mechanism": "Ruling L2 exact threshold + §4.4 rule 3 persistence across deposit/tier_change",
+      "description": "L2 trips at drawdown >= 2D/3 \u2192 latched NO-NEW-RISK; drawdown recedes, then deposit, then tier_change evaluations \u2192 still latched; authorized re-arm event \u2192 clears",
+      "mechanism": "Ruling L2 exact threshold + \u00a74.4 rule 3 persistence across deposit/tier_change",
       "steps": [
         {
           "step": 1,
@@ -1557,9 +1693,9 @@
             "session": "2026-01-05",
             "validated_inputs": {
               "tier": "balanced",
-              "bankroll": 80000.00,
-              "high_water_mark": 100000.00,
-              "tier_loss_budget_D": 0.30
+              "bankroll": 80000.0,
+              "high_water_mark": 100000.0,
+              "tier_loss_budget_D": 0.3
             },
             "prior_row_state": {}
           },
@@ -1572,7 +1708,7 @@
               "reason": "drawdown_at_2D_over_3"
             },
             "effective_state_by_scope": {
-              "account": "NO-NEW-RISK"
+              "account": "HALT"
             }
           },
           "next_row_state": {
@@ -1584,14 +1720,14 @@
         },
         {
           "step": 2,
-          "description": "Drawdown recedes below threshold → still latched",
+          "description": "Drawdown recedes below threshold \u2192 still latched",
           "inputs": {
             "session": "2026-01-06",
             "validated_inputs": {
               "tier": "balanced",
-              "bankroll": 85000.00,
-              "high_water_mark": 100000.00,
-              "tier_loss_budget_D": 0.30
+              "bankroll": 85000.0,
+              "high_water_mark": 100000.0,
+              "tier_loss_budget_D": 0.3
             },
             "prior_row_state": {
               "L2": {
@@ -1619,17 +1755,17 @@
         },
         {
           "step": 3,
-          "description": "Deposit event (§4.4 rule 3) → still latched",
+          "description": "Deposit event (\u00a74.4 rule 3) \u2192 still latched",
           "inputs": {
             "session": "2026-01-07",
             "validated_inputs": {
               "tier": "balanced",
-              "bankroll": 95000.00,
-              "high_water_mark": 110000.00,
-              "tier_loss_budget_D": 0.30,
+              "bankroll": 95000.0,
+              "high_water_mark": 110000.0,
+              "tier_loss_budget_D": 0.3,
               "flow_event": {
                 "type": "deposit",
-                "amount": 10000.00
+                "amount": 10000.0
               }
             },
             "prior_row_state": {
@@ -1658,13 +1794,13 @@
         },
         {
           "step": 4,
-          "description": "Tier change (§4.4 rule 3) → still latched",
+          "description": "Tier change (\u00a74.4 rule 3) \u2192 still latched",
           "inputs": {
             "session": "2026-01-08",
             "validated_inputs": {
               "tier": "conservative",
-              "bankroll": 95000.00,
-              "high_water_mark": 110000.00,
+              "bankroll": 95000.0,
+              "high_water_mark": 110000.0,
               "tier_loss_budget_D": 0.15,
               "tier_change_event": {
                 "from": "balanced",
@@ -1705,13 +1841,13 @@
         },
         {
           "step": 5,
-          "description": "Authorized re-arm event → clears",
+          "description": "Authorized re-arm event \u2192 clears",
           "inputs": {
             "session": "2026-01-09",
             "validated_inputs": {
               "tier": "conservative",
-              "bankroll": 95000.00,
-              "high_water_mark": 110000.00,
+              "bankroll": 95000.0,
+              "high_water_mark": 110000.0,
               "tier_loss_budget_D": 0.15
             },
             "prior_row_state": {
@@ -1744,8 +1880,8 @@
       ]
     },
     "SUC-13": {
-      "description": "V1 tracking deviation beyond 0.75pp → NO-NEW-RISK (fund), latched (breaker); deviation recedes next session → still latched until re-arm event clears it",
-      "mechanism": "§4.3 V1 breaker semantics",
+      "description": "V1 tracking deviation beyond 0.75pp \u2192 NO-NEW-RISK (fund), latched (breaker); deviation recedes next session \u2192 still latched until re-arm event clears it",
+      "mechanism": "\u00a74.3 V1 breaker semantics",
       "steps": [
         {
           "step": 1,
@@ -1756,8 +1892,8 @@
               "tier": "balanced",
               "funds": {
                 "TQQQ": {
-                  "fund_return": 0.030,
-                  "index_return": 0.010,
+                  "fund_return": 0.04,
+                  "index_return": 0.01,
                   "modelled_fee": 0.0001,
                   "modelled_financing": 0.0001
                 }
@@ -1773,10 +1909,10 @@
               "latched": true,
               "reason": "tracking_deviation_exceeds_0_75pp",
               "fund": "TQQQ",
-              "deviation": 0.0098
+              "deviation": 0.0102
             },
             "effective_state_by_scope": {
-              "fund:TQQQ": "NO-NEW-RISK"
+              "fund:TQQQ": "HALT"
             }
           },
           "next_row_state": {
@@ -1784,14 +1920,14 @@
               "TQQQ": {
                 "latched": true,
                 "trip_session": "2026-01-05",
-                "deviation": 0.0098
+                "deviation": 0.0102
               }
             }
           }
         },
         {
           "step": 2,
-          "description": "Next session, deviation recedes below threshold → still latched",
+          "description": "Next session, deviation recedes below threshold \u2192 still latched",
           "inputs": {
             "session": "2026-01-06",
             "validated_inputs": {
@@ -1810,7 +1946,7 @@
                 "TQQQ": {
                   "latched": true,
                   "trip_session": "2026-01-05",
-                  "deviation": 0.0098
+                  "deviation": 0.0102
                 }
               }
             },
@@ -1826,7 +1962,7 @@
               "fund": "TQQQ"
             },
             "effective_state_by_scope": {
-              "fund:TQQQ": "NO-NEW-RISK"
+              "fund:TQQQ": "HALT"
             }
           },
           "next_row_state": {
@@ -1834,14 +1970,14 @@
               "TQQQ": {
                 "latched": true,
                 "trip_session": "2026-01-05",
-                "deviation": 0.0098
+                "deviation": 0.0102
               }
             }
           }
         },
         {
           "step": 3,
-          "description": "Re-arm event → clears",
+          "description": "Re-arm event \u2192 clears",
           "inputs": {
             "session": "2026-01-07",
             "validated_inputs": {
@@ -1860,7 +1996,7 @@
                 "TQQQ": {
                   "latched": true,
                   "trip_session": "2026-01-05",
-                  "deviation": 0.0098
+                  "deviation": 0.0102
                 }
               }
             },
@@ -1883,7 +2019,7 @@
               "fund": "TQQQ"
             },
             "effective_state_by_scope": {
-              "fund:TQQQ": "NORMAL"
+              "fund:TQQQ": "HALT"
             }
           },
           "next_row_state": {

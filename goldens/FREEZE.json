@@ -1,11 +1,11 @@
 {
   "freeze_version": "fuse-eval-spec/v1",
-  "description": "Frozen golden artifacts per BRIEF-FUSE-1 §6.2, hashed before first full matrix run",
+  "description": "Frozen golden artifacts per BRIEF-FUSE-1 \u00a76.2, hashed before first full matrix run",
   "frozen_at": "2026-11-23",
   "file_hashes": {
     "scenarios.json": "37d4f48210368cbe981a780aed4c10434bbdfb1a328c4bb1c3f196371ac26a3b",
     "golden-table.json": "5aaa940fbf8964bb99a6956e70be16bfe895a3dd0b8328c177a66d4c4b3343a2",
-    "successor-cases.json": "08ee38c966e4c2a8a9609e940c7ef0a4d82b9b60b527c2f5dad62e5fc0b994d3"
+    "successor-cases.json": "19fbb0d1ecc023740ab81d3bb5035a2fae96c8889b7b11e7099e270a20d8d12d"
   },
-  "combined_freeze_hash": "efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50"
+  "combined_freeze_hash": "499641a2185131bccc49f93c1784eab3fd226336d6ac0edc66a1d983df1d89f1"
 }
