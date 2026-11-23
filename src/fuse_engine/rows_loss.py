@@ -330,7 +330,7 @@ def evaluate_L3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     if prior_latch:
         # Check for authorized re-arm
         rearm = False
-        cooling_off_days_remaining = prior_latch['details'].get('cooling_off_days_remaining', 30)
+        cooling_off_days_remaining = 30  # Default; rearm event provides days_since_trip
 
         if authorized_events:
             events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])

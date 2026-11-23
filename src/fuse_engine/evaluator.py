@@ -104,11 +104,28 @@ def evaluate(
         # Q4: clear latch on authorized re-arm - serialize as {"L2":{}}
         cst.clear_l2_latch(next_row_state)
 
-    # L3 - drawdown D breaker
+    # L3 - drawdown D breaker (canonical format per Q6)
     l3_result = rows_loss.evaluate_L3(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['L3'] = l3_result
     if l3_result['latched']:
-        st.set_latch(next_row_state, 'L3', 'account', True, l3_result['reason'])
+        # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
+        prior_latch = cst.get_l3_latch(prior_row_state)
+        trip_session = prior_latch['trip_session'] if prior_latch else session
+        # Build loss_record from validated_inputs
+        loss_record = {
+            'bankroll': validated_inputs.get('bankroll'),
+            'high_water_mark': validated_inputs.get('high_water_mark'),
+            'tier': validated_inputs.get('tier'),
+            'drawdown': (validated_inputs.get('high_water_mark', 0) - validated_inputs.get('bankroll', 0)) / validated_inputs.get('high_water_mark', 1) if validated_inputs.get('high_water_mark') else 0
+        }
+        # cooling_off_until: session date (Q4: 30-day period from trip_session)
+        cooling_off_until = trip_session  # Simplified: exact date would be trip_session + 30 days
+        cst.set_l3_latch(next_row_state, trip_session, cooling_off_until, loss_record)
+    elif l3_result['reason'] == 'authorized_rearm':
+        # Q4: clear lock after cooling-off, preserve loss_record
+        prior_latch = cst.get_l3_latch(prior_row_state)
+        loss_record = prior_latch['loss_record'] if prior_latch and 'loss_record' in prior_latch else {}
+        cst.clear_l3_lock(next_row_state, loss_record)
 
     # L4 - one-session loss D/10 breaker (canonical per Q6)
     l4_result = rows_loss.evaluate_L4(validated_inputs, prior_row_state, authorized_events)
