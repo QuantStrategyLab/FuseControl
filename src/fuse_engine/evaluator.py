@@ -346,47 +346,68 @@ def evaluate(
     # Precedence order
     precedence = ['HALT', 'ORDER-UNKNOWN', 'DE-RISK', 'NO-NEW-RISK', 'NORMAL']
 
-    for scope in scopes:
-        # Collect all state contributions for this scope
-        states_for_scope = []
+    # First, resolve account scope to check for dominance (Q5)
+    account_states = []
+    for row_id in ['L0', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'O1', 'O2', 'O3', 'O5', 'O6', 'O7', 'O8', 'O9']:
+        row_result = rows_by_ID[row_id]
+        account_states.append(row_result['state'])
 
-        if scope == 'account':
-            # Account-scoped rows
-            for row_id in ['L0', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'O1', 'O2', 'O3', 'O5', 'O6', 'O7', 'O8', 'O9']:
-                row_result = rows_by_ID[row_id]
-                states_for_scope.append(row_result['state'])
-        elif scope.startswith('fund:'):
-            symbol = scope.split(':')[1]
-            # Fund-scoped rows
-            if symbol in v1_outputs:
-                states_for_scope.append(v1_outputs[symbol]['state'])
-            if symbol in v2_outputs:
-                states_for_scope.append(v2_outputs[symbol]['state'])
-            if symbol in v3_outputs:
-                states_for_scope.append(v3_outputs[symbol]['state'])
-            if symbol in v4_outputs:
-                states_for_scope.append(v4_outputs[symbol]['state'])
-            if symbol in v5_outputs:
-                states_for_scope.append(v5_outputs[symbol]['state'])
-        elif scope.startswith('symbol:'):
-            symbol = scope.split(':')[1]
-            # Symbol-scoped rows (O4, V7)
-            if symbol in o4_outputs:
-                states_for_scope.append(o4_outputs[symbol]['state'])
-            if symbol in v7_outputs:
-                states_for_scope.append(v7_outputs[symbol]['state'])
-        elif scope == 'joint':
-            # Joint-scoped rows
-            states_for_scope.append(j1_result['state'])
+    account_state = 'NORMAL'
+    for state in precedence:
+        if state in account_states:
+            account_state = state
+            break
 
-        # Resolve by precedence
-        effective_state = 'NORMAL'
-        for state in precedence:
-            if state in states_for_scope:
-                effective_state = state
-                break
+    effective_state_by_scope['account'] = account_state
 
-        effective_state_by_scope[scope] = effective_state
+    # Q5: Account HALT dominates every narrower scope (§4.1)
+    # If account is HALT, all fund and symbol scopes are also HALT
+    if account_state == 'HALT':
+        for scope in scopes:
+            if scope != 'account' and scope != 'joint':
+                effective_state_by_scope[scope] = 'HALT'
+        # Joint scope resolves independently
+        effective_state_by_scope['joint'] = j1_result['state']
+    else:
+        # Account not HALT - resolve each scope independently
+        for scope in scopes:
+            if scope == 'account':
+                continue  # Already resolved above
+
+            states_for_scope = []
+
+            if scope.startswith('fund:'):
+                symbol = scope.split(':')[1]
+                # Fund-scoped rows
+                if symbol in v1_outputs:
+                    states_for_scope.append(v1_outputs[symbol]['state'])
+                if symbol in v2_outputs:
+                    states_for_scope.append(v2_outputs[symbol]['state'])
+                if symbol in v3_outputs:
+                    states_for_scope.append(v3_outputs[symbol]['state'])
+                if symbol in v4_outputs:
+                    states_for_scope.append(v4_outputs[symbol]['state'])
+                if symbol in v5_outputs:
+                    states_for_scope.append(v5_outputs[symbol]['state'])
+            elif scope.startswith('symbol:'):
+                symbol = scope.split(':')[1]
+                # Symbol-scoped rows (O4, V7)
+                if symbol in o4_outputs:
+                    states_for_scope.append(o4_outputs[symbol]['state'])
+                if symbol in v7_outputs:
+                    states_for_scope.append(v7_outputs[symbol]['state'])
+            elif scope == 'joint':
+                # Joint-scoped rows
+                states_for_scope.append(j1_result['state'])
+
+            # Resolve by precedence
+            effective_state = 'NORMAL'
+            for state in precedence:
+                if state in states_for_scope:
+                    effective_state = state
+                    break
+
+            effective_state_by_scope[scope] = effective_state
 
     return (rows_by_ID, effective_state_by_scope, next_row_state)
 
