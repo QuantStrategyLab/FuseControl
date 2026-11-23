@@ -242,7 +242,12 @@ def evaluate(
         v4_result = rows_vehicle.evaluate_V4(fund_inputs, prior_row_state, authorized_events, symbol, session)
         v4_outputs[symbol] = v4_result
         # Update V4 state based on result reason - counter now in outputs
-        if v4_result['reason'] in ['volatility_at_or_above_2x', 'volatility_below_2x_but_not_yet_cleared']:
+        if v4_result['reason'] == 'volatility_at_or_above_2x':
+            # Initial trip: volatility HIGH, no "last session below threshold" yet
+            counter = v4_result.get('outputs', {}).get('clearing_counter', 0)
+            cst.set_v4_state(next_row_state, symbol, counter, None)
+        elif v4_result['reason'] == 'volatility_below_2x_but_not_yet_cleared':
+            # Clearing phase: record this session as below threshold
             counter = v4_result.get('outputs', {}).get('clearing_counter', 0)
             cst.set_v4_state(next_row_state, symbol, counter, session)
         elif v4_result['reason'] == 'cleared_after_ten_sessions':
@@ -553,9 +558,11 @@ def aggregate_fund_row(fund_outputs: Dict[str, Dict[str, Any]], symbol_scoped: b
 
     # Include per-fund outputs (V4 counter at top level per Q1, not wrapped per fund)
     if 'outputs' in sample:
-        # For single-fund case (V4 counter), emit outputs at top level
-        if len(affected_funds) == 1:
-            aggregate['outputs'] = fund_outputs[affected_funds[0]].get('outputs', {})
+        # For single-fund scenarios (V4 counter), emit outputs at top level
+        # Use len(fund_outputs) not len(affected_funds) - applies to both tripping and clearing
+        if len(fund_outputs) == 1:
+            single_fund = next(iter(fund_outputs.keys()))
+            aggregate['outputs'] = fund_outputs[single_fund].get('outputs', {})
         else:
             # Multiple funds: wrap per-fund
             aggregate['outputs'] = {symbol: result.get('outputs', {}) for symbol, result in fund_outputs.items()}
