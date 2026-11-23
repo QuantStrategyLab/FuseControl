@@ -96,7 +96,10 @@ def evaluate(
     l2_result = rows_loss.evaluate_L2(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['L2'] = l2_result
     if l2_result['latched']:
-        cst.set_l2_latch(next_row_state, session)
+        # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
+        prior_latch = cst.get_l2_latch(prior_row_state)
+        trip_session = prior_latch['trip_session'] if prior_latch else session
+        cst.set_l2_latch(next_row_state, trip_session)
     elif l2_result['reason'] == 'authorized_rearm':
         # Q4: clear latch on authorized re-arm - serialize as {"L2":{}}
         cst.clear_l2_latch(next_row_state)
@@ -148,8 +151,15 @@ def evaluate(
         v1_result = rows_vehicle.evaluate_V1(fund_inputs, prior_row_state, authorized_events, symbol)
         v1_outputs[symbol] = v1_result
         if v1_result['latched']:
-            deviation = v1_result.get('deviation', 0.0)
-            cst.set_v1_latch(next_row_state, symbol, session, deviation)
+            # Preserve original trip_session and deviation if already latched (§4.4 rule 3)
+            prior_latch = cst.get_v1_latch(prior_row_state, symbol)
+            if prior_latch:
+                trip_session = prior_latch['trip_session']
+                deviation = prior_latch['deviation']
+            else:
+                trip_session = session
+                deviation = v1_result.get('deviation', 0.0)
+            cst.set_v1_latch(next_row_state, symbol, trip_session, deviation)
         elif v1_result['reason'] == 'authorized_rearm':
             # Q4: clear latch on authorized re-arm - serialize as {"V1":{}}
             cst.clear_v1_latch(next_row_state, symbol)

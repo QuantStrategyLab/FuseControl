@@ -231,25 +231,25 @@ def evaluate_L2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             }
 
         # Stay latched without re-arm
-            # Stay latched - check for specific latched conditions
-            flow_event = inputs.get('flow_event')
-            tier_change_event = inputs.get('tier_change_event')
+        # Stay latched - check for specific latched conditions
+        flow_event = inputs.get('flow_event')
+        tier_change_event = inputs.get('tier_change_event')
 
-            # Determine specific latched reason (SUC-12)
-            if flow_event and flow_event.get('type') == 'deposit':
-                reason = 'latched_survives_deposit'
-            elif tier_change_event:
-                reason = 'latched_survives_tier_change'
-            else:
-                reason = 'latched_prior_trip'
+        # Determine specific latched reason (SUC-12)
+        if flow_event and flow_event.get('type') == 'deposit':
+            reason = 'latched_survives_deposit'
+        elif tier_change_event:
+            reason = 'latched_survives_tier_change'
+        else:
+            reason = 'latched_prior_trip'
 
-            return {
-                'state': 'NO-NEW-RISK',
-                'would_have_tripped': True,
-                'kind': 'breaker',
-                'latched': True,
-                'reason': reason
-            }
+        return {
+            'state': 'NO-NEW-RISK',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': True,
+            'reason': reason
+        }
 
     # Evaluate trigger
     bankroll = inputs.get('bankroll')
