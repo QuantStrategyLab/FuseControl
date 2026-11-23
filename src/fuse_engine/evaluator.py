@@ -337,6 +337,27 @@ def evaluate(
     j1_result = rows_ops.evaluate_J1(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['J1'] = j1_result
 
+    # Preserve durable scope state for funds/symbols not in current inputs (Q6)
+    # V4, V5, O4 state must survive across calls even when scope is absent
+    if prior_row_state:
+        # Preserve V4 state for funds not evaluated
+        if 'V4' in prior_row_state:
+            if 'V4' not in next_row_state:
+                next_row_state['V4'] = {}
+            for fund, v4_fund_state in prior_row_state['V4'].items():
+                if fund not in fund_symbols and fund not in next_row_state['V4']:
+                    next_row_state['V4'][fund] = v4_fund_state
+
+        # Preserve V5 state for funds not evaluated
+        if 'V5' in prior_row_state:
+            if 'V5' not in next_row_state:
+                next_row_state['V5'] = {}
+            for fund, v5_fund_state in prior_row_state['V5'].items():
+                if fund not in fund_symbols and fund not in next_row_state['V5']:
+                    next_row_state['V5'][fund] = v5_fund_state
+
+        # O4 already preserved via symbol enumeration (all_symbols includes prior O4 keys)
+
     # ==== PRECEDENCE RESOLUTION ====
     # Per §4.1: HALT > ORDER-UNKNOWN > DE-RISK > NO-NEW-RISK > NORMAL
     # Account HALT dominates all narrower scopes
