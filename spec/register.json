@@ -1,0 +1,70 @@
+{
+  "register_version": "fuse-eval-spec/v1",
+  "description": "Disposition register for proposal-marked thresholds per BRIEF-FUSE-1 §4.5",
+  "dispositions": [
+    {
+      "parameter": "L6_one_session_index_fall",
+      "row_id": "L6",
+      "proposal_value": "10% (approximately 30% in the fund)",
+      "source_status": "Marked (proposal) in §4.4",
+      "disposition": "CONFIRMED-AS-SPEC",
+      "value": 0.10,
+      "notes": "10% fall in either underlying index triggers L6 HALT"
+    },
+    {
+      "parameter": "V1_tracking_deviation_one_session",
+      "row_id": "V1",
+      "proposal_value": "0.75 percentage points",
+      "source_status": "Marked (proposal) in §4.4",
+      "disposition": "CONFIRMED-AS-SPEC",
+      "value": 0.0075,
+      "notes": "One-session tracking deviation beyond 0.75pp triggers V1 NO-NEW-RISK"
+    },
+    {
+      "parameter": "V1_tracking_deviation_five_sessions",
+      "row_id": "V1",
+      "proposal_value": "2.0 percentage points",
+      "source_status": "Marked (proposal) in §4.4",
+      "disposition": "CONFIRMED-AS-SPEC",
+      "value": 0.02,
+      "notes": "Five-session tracking deviation beyond 2.0pp triggers V1 NO-NEW-RISK"
+    },
+    {
+      "parameter": "V4_volatility_multiple",
+      "row_id": "V4",
+      "proposal_value": "2x long-run volatility (approximately 48% for Nasdaq-100)",
+      "source_status": "Marked (proposal) in §4.4",
+      "disposition": "CONFIRMED-AS-SPEC",
+      "value": 2.0,
+      "notes": "Forecast volatility at or above 2x long-run triggers V4 NO-NEW-RISK interlock"
+    },
+    {
+      "parameter": "V5_stated_tolerance",
+      "row_id": "V5",
+      "proposal_value": "stated tolerance (not specified)",
+      "source_status": "OI-COST-4 venue items unresolved in U-01",
+      "disposition": "UNRESOLVED-FAIL-CLOSED",
+      "value": null,
+      "notes": "Unresolved parameter; must be supplied as explicit synthetic input v5_tolerance in validated_inputs; absence produces fail-closed diagnostic outcome (trip with unresolved_fail_closed reason)"
+    },
+    {
+      "parameter": "V7_spread_width",
+      "row_id": "V7",
+      "proposal_value": "a stated width (not specified)",
+      "source_status": "OI-COST-4 venue items unresolved in U-01",
+      "disposition": "UNRESOLVED-FAIL-CLOSED",
+      "value": null,
+      "notes": "Unresolved parameter; must be supplied as explicit synthetic input v7_spread_width in validated_inputs; absence produces fail-closed interlock outcome (order not sent, unresolved_fail_closed reason)"
+    },
+    {
+      "parameter": "O5_price_collar",
+      "row_id": "O5",
+      "proposal_value": "collar [E1] (not specified)",
+      "source_status": "OI-COST-3/4 venue items unresolved in U-01",
+      "disposition": "UNRESOLVED-FAIL-CLOSED",
+      "value": null,
+      "notes": "Unresolved parameter; must be supplied as explicit synthetic input o5_collar in validated_inputs; absence produces fail-closed rejection outcome (order rejected, unresolved_fail_closed reason); rejections count toward third-rejection HALT per O5 semantics"
+    }
+  ],
+  "unresolved_parameter_mechanics": "An unresolved spec parameter is never defaulted in spec or engine. Where an evaluation needs such a value, it may arrive only as an explicit synthetic input inside validated_inputs (e.g. v5_tolerance, v7_spread_width, o5_collar); its absence produces that check's fail-closed outcome. The fail-closed outcome is NOT an unconditional NORMAL: unresolved parameters still trigger their row's specified action (V5 diagnostic trip, V7 order suppression, O5 rejection counting toward third-rejection HALT)."
+}
