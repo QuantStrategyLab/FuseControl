@@ -3,13 +3,13 @@
 - **Branch:** `demo/fuse1-sonnet`
 - **Spec version:** `fuse-eval-spec/v1`
 - **Golden freeze version:** `fuse-eval-spec/v2` (`1da74ca5...`, owner-approved v2 refreeze `2026-11-24`, 0 bytes changed vs `710758c`)
-- **Code / fixture / tool / test head:** `18f8cdd12e82358068f75e333391a46af103331e` (R5 remediation at `18f8cdd` on top of `3277881`/`ef79aee`/`b1e2ec6`/`9335f26`/`710758c`/`d27f51a`/`b3084d7`; this bundle/docs commit follows)
+- **Code / fixture / tool / test head:** `f9b6b3ae561471418a5391465d1a71a856bcc34b` (R6 P1 remediation at `f9b6b3a` on top of `841b7cb`/`e3a7aba`/`18f8cdd`/`3277881`/`ef79aee`/`b1e2ec6`/`9335f26`/`710758c`/`d27f51a`/`b3084d7`; this bundle/docs commit follows)
 
 ## Artifact Hashes
 
 ### Engine Hash (§5.3)
 ```
-377140cc434b01e1697fcbf9cb8e9e5f08651ffe76c6e12afd0e94f7e6302532
+e58c5234d28682101aa108bb547323d9ab4af2eebb29a699c2eca208bfc299f2
 ```
 
 Computed from canonical bundle (8 sorted Python files):
@@ -55,11 +55,11 @@ src/fuse_engine/state.py
 ### Result Bundle Hash
 
 ```
-6becd05a24c75cad5e3573168f91199ee66be916c7a3b8221e1cd9e001745a29
+9d763173d7f1b92cdec968d664f42243c1c8e2dcd44e68a900dc2f3236324e40
 ```
-File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `ccafc9f01afa8fcbd3cc927dd340e378765844cb9e19d2b8ba1260b5e311f498`.
+File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `2b3e7f75228988e863cd5b2c35957e5a5cc3109afef7c64474b668a8cd339109`.
 
-## Matrix Results (Head `18f8cdd`, R5 Remediation Applied; v2 `goldens/` Freeze Unchanged)
+## Matrix Results (Head `f9b6b3a`, R6 P1 Remediation Applied; Option A v2 `goldens/` Freeze Unchanged)
 
 | Section | Passed | Failed | Total | % |
 |---------|--------|--------|-------|---|
@@ -82,21 +82,21 @@ File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `ccafc9f01a
 | F1-A03 | Matrix exact agreement | ✓ PASS (`264/264` strict type/raw dict + formal runner `264/264` §4.1 scope maps; `13/13` successor incl. `SUC-08` 70 continuous calls, `SUC-11`, `SUC-06/5`, `SUC-07/3`; `FREEZE.json` SHA-256 verified from disk) |
 | F1-A04 | Tier repetitions | ✓ EXECUTED (`132/132` formal runner full-key strict equality w/ real `0.4/0.6/0.8 × bankroll` caps, `tier_change` balanced+aggressive coverage, frozen priors, and `-1` cap mutation detection `110/22`) |
 | F1-A05 | Determinism | ✓ PASS (independent runs, `PYTHONHASHSEED=1,2,3`, `canonical_json` round-trip, zero file I/O in `evaluate()`, and swapped-order multi-fund V5/V6 produce identical outputs) |
-| F1-A06 | Fail-closed battery | ✓ PASS (within v2 frozen-oracle bounds: fixed `L0`/`L1`/`L2` `NaN`/`bool`, `L6` `{}` & `< 2` indices, `O3` empty `funds`, `O5` notional/`settled_cash`/whitelists/long-only sells, `O6` blank hashes, `V5` `excess_shortfall=None`, `V7` non-bool `trading_pause`, `evaluate()` null guards; pre-registered v2 freeze bounds retained at 0 diff bytes: `missing.L6` open-market `None` guarded by `O1`/`V1` `NO-NEW-RISK`, and `SUC-05` minimal `['source_records','tier']` Step 7) |
-| F1-A07 | Persistence battery | ✓ PASS (O8 kill-switch latch & Q4 clear; V2 partial mismatch queue preservation keeping `split` until reconciled, strict `bool` flags & `hwm_adjusted`, finite mismatch state; V1 `five_session_history=[]` & holiday preservation; V4 holiday freeze before `triggered` & 2nd-fund/omitted-fund `V4.outputs`; V5 omitted escalated funds; L3/L4 canonical `session > as_of[:10]`, L3 dynamic day-10 counter, L4 holiday rearm refusal; L5/O1 canonical session intra-day retention; O4 `BIL` malformed/unidentified lock survival) |
-| F1-A08 | Precedence & authorization | ✓ PASS (account `HALT` dominates `joint`; O7 `NO-NEW-RISK` priority; omitted active `V4`/escalated `V5` kept in scopes; Q4 rejects `row != row_id`, requires date on all account + V1/V2/V3 fund re-arms and O9 cards, binds O9 targets to live `validated_inputs`) |
+| F1-A06 | Fail-closed battery | ✓ PASS (Option A / frozen v2 bounds preserved at 0 diff bytes: `L0`/`L1`/`L2` `NaN`/`bool`; `L6` `{}` & `< 2` indices; `O1` blocks open-market `index_one_session_returns=None`/empty/non-finite when operational payload present, clamping exposure raises while preserving `missing.L6 == NORMAL` and `holiday.O1 == NORMAL`; `SUC-05` minimal `['source_records','tier']` Step 7; `O3` empty `funds`; `O5` `order_size` & null `account`/`account_whitelist`/notional/`settled_cash`/long-only sells; `O6` blank hashes; `V5` `excess_shortfall=None`; `V7` non-bool `trading_pause`; `evaluate()` null guards) |
+| F1-A07 | Persistence battery | ✓ PASS (O8 kill-switch latch & Q4 clear; V2 enqueues distinct CA during active mismatch latch & retains pending `split` across mismatch rearm until reconciled, strict `bool` flags & `hwm_adjusted` incl. rejecting explicit `null`, finite mismatch state; V1 `five_session_history=[]` & holiday preservation; V4 holiday freeze before `triggered` & 2nd-fund/omitted-fund `V4.outputs`; V5 omitted & missing-shortfall/tolerance escalated funds keep `NO-NEW-RISK` & count=40; L3/L4 canonical `session > as_of[:10]`, L3 dynamic day-10 counter, L4 holiday rearm refusal; L5/O1 canonical session intra-day retention; O4 `BIL` malformed/unidentified lock survival) |
+| F1-A08 | Precedence & authorization | ✓ PASS (account `HALT` dominates `joint`; O7 `NO-NEW-RISK` priority; omitted active `V4`/escalated `V5` kept in scopes; Q4 rejects `row != row_id` across re-arms and O9 tier/parameter cards, requires date on account + V1/V2/V3 fund re-arms & O9 cards, requires explicit O9 target values, and binds O9 to effective fund/account runtime values in `validated_inputs`) |
 | F1-A09 | No-exposure-increase invariant | ✓ PASS (`tools/check_exposure_invariants.py`: `168/168` bundles, includes `symbol` target, per-symbol V7 scoping without falsely clamping `SOXL`, `0.0` headroom on negative `joint_exposure`, pre-call immutability snapshots) |
 | F1-A10 | Interface conformance | ✓ PASS (enforces `spec_version == 'fuse-eval-spec/v1'` & `mode == 'shadow'`, zero file I/O with precomputed `engine_hash`, aligned `stub_adapter.py` single-fund `fund` & single-symbol `symbol` keys) |
 | F1-A11 | Disposition register complete | ✓ PASS (`NaN`/inf/bool/neg tolerances fail closed; worst-case multi-fund V5 `disposition`; `disposition-register.json` synced to 5-session implementation) |
-| F1-A12 | V2 branches | ✓ PASS (partial mismatch keeps unrelated `split` pending across mismatch re-arm until all actions reconcile; strict `bool` completion & `hwm_adjusted`; known ratio match; finite mismatch storage; `{}` pending retention) |
+| F1-A12 | V2 branches | ✓ PASS (enqueues new CA even while mismatch is latched, keeps unrelated `split` pending across mismatch re-arm until all actions reconcile; strict `bool` completion & `hwm_adjusted` incl. rejecting explicit `null`; known ratio match; finite mismatch storage; `{}` pending retention) |
 | F1-A13 | Offline proof | ✓ PASS (pure function, zero file I/O in `evaluate()`, synthetic inputs only, zero network/broker endpoints) |
 | F1-A14 | Gates (CI, bot, review) | **PENDING** — local commits on `demo/fuse1-sonnet` await push; exact-head CI, `ai-review`, and R2 clearing label on PR #3 will execute upon push (remote PR head is `ad404ad`). |
 
 ## PR #3 Gate Snapshot (Historical Remote Read-Only State)
 
-PR #3 (`QuantStrategyLab/FuseControl#3`) remains a draft PR whose remote `headRefOid` (`ad404ad915e101aa0ec007be3ca3ba078116d26b`) predates all local remediation commits (`31500c9..18f8cdd` + this bundle/doc commit):
+PR #3 (`QuantStrategyLab/FuseControl#3`) remains a draft PR whose remote `headRefOid` (`ad404ad915e101aa0ec007be3ca3ba078116d26b`) predates all local remediation commits (`31500c9..f9b6b3a` + this bundle/doc commit):
 - On remote `ad404ad` (`gh pr view 3` at `2026-11-24T08:55:52Z`): `labels: []`, `ai-review: PENDING`, `Evaluate PR governance: FAILURE`, `risk-gate: FAILURE`, `Record the head a clearing label was added to: SKIPPED`, docs/Gitleaks/GitGuardian/`pr-template: SUCCESS`.
-- No remote CI run or `ai-review` exists for current local HEAD yet because pushing and PR edits are withheld per demonstration protocol.
+- No remote CI run or `ai-review` exists for current local HEAD yet because pushing and PR edits are withheld pending owner push authorization.
 
 ## Disposition Register
 
@@ -120,6 +120,6 @@ acceptance/
 
 ## Notes
 
-- Full unit test suite: `Ran 129 tests` OK (`pytest`: `129 passed, 18 subtests passed`), plus `check_id_set.py` PASS, `lint_spec.py` PASS, and `check_exposure_invariants.py` (`168/168` bundles) PASS.
-- Nothing pushed and PR #3 untouched pending local R6 verification; v2 frozen-oracle bounds (`missing.L6` `None` and `SUC-05` minimal Step 7) are documented while preserving 0-byte `goldens/` diff from `710758c`.
+- Full unit test suite: `Ran 135 tests` OK (`pytest`: `135 passed, 18 subtests passed`), plus `check_id_set.py` PASS, `lint_spec.py` PASS, `check_exposure_invariants.py` (`168/168` bundles) PASS, and `generate_golden_table.py` (`0` golden diff bytes).
+- Option A / frozen v2 bounds (`missing.L6` `NORMAL` guarded by `O1` `NO-NEW-RISK`, and `SUC-05` minimal Step 7) are documented while preserving 0-byte `goldens/` diff from `710758c`. Nothing pushed and PR #3 untouched per local remediation protocol.
 - Owner-approved v2 refreeze (`d27f51a`) updated only `goldens/golden-table.json`, `goldens/DERIVATION.md`, and `goldens/FREEZE.json` for R1/R4/R5; all files under `goldens/` remain 0 bytes modified relative to `710758c`.
