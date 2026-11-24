@@ -578,6 +578,23 @@ def aggregate_fund_row(fund_outputs: Dict[str, Dict[str, Any]], symbol_scoped: b
             else:
                 aggregate['funds'] = affected_funds
 
+    # G1.3: Preserve declared successor evidence fields (deviation, original_order_id)
+    # For single-fund cases, copy extra fields from the fund result
+    if len(fund_outputs) == 1:
+        single_fund = next(iter(fund_outputs.keys()))
+        single_result = fund_outputs[single_fund]
+
+        # V1 deviation (tracking deviation on trip)
+        if 'deviation' in single_result:
+            aggregate['deviation'] = single_result['deviation']
+
+        # O4 original_order_id and symbol (order identity)
+        if 'original_order_id' in single_result:
+            aggregate['original_order_id'] = single_result['original_order_id']
+        if 'symbol' in single_result and not symbol_scoped:
+            # For non-symbol-scoped, preserve individual symbol
+            aggregate['symbol'] = single_result['symbol']
+
     return aggregate
 
 
