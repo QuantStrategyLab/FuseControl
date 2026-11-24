@@ -5,16 +5,16 @@
 - **Golden freeze version:** `fuse-eval-spec/v2` (`1da74ca5...`, owner-approved v2 refreeze `2026-11-24`, unchanged relative to `710758c`)
 - **Writer:** Sonnet
 - **Demonstration epoch:** `FUSE-DESIGN-2026-11-21-v1`
-- **Verified code / fixture / tool / test head:** `ce51c92dfa466b2d609daed806f8b9c97ce80159` (`ce51c92`, preceded by `a684584`, `98f15b7`, `0d092dd`, `4f8f482`, `e9639f5`, `57c813b`, `882df2a`, `c39f4d0`, `0c9eb43`, `d816cca`, `72d5020`, `de50e4f`, `5ad8072`, `440373c`, `3a14e18`, `f9b6b3a`, `841b7cb`, `e3a7aba`, `18f8cdd`, `3277881`, `ef79aee`, `b1e2ec6`, `9335f26`, `710758c`, `d27f51a`, `b3084d7`; followed by this bundle/docs commit)
+- **Verified code / fixture / tool / test head:** `89093721688a587fbe89b53295cbf5840b22e31e` (`8909372`, preceded by `87e9e70`, `ce51c92`, `a684584`, `98f15b7`, `0d092dd`, `4f8f482`, `e9639f5`, `57c813b`, `882df2a`, `c39f4d0`, `0c9eb43`, `d816cca`, `72d5020`, `de50e4f`, `5ad8072`, `440373c`, `3a14e18`, `f9b6b3a`, `841b7cb`, `e3a7aba`, `18f8cdd`, `3277881`, `ef79aee`, `b1e2ec6`, `9335f26`, `710758c`, `d27f51a`, `b3084d7`; followed by this bundle/docs commit)
 
 ## Status
 
-**LOCAL O5 P1 & FRAMED ENGINE HASH REMEDIATION VERIFIED ON `ce51c92` (v2 `goldens/` FREEZE PRESERVED AT 0 DIFF BYTES; REMOTE CI / PR #3 `F1-A14` PENDING PUSH)**
+**LOCAL FAIL-CLOSED PENDING-ORDERS, VEHICLE-ORDER, ORDER-SYMBOL & ENGINE-BINARY REMEDIATION VERIFIED ON `8909372` (v2 `goldens/` FREEZE PRESERVED AT 0 DIFF BYTES; REMOTE CI / PR #3 `F1-A14` PENDING PUSH)**
 
 - Base: **264/264** ✓ strict raw dict equality + type equality (`True != 1`) AND **264/264** full independent §4.1 scope maps inside formal `run_matrix.run_base_cells`
 - Tier (formal runner): **132/132 EXECUTED** ✓ full-key strict dict + type equality (`compare_base_outcome_exact` catches extra keys & `bool`/`int` mismatches; R5 real tier caps `0.40/0.60/0.80 × bankroll`, `tier_change` covers `balanced`+`aggressive`, `-1` J1-cap mutation `110 pass / 22 fail` detected)
 - Successor: **13/13** ✓ (every declared key in `expected` enforced; canonical-extra-only output/state enforcement rejects spoofed keys; summary integer vs float `6 != 6.0` enforced; `SUC-08` runs all `70` sequential sessions via live state; `SUC-11` runs `2` real calls; `SUC-06/5` runs `12` calls; `SUC-07/3` runs `7` calls)
-- Unit tests: **156 tests OK** (`unittest`: `Ran 156 tests` OK; `pytest`: **156 passed, 18 subtests passed**) ✓
+- Unit tests: **157 tests OK** (`unittest`: `Ran 157 tests` OK; `pytest`: **157 passed, 18 subtests passed**) ✓
 - ID-set gate (`tools/check_id_set.py`): **PASS** (`spec=24, engine=24, expected=24`) ✓
 - Spec lint (`tools/lint_spec.py`): **PASS** ✓
 - Exposure/policy invariant gate (`tools/check_exposure_invariants.py`): **168/168 bundles PASS** ✓ (`symbol` field included in target scope, per-symbol V7 scoping avoids clamping unrestricted `SOXL`, negative `joint_exposure` fail-closed headroom `0.0` handled cleanly)
@@ -26,11 +26,11 @@
   2. `O1` `missing_required_source_*` intra-session clearing vs frozen `SUC-05` Step 7 (`goldens/successor-cases.json` chains Steps 1–7 on single session `2026-01-05` with minimal `['source_records', 'tier']` inputs expecting `NORMAL` at Step 7): all real operational calls (`stale_or_missing_input`) retain same-session `clearing_period` (`NO-NEW-RISK`); only non-operational minimal `SUC-05` `missing_required_source_*` preserves Step 7 parity.
 - Remote CI / PR #3 (`F1-A14`): **PENDING** (local branch unpushed; exact-head CI, `ai-review`, and R2 governance labels pending push)
 
-## Artifact Hashes (Head `ce51c92` + Unchanged v2 Refreeze)
+## Artifact Hashes (Head `8909372` + Unchanged v2 Refreeze)
 
-- **Engine hash (8 strictly whitelisted framed files incl. `canonical.py`):** `f0b882051c69edecb89270bc450410bb5f11a4a5abaaac3753f3046cf0e1974e`
-- **Bundle hash:** `d769477a052470331228c655a872161e01b25540034cc1b9a83c4a427e6bff65`
-- **`acceptance/result-bundle.json` SHA-256 (973 bytes, trailing LF):** `ddfe37c87e96fa1cb58b00840c404fcc24d0b9aa4a994e87651dc4849d695bca`
+- **Engine hash (8 strictly whitelisted framed `.py` files + strict `rglob('*')` `__pycache__/<stem>.cpython-<digits>.pyc` guard):** `13a6ee2259cd4931ea247b1b0c92b5ae3122f7e19fd4b5d86300c711f9c61ed6`
+- **Bundle hash:** `7b712f7d549683bb74cbd8f321cbb2a649f02b733d0ece4c8799bf8add390a55`
+- **`acceptance/result-bundle.json` SHA-256 (973 bytes, trailing LF):** `169d9ccdc11797c5fd3f00895770858660382cb1ece418e80e31ac18fd254b77`
 - **Original freeze (`f60986a`):** `efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50`
 - **Adjudication freeze v1 (`86be6d7`):** `499641a2185131bccc49f93c1784eab3fd226336d6ac0edc66a1d983df1d89f1`
 - **Owner-approved v2 refreeze (at `d27f51a` / `710758c`, 0 bytes modified in R3–R14 remediation):**
@@ -40,6 +40,13 @@
   - `goldens/successor-cases.json` (unchanged): `19fbb0d1ecc023740ab81d3bb5035a2fae96c8889b7b11e7099e270a20d8d12d`
   - `goldens/DERIVATION.md` (v2 addendum): `eaa8034df0271cbeca9297a77c76ca3c6b4bd0968dd433ed7082af28c80a4682`
   - **Combined v2 freeze:** `1da74ca508161ba6d9a424101321381a9f5156d8cb2c84c03be2fd2fe3f22a74`
+
+## Remote PR #3 `@codex` Pending-Orders, Vehicle-Order, Order-Symbol & Engine-Binary Remediation (`8909372` & this docs/bundle commit)
+
+- **O4 fail closed on malformed `pending_orders` (`src/fuse_engine/evaluator.py`)**: When `'pending_orders' in validated_inputs` has a non-`dict` value (e.g., `list`, scalar, or explicit `None`), `evaluate()` preserves prior `O4` locks, marks `malformed_pending_orders=True` -> `O4` `ORDER-UNKNOWN` (`reason='malformed_pending_orders'`), and blocks raises on all active symbol scopes (including `'__pending_orders__'` fallback when no symbols are populated).
+- **V1–V6 fail closed on non-`BIL` order targets omitted from `funds` (`src/fuse_engine/evaluator.py`)**: Order target symbols outside `funds` other than `'BIL'` are folded into `eval_fund_symbols` with empty per-fund inputs, causing `V1`/`V4` to fail closed (`NO-NEW-RISK`) and block raises on `fund:<sym>`, while keeping `V7` on `funds` + `quotes`/`symbols` and keeping omitted-fund prior lock/escalation tracking intact.
+- **O5 fail closed on omitted/blank active order `symbol` (`src/fuse_engine/rows_ops.py`)**: When `order_present` is `True` and `symbol` is `None` or blank whitespace, `O5` appends `'symbol_not_whitelisted'` and halts order submission.
+- **Strict recursive engine-directory binary/artifact whitelist (`src/fuse_engine/evaluator.py`, `tools/run_matrix.py`)**: Both `engine_hash` computation helpers now walk `engine_dir.rglob('*')`, rejecting symlinks, non-`__pycache__` subdirectories, non-whitelisted files (`.so`, `.pyd`, `.dylib`, `.pth`, root `.pyc`, extra `.py`), and unexpected `__pycache__` binaries outside `<expected_stem>.cpython-<digits>(.opt-<digits>)?\.pyc`.
 
 ## Remote PR #3 `@codex` & `gpt-6.2-astra` O5 P1 & Framed Engine Hash Fixes (`ce51c92` / `98f15b7` & this docs/bundle commit)
 
