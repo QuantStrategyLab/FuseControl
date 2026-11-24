@@ -777,22 +777,27 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         elif explicit_buy:
             violations.append('exceeds_settled_cash')
 
-    # Maximum order size (enforce explicit qty or derive implied_qty = order_value / eff_price for value-only orders)
+    # Maximum order size (enforce explicit qty AND implied_qty = order_value / eff_price whenever order_value or no qty)
     max_order_size_val, msize_present, msize_conflict = _resolve_o5_alias(
         inputs, ('o5_max_order_size', 'max_order_size'), 'decimal'
     )
     if msize_conflict or (msize_present and (max_order_size_val is None or max_order_size_val < Decimal('0'))):
         violations.append('exceeds_max_order_size')
     elif max_order_size_val is not None and (order_present or qty_present or qty_conflict):
-        if qty_present or qty_conflict:
-            if qty_conflict or order_size is None or order_size <= Decimal('0') or order_size > max_order_size_val:
-                violations.append('exceeds_max_order_size')
-        elif (
-            ov_conflict or not ov_present or ov_dec is None or ov_dec <= Decimal('0') or
-            unit_price_conflict or ref_price_conflict or
-            eff_price_dec is None or eff_price_dec <= Decimal('0') or
-            ov_dec > max_order_size_val * eff_price_dec
-        ):
+        qty_bad = (
+            (qty_present or qty_conflict) and
+            (qty_conflict or order_size is None or order_size <= Decimal('0') or order_size > max_order_size_val)
+        )
+        ov_bad = (
+            (ov_present or ov_conflict or not (qty_present or qty_conflict)) and
+            (
+                ov_conflict or not ov_present or ov_dec is None or ov_dec <= Decimal('0') or
+                unit_price_conflict or ref_price_conflict or
+                eff_price_dec is None or eff_price_dec <= Decimal('0') or
+                ov_dec > max_order_size_val * eff_price_dec
+            )
+        )
+        if qty_bad or ov_bad:
             violations.append('exceeds_max_order_size')
 
     # Maximum orders per session (fail closed on missing/null counter when order_present, or conflicting/invalid values)

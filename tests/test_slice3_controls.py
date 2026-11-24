@@ -2623,18 +2623,42 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
                 self.assertEqual(eff1['account'], 'HALT')
                 self.assertEqual(compute_permitted_exposure(vi1, r1, eff1), 0.0)
 
-        # Dollar order within max_order_size=1 (order_value=50, price=50) passes 3x cleanly
-        st1_ok = {}
-        for _ in range(3):
-            vi1_ok = copy.deepcopy(self.normal_vi)
-            vi1_ok.update({
+        # Also reject when explicit qty=1 is combined with order_value=5000 exceeding max_order_size=1 -> 3x HALT
+        st1_dual = {}
+        for i in range(1, 4):
+            vi1_dual = copy.deepcopy(self.normal_vi)
+            vi1_dual.update({
+                'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02,
                 'o5_collar': 0.05, 'account': 'synthetic_account_1', 'symbol': 'TQQQ', 'side': 'buy',
-                'order_value': 50.0, 'unit_price': 50.0, 'o5_reference_price': 50.0,
+                'qty': 1, 'order_value': 5000.0, 'unit_price': 50.0, 'o5_reference_price': 50.0,
                 'max_order_size': 1, 'settled_cash': 10000.0,
             })
-            r_ok, eff_ok, st1_ok = self._eval(vi1_ok, session='2026-01-05', prior=st1_ok)
-            self.assertFalse(r_ok['O5']['would_have_tripped'])
-            self.assertEqual(eff_ok['account'], 'NORMAL')
+            vi1_dual['funds']['TQQQ']['v5_tolerance'] = 0.01
+            vi1_dual['funds']['SOXL']['v5_tolerance'] = 0.01
+            r1d, eff1d, st1_dual = self._eval(vi1_dual, session='2026-01-05', prior=st1_dual)
+            self.assertTrue(r1d['O5']['would_have_tripped'])
+            self.assertEqual(r1d['O5']['rejection_count_this_session'], i)
+            if i < 3:
+                self.assertEqual(compute_permitted_exposure(vi1_dual, r1d, eff1d), 45000.0)
+            else:
+                self.assertEqual(r1d['O5']['state'], 'HALT')
+                self.assertTrue(r1d['O5']['latched'])
+                self.assertEqual(eff1d['account'], 'HALT')
+                self.assertEqual(compute_permitted_exposure(vi1_dual, r1d, eff1d), 0.0)
+
+        # Dollar order within max_order_size=1 (order_value=50, price=50, both without and with qty=1) passes 3x cleanly
+        for extra_qty in ({}, {'qty': 1}):
+            st1_ok = {}
+            for _ in range(3):
+                vi1_ok = copy.deepcopy(self.normal_vi)
+                vi1_ok.update({
+                    'o5_collar': 0.05, 'account': 'synthetic_account_1', 'symbol': 'TQQQ', 'side': 'buy',
+                    'order_value': 50.0, 'unit_price': 50.0, 'o5_reference_price': 50.0,
+                    'max_order_size': 1, 'settled_cash': 10000.0, **extra_qty,
+                })
+                r_ok, eff_ok, st1_ok = self._eval(vi1_ok, session='2026-01-05', prior=st1_ok)
+                self.assertFalse(r_ok['O5']['would_have_tripped'])
+                self.assertEqual(eff_ok['account'], 'NORMAL')
 
         # 2. Missing or null session_order_count / session_turnover fail closed when cap set -> 3x HALT
         for cap_key, drop_key, null_mode in (
