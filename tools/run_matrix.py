@@ -386,10 +386,8 @@ def run_successor_cases(successor_cases: Dict[str, Any], engine_hash: str) -> Di
     }
 
     for case_id, case in cases.items():
-        # SUC-11 is definition-only (Phase 3)
-        if case.get('phase_3_implementation'):
-            results['passed'] += 1
-            continue
+        # G1.2: Remove flag skip - SUC-11 must execute via real evaluator calls
+        # (Astra finding: zero evaluator calls for SUC-11)
 
         steps = case.get('steps', [])
         case_failed = False
