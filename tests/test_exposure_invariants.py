@@ -26,8 +26,50 @@ class TestExposureInvariants(unittest.TestCase):
 
     def test_all_matrix_precedence_and_fail_closed_batteries_pass(self):
         checked, errors = inv.run_all_batteries()
-        self.assertGreaterEqual(checked, 80)
+        self.assertGreaterEqual(checked, 150)
         self.assertEqual(errors, [], f"Invariant violations: {errors}")
+
+    def test_negative_control_detects_o5_collar_tampering(self):
+        """R7: Wrapping evaluate() to mutate validated_inputs['o5_collar']=0.99 must be detected."""
+        orig_eval = inv.evaluate
+        tampered_calls = 0
+
+        def wrapped_eval(*args, **kwargs):
+            nonlocal tampered_calls
+            res = orig_eval(*args, **kwargs)
+            vi_arg = kwargs.get('validated_inputs') if 'validated_inputs' in kwargs else args[6]
+            vi_arg['o5_collar'] = 0.99
+            tampered_calls += 1
+            return res
+
+        inv.evaluate = wrapped_eval
+        try:
+            checked, errors = inv.run_all_batteries()
+        finally:
+            inv.evaluate = orig_eval
+
+        self.assertGreater(tampered_calls, 150)
+        mut_errors = [e for e in errors if 'caller validated_inputs mutated during evaluate()' in e]
+        self.assertGreaterEqual(len(mut_errors), checked)
+
+    def test_negative_control_detects_cap_tampering_during_evaluate(self):
+        """R7: Mutating max_loss_cap in-place during evaluate() must be caught."""
+        orig_eval = inv.evaluate
+
+        def wrapped_eval(*args, **kwargs):
+            res = orig_eval(*args, **kwargs)
+            vi_arg = kwargs.get('validated_inputs') if 'validated_inputs' in kwargs else args[6]
+            if 'max_loss_cap' in vi_arg:
+                vi_arg['max_loss_cap'] = 999999.0
+            return res
+
+        inv.evaluate = wrapped_eval
+        try:
+            _, errors = inv.run_all_batteries()
+        finally:
+            inv.evaluate = orig_eval
+
+        self.assertTrue(any('caller validated_inputs mutated during evaluate()' in e for e in errors))
 
     def test_negative_control_detects_mutated_baseline_cap(self):
         """Deliberately raising L0/J1 cap above policy baseline must fail the property check."""

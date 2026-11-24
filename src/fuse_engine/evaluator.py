@@ -3,6 +3,7 @@
 Implements the §5.1 signature with all 24 rows fully evaluated.
 """
 
+import copy
 from datetime import date, timedelta
 from typing import Any, Dict, Optional
 from . import rows_loss
@@ -206,8 +207,8 @@ def evaluate(
     v7_outputs = {}
 
     market_closed = (
-        validated_inputs.get('session_calendar_status') in ('holiday', 'closed') or
-        validated_inputs.get('exchange_status') == 'closed'
+        validated_inputs.get('session_calendar_status') in ('holiday', 'closed', 'market_closed') or
+        validated_inputs.get('exchange_status') in ('holiday', 'closed')
     )
 
     for symbol in fund_symbols:
@@ -470,7 +471,7 @@ def evaluate(
                 if 'V1' not in next_row_state:
                     next_row_state['V1'] = {}
                 if fund not in next_row_state['V1']:
-                    next_row_state['V1'][fund] = v1_fund_state
+                    next_row_state['V1'][fund] = copy.deepcopy(v1_fund_state)
                 if v1_fund_state.get('latched'):
                     v1_outputs[fund] = {
                         'state': 'NO-NEW-RISK',

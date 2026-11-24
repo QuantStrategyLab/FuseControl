@@ -11,6 +11,7 @@ import hashlib
 import json
 import re
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -444,15 +445,14 @@ def _deep_shape_equal(obj1: Any, obj2: Any, path: str = 'root') -> Tuple[bool, L
     return True, []
 
 
-def _execute_suc11_deep_shape(engine_hash: str) -> Tuple[bool, List[str]]:
-    """Execute SUC-11 deep-shape fixture via real evaluate() calls (G1.2)."""
-    diffs: List[str] = []
+def build_suc11_probes() -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    """Return synthetic deep-shape validated_inputs, combined_prior, and two_fund_inputs for SUC-11."""
     common_validated = {
         'tier': 'balanced',
         'bankroll': 100000.0,
         'high_water_mark': 100000.0,
         'joint_exposure': 25000.0,
-        'proposed_exposure': 5000.0,
+        'proposed_exposure': 30000.0,
         'max_loss_cap': 50000.0,
         'tier_joint_cap': 50000.0,
         'tier_loss_budget_D': 0.30,
@@ -492,6 +492,22 @@ def _execute_suc11_deep_shape(engine_hash: str) -> Tuple[bool, List[str]]:
     prior_v4 = {'V4': {'TQQQ': {'clearing_counter': 5, 'last_session_below_threshold': '2026-01-05'}}}
     prior_v5 = {'V5': {'TQQQ': {'consecutive_beyond_tolerance': 20, 'escalated': False, 'last_session': '2026-01-05'}}}
     combined_prior = {**prior_v4, **prior_v5}
+
+    two_fund_inputs = copy.deepcopy(common_validated)
+    two_fund_inputs['funds']['SOXL'] = copy.deepcopy(common_validated['funds']['TQQQ'])
+    two_fund_inputs['funds']['TQQQ']['v5_tolerance'] = None
+    two_fund_inputs['funds']['SOXL']['v5_tolerance'] = None
+    two_fund_inputs['funds']['TQQQ'].pop('v6_cost_per_unit_exposure', None)
+    two_fund_inputs['funds']['TQQQ'].pop('v6_threshold', None)
+    two_fund_inputs['funds']['SOXL'].pop('v6_cost_per_unit_exposure', None)
+    two_fund_inputs['funds']['SOXL'].pop('v6_threshold', None)
+    return common_validated, combined_prior, two_fund_inputs
+
+
+def _execute_suc11_deep_shape(engine_hash: str) -> Tuple[bool, List[str]]:
+    """Execute SUC-11 deep-shape fixture via real evaluate() calls (G1.2)."""
+    diffs: List[str] = []
+    common_validated, combined_prior, two_fund_inputs = build_suc11_probes()
 
     rows, scopes, next_state = evaluate(
         spec_version='fuse-eval-spec/v1',
@@ -537,14 +553,6 @@ def _execute_suc11_deep_shape(engine_hash: str) -> Tuple[bool, List[str]]:
             diffs.append(f"SUC-11 V6.outputs.{key} expected {expected_type.__name__}, got {v6_out.get(key)!r}")
 
     # Second evaluate() call with two funds (matches stub shape check on multi-fund)
-    two_fund_inputs = copy.deepcopy(common_validated)
-    two_fund_inputs['funds']['SOXL'] = copy.deepcopy(common_validated['funds']['TQQQ'])
-    two_fund_inputs['funds']['TQQQ']['v5_tolerance'] = None
-    two_fund_inputs['funds']['SOXL']['v5_tolerance'] = None
-    two_fund_inputs['funds']['TQQQ'].pop('v6_cost_per_unit_exposure', None)
-    two_fund_inputs['funds']['TQQQ'].pop('v6_threshold', None)
-    two_fund_inputs['funds']['SOXL'].pop('v6_cost_per_unit_exposure', None)
-    two_fund_inputs['funds']['SOXL'].pop('v6_threshold', None)
     two_rows, two_scopes, _ = evaluate(
         spec_version='fuse-eval-spec/v1',
         engine_hash=engine_hash,
@@ -584,6 +592,22 @@ def _extract_summary_sessions(note: str, year_month: str = '2026-01') -> List[st
     """Extract ordered YYYY-MM-DD session dates from summary step note."""
     days = re.findall(r'\b(\d{1,2})\b', note.split('January')[-1].split('of 2026')[0])
     return [f"{year_month}-{int(d):02d}" for d in days]
+
+
+def get_suc08_gap_sessions(prev_session: str, target_session: str, count: int) -> List[str]:
+    """Return `count` strictly ascending weekday dates in (prev_session, target_session)."""
+    d = date.fromisoformat(prev_session) + timedelta(days=1)
+    end = date.fromisoformat(target_session)
+    sessions: List[str] = []
+    while d < end and len(sessions) < count:
+        if d.weekday() < 5:
+            sessions.append(d.isoformat())
+        d += timedelta(days=1)
+    if len(sessions) != count:
+        raise ValueError(
+            f"Expected {count} trading sessions between {prev_session} and {target_session}, got {len(sessions)}"
+        )
+    return sessions
 
 
 def run_successor_cases(successor_cases: Dict[str, Any], engine_hash: str) -> Dict[str, Any]:
@@ -702,13 +726,54 @@ def run_successor_cases(successor_cases: Dict[str, Any], engine_hash: str) -> Di
             expected_outputs = step_data.get('expected_outputs', {})
             last_validated_inputs = step_inputs['validated_inputs']
 
+            # R6: Execute all intermediate SUC-08 sessions (2..38 and 41..69) using continuous
+            # live engine state rather than injecting frozen prior_row_state at checkpoints.
+            if case_id == 'SUC-08' and step_num in (2, 4):
+                prev_session = steps[idx - 1]['inputs']['session']
+                if step_num == 2:
+                    expected_gap_range = range(2, 39)
+                    expected_gap_state = 'NORMAL'
+                    expected_escalated = False
+                else:
+                    expected_gap_range = range(41, 70)
+                    expected_gap_state = 'NO-NEW-RISK'
+                    expected_escalated = True
+                gap_sessions = get_suc08_gap_sessions(
+                    prev_session, step_inputs['session'], len(expected_gap_range)
+                )
+                for sess, exp_cnt in zip(gap_sessions, expected_gap_range):
+                    gap_rows, _, gap_next_state = evaluate(
+                        spec_version='fuse-eval-spec/v1',
+                        engine_hash=engine_hash,
+                        policy_hash='test_policy_hash',
+                        session=sess,
+                        as_of=f"{sess}T16:00:00Z",
+                        mode='shadow',
+                        validated_inputs=copy.deepcopy(step_inputs['validated_inputs']),
+                        prior_row_state=prior_state,
+                        authorized_events=[]
+                    )
+                    v5_gap = gap_rows.get('V5', {})
+                    v5_gap_out = v5_gap.get('outputs', {})
+                    if (
+                        v5_gap.get('state') != expected_gap_state or
+                        v5_gap_out.get('consecutive_sessions_beyond_tolerance') != exp_cnt or
+                        v5_gap_out.get('escalated_to_v1') is not expected_escalated
+                    ):
+                        case_failed = True
+                        case_diffs.append(
+                            f"SUC-08 gap session {sess} (#{exp_cnt}) mismatch: {v5_gap!r}"
+                        )
+                        break
+                    prior_state = gap_next_state
+                if case_failed:
+                    break
+
             # Determine prior_row_state:
             # - Step 1 starts from its declared initial prior_row_state (usually {} or SUC-07 seed)
-            # - SUC-08 steps 2 and 4 are explicit jump-ahead checkpoints (sessions 2..38 / 41..69 omitted)
             # - All consecutive steps strictly thread real next_row_state (serializing across restart)
             frozen_prior = step_inputs.get('prior_row_state')
-            is_jump_checkpoint = (case_id == 'SUC-08' and step_num in (2, 4))
-            if idx == 0 or is_jump_checkpoint:
+            if idx == 0:
                 step_prior = frozen_prior if frozen_prior is not None else prior_state
             else:
                 if frozen_prior and frozen_prior.get('serialization_round_trip'):

@@ -201,6 +201,32 @@ class TestFullComparator(unittest.TestCase):
         self.assertFalse(ok_absent, "Expected failure for absent state when {} expected")
         self.assertTrue(any('L2' in d for d in diffs_absent))
 
+    def test_suc08_executes_all_70_continuous_sessions_without_frozen_prior_injection(self):
+        """R6: SUC-08 executes all 70 sequential sessions threading live state without frozen prior skips."""
+        suc_data = json.loads((REPO_ROOT / 'goldens' / 'successor-cases.json').read_text(encoding='utf-8'))
+        seen_priors = []
+        orig_evaluate = run_matrix.evaluate
+
+        def spy_eval(*args, **kwargs):
+            pr = kwargs.get('prior_row_state') if 'prior_row_state' in kwargs else args[7]
+            seen_priors.append(pr)
+            return orig_evaluate(*args, **kwargs)
+
+        run_matrix.evaluate = spy_eval
+        try:
+            res = run_matrix.run_successor_cases({'cases': {'SUC-08': suc_data['cases']['SUC-08']}}, self.engine_hash)
+        finally:
+            run_matrix.evaluate = orig_evaluate
+
+        self.assertEqual(res['passed'], 1)
+        self.assertEqual(res['failed'], 0)
+        self.assertEqual(len(seen_priors), 70)
+        # Every session 2..70 must carry live V5 state including last_session (absent in frozen prior_row_state)
+        for idx in range(1, 70):
+            v5_prior = seen_priors[idx].get('V5', {}).get('TQQQ', {})
+            self.assertEqual(v5_prior.get('consecutive_beyond_tolerance'), idx)
+            self.assertIsNotNone(v5_prior.get('last_session'))
+
 
 if __name__ == '__main__':
     unittest.main()

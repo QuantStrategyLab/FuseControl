@@ -734,6 +734,77 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         self.assertFalse(rows_day['V1']['would_have_tripped'])
         self.assertFalse(rows_day['V1']['latched'])
 
+    def test_v1_five_session_preserves_history_across_holiday_and_closed(self):
+        """R2: Holiday/closed call mid-window preserves 4-day history so day 5 still trips & latches V1."""
+        import copy
+        import json
+        holiday_vi = json.loads(
+            (repo_root / 'goldens' / 'scenarios.json').read_text(encoding='utf-8')
+        )['scenarios']['holiday']['inputs']['validated_inputs']
+
+        for closed_variant in ('holiday_with_fund', 'closed_with_fund', 'holiday_empty_funds'):
+            with self.subTest(closed_variant=closed_variant):
+                prior = {}
+                for day in ('2026-01-13', '2026-01-14', '2026-01-15', '2026-01-16'):
+                    vi = copy.deepcopy(self.normal_vi)
+                    vi['funds'] = {'TQQQ': copy.deepcopy(self.normal_vi['funds']['TQQQ'])}
+                    vi['funds']['TQQQ'].update({
+                        'fund_return': 0.005,
+                        'index_return': 0.0,
+                        'modelled_fee': 0.0,
+                        'modelled_financing': 0.0,
+                        'sessions_window': 5,
+                    })
+                    _, _, prior = self._eval(vi, session=day, prior=prior)
+                self.assertEqual(len(prior['V1']['TQQQ']['session_returns']), 4)
+
+                # Jan 19 holiday/closed call must NOT wipe 4-day return window
+                vi_closed = copy.deepcopy(holiday_vi)
+                if closed_variant == 'closed_with_fund':
+                    vi_closed['session_calendar_status'] = 'closed'
+                    vi_closed['exchange_status'] = 'closed'
+                elif closed_variant == 'holiday_empty_funds':
+                    vi_closed['funds'] = {}
+                else:
+                    vi_closed['funds'] = {'TQQQ': copy.deepcopy(holiday_vi['funds']['TQQQ'])}
+                r_hol, _, prior_after_hol = self._eval(vi_closed, session='2026-01-19', prior=prior)
+                self.assertEqual(r_hol['V1']['state'], 'NORMAL')
+                self.assertEqual(len(prior_after_hol.get('V1', {}).get('TQQQ', {}).get('session_returns', [])), 4)
+
+                # Jan 20 5th trading day with +0.5pp compounds to ~2.5251253pp -> NO-NEW-RISK latched
+                vi_20 = copy.deepcopy(self.normal_vi)
+                vi_20['funds'] = {'TQQQ': copy.deepcopy(self.normal_vi['funds']['TQQQ'])}
+                vi_20['funds']['TQQQ'].update({
+                    'fund_return': 0.005,
+                    'index_return': 0.0,
+                    'modelled_fee': 0.0,
+                    'modelled_financing': 0.0,
+                    'sessions_window': 5,
+                })
+                r_20, _, prior_20 = self._eval(vi_20, session='2026-01-20', prior=prior_after_hol)
+                self.assertEqual(r_20['V1']['state'], 'NO-NEW-RISK')
+                self.assertTrue(r_20['V1']['would_have_tripped'])
+                self.assertTrue(r_20['V1']['latched'])
+                self.assertEqual(r_20['V1']['reason'], 'tracking_deviation_exceeds_2_0pp')
+                self.assertAlmostEqual(r_20['V1']['deviation'], 0.025251253125, places=9)
+
+                # Subsequent 4 zero-return days without re-arm remain latched NO-NEW-RISK
+                p_cur = prior_20
+                for d in ('2026-01-21', '2026-01-22', '2026-01-23', '2026-01-26'):
+                    vi_z = copy.deepcopy(self.normal_vi)
+                    vi_z['funds'] = {'TQQQ': copy.deepcopy(self.normal_vi['funds']['TQQQ'])}
+                    vi_z['funds']['TQQQ'].update({
+                        'fund_return': 0.0,
+                        'index_return': 0.0,
+                        'modelled_fee': 0.0,
+                        'modelled_financing': 0.0,
+                        'sessions_window': 5,
+                    })
+                    r_z, _, p_cur = self._eval(vi_z, session=d, prior=p_cur)
+                    self.assertEqual(r_z['V1']['state'], 'NO-NEW-RISK')
+                    self.assertTrue(r_z['V1']['latched'])
+                    self.assertEqual(r_z['V1']['reason'], 'latched_prior_trip')
+
 
 if __name__ == '__main__':
     unittest.main()

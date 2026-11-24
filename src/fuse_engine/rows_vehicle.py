@@ -38,6 +38,7 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # Check for prior latch from canonical format (SUC-13)
     scope = f'fund:{fund}'
     prior_latch = cst.get_v1_latch(prior_state, fund)
+    prior_history = cst.get_v1_history(prior_state, fund)
     if prior_latch:
         # Check for authorized re-arm
         rearm = False
@@ -64,7 +65,7 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             }
 
         # Stay latched without re-arm
-        return {
+        res = {
             'state': 'NO-NEW-RISK',
             'would_have_tripped': True,
             'kind': 'breaker',
@@ -72,10 +73,13 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': 'latched_prior_trip',
             'fund': fund
         }
+        if prior_history:
+            res['_session_returns'] = [dict(item) for item in prior_history]
+        return res
 
-    # On closed/holiday market days there is no trading session return
+    # On closed/holiday market days there is no trading session return; preserve rolling 5-session history
     if market_closed:
-        return {
+        res = {
             'state': 'NORMAL',
             'would_have_tripped': False,
             'kind': 'breaker',
@@ -83,6 +87,9 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': 'none',
             'fund': fund
         }
+        if prior_history:
+            res['_session_returns'] = [dict(item) for item in prior_history]
+        return res
 
     # Calculate one-session deviation from fund inputs
     raw_fund_return = inputs.get('fund_return')
@@ -100,7 +107,7 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # on a 1-session window (O1 carries missing index_returns), while failing closed
     # on missing fund_return, fee, financing, non-finite NaN/inf, or 5-session window.
     if raw_index_return is None and sessions_window != 5 and fund_return is not None and modelled_fee is not None and modelled_financing is not None:
-        return {
+        res = {
             'state': 'NORMAL',
             'would_have_tripped': False,
             'kind': 'breaker',
@@ -108,10 +115,13 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': 'none',
             'fund': fund
         }
+        if prior_history:
+            res['_session_returns'] = [dict(item) for item in prior_history]
+        return res
 
     if (fund_return is None or index_return is None or
             modelled_fee is None or modelled_financing is None):
-        return {
+        res = {
             'state': 'NO-NEW-RISK',
             'would_have_tripped': True,
             'kind': 'breaker',
@@ -119,13 +129,15 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': 'missing_input',
             'fund': fund
         }
+        if prior_history:
+            res['_session_returns'] = [dict(item) for item in prior_history]
+        return res
 
     # Calculate one-session deviation: actual - (3× index - fee - financing)
     expected_return = 3.0 * index_return - modelled_fee - modelled_financing
     one_session_dev = fund_return - expected_return
 
     # Maintain rolling 5-session history when sessions_window == 5 or history already active
-    prior_history = cst.get_v1_history(prior_state, fund)
     explicit_history = inputs.get('five_session_history')
     updated_history = None
     if isinstance(explicit_history, list):
@@ -308,19 +320,17 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         adjustment_complete = corporate_action.get('adjustment_complete', False)
         exact_reconciliation = corporate_action.get('exact_reconciliation', False)
 
-        # A12: Recompute exact reconciliation from amounts; flag alone never clears a mismatch
+        # A12 / R3: Recompute exact reconciliation from amounts; flag/tolerance never clear a mismatch
         if adjustment_complete:
             ledger_val = _is_valid_finite_number(inputs.get('ledger_value'))
             broker_val = _is_valid_finite_number(inputs.get('broker_value'))
             share_count = _is_valid_finite_number(inputs.get('share_count'))
             broker_pos = _is_valid_finite_number(inputs.get('broker_position'))
-            tol = _is_valid_finite_number(inputs.get('reconciliation_tolerance'))
-            tol_val = tol if (tol is not None and tol >= 0.0) else 0.0
 
             amounts_match = (
                 ledger_val is not None and
                 broker_val is not None and
-                abs(ledger_val - broker_val) <= tol_val
+                ledger_val == broker_val
             )
             if share_count is not None or broker_pos is not None:
                 amounts_match = amounts_match and (

@@ -645,6 +645,25 @@ class TestG4StateContinuityAndDominance(unittest.TestCase):
         self.assertEqual(rows['V2']['reason'], 'reconciliation_mismatch')
         self.assertIn('TQQQ', st3['V2']['latched_mismatches'])
 
+    def test_v2_reconciliation_tolerance_100_does_not_bypass_mismatch(self):
+        """R3: Supplying reconciliation_tolerance=100 must NOT auto-clear V2 25,000 vs 24,900 mismatch."""
+        import copy
+        s1_in = self.suc_cases['SUC-01']['steps'][0]['inputs']['validated_inputs']
+        s2_in = self.suc_cases['SUC-01']['steps'][1]['inputs']['validated_inputs']
+        s3_in = copy.deepcopy(self.suc_cases['SUC-01']['steps'][2]['inputs']['validated_inputs'])
+        _, _, st1 = self._ev(s1_in, '2026-01-05')
+        _, _, st2 = self._ev(s2_in, '2026-01-06', st1)
+        s3_in['reconciliation_tolerance'] = 100.0
+        s3_in['funds']['TQQQ']['broker_value'] = 24900.0
+        s3_in['funds']['TQQQ']['reconciliation_tolerance'] = 100.0
+        rows, eff, st3 = self._ev(s3_in, '2026-01-07', st2)
+        self.assertEqual(rows['V2']['state'], 'HALT')
+        self.assertTrue(rows['V2']['would_have_tripped'])
+        self.assertTrue(rows['V2']['latched'])
+        self.assertEqual(rows['V2']['reason'], 'reconciliation_mismatch')
+        self.assertEqual(eff['fund:TQQQ'], 'HALT')
+        self.assertEqual(st3['V2']['latched_mismatches']['TQQQ']['mismatch'], 100.0)
+
 
 if __name__ == '__main__':
     unittest.main()
