@@ -287,6 +287,17 @@ class TestStubSwap(unittest.TestCase):
         ok_scopes, diffs_scopes = deep_shape_equal(stub_scopes, engine_scopes, 'effective_state_by_scope')
         self.assertTrue(ok_scopes, f"scopes shape mismatch: {diffs_scopes}")
 
+    def test_single_fund_stub_and_engine_emit_fund_and_symbol_keys(self):
+        """R5 (G): Single-fund stub matches engine V1..V6 'fund' and O4 'symbol' keys."""
+        vi_single = copy.deepcopy(self.common_inputs)
+        vi_single['validated_inputs']['funds'] = {'TQQQ': copy.deepcopy(self.common_inputs['validated_inputs']['funds']['TQQQ'])}
+        stub_rows, stub_scopes, _ = stub.evaluate(**vi_single)
+        engine_rows, engine_scopes, _ = engine.evaluate(**vi_single)
+        ok_rows, diffs_rows = deep_shape_equal(stub_rows, engine_rows, 'rows_by_ID')
+        self.assertTrue(ok_rows, f"single-fund rows shape mismatch: {diffs_rows}")
+        ok_scopes, diffs_scopes = deep_shape_equal(stub_scopes, engine_scopes, 'effective_state_by_scope')
+        self.assertTrue(ok_scopes, f"single-fund scopes shape mismatch: {diffs_scopes}")
+
 
 if __name__ == "__main__":
     unittest.main()

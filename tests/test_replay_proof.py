@@ -568,11 +568,16 @@ class TestG4StateContinuityAndDominance(unittest.TestCase):
         self.assertEqual(orig_record['drawdown'], 0.4)
 
         vi_rec = copy.deepcopy(self.normal_vi)
-        r_d1, _, s_d1 = self._ev(vi_rec, '2026-01-06', s_l3, [{'type': 'rearm', 'row_id': 'L3', 'days_since_trip': 1}])
+        r_d1, _, s_d1 = self._ev(vi_rec, '2026-01-06', s_l3, [{'type': 'rearm', 'row_id': 'L3', 'days_since_trip': 1, 'session': '2026-01-06'}])
         self.assertEqual(r_d1['L3']['outputs']['cooling_off_days_remaining'], 29)
         self.assertEqual(s_d1['L3']['loss_record'], orig_record)
 
-        r_d30, _, s_d30 = self._ev(vi_rec, '2026-02-05', s_d1, [{'type': 'rearm', 'row_id': 'L3', 'days_since_trip': 30}])
+        # Undated L3 rearm card at day 30 must be rejected per Q4
+        r_undated, _, _ = self._ev(vi_rec, '2026-02-05', s_d1, [{'type': 'rearm', 'row_id': 'L3', 'days_since_trip': 30}])
+        self.assertEqual(r_undated['L3']['state'], 'DE-RISK')
+        self.assertTrue(r_undated['L3']['latched'])
+
+        r_d30, _, s_d30 = self._ev(vi_rec, '2026-02-05', s_d1, [{'type': 'rearm', 'row_id': 'L3', 'days_since_trip': 30, 'session': '2026-02-05'}])
         self.assertEqual(r_d30['L3']['state'], 'NORMAL')
         self.assertEqual(r_d30['L3']['reason'], 'authorized_rearm')
         self.assertFalse(s_d30['L3']['latched'])

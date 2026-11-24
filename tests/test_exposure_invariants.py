@@ -185,6 +185,41 @@ class TestExposureInvariants(unittest.TestCase):
         errors = inv.check_bundle_against_baseline('pos.buy_soxl_only_tqqq_nnr', vi, rows, eff)
         self.assertEqual(errors, [])
 
+    def test_r5_symbol_key_v7_per_symbol_and_negative_j1_headroom(self):
+        """R5 (G/A09): Captures symbol='TQQQ' NNR increase, permits SOXL when TQQQ has V7, and handles negative J1 headroom."""
+        vi_blk = copy.deepcopy(self.normal_vi)
+        vi_blk.update({'joint_exposure': 45000.0, 'proposed_exposure': 50000.0, 'v7_spread_width': 0.02, 'o5_collar': 0.05, 'symbol': 'TQQQ'})
+        vi_blk['funds']['TQQQ'].update({'forecast_volatility': 0.60, 'v5_tolerance': 0.01})
+        vi_blk['funds']['SOXL'].update({'v5_tolerance': 0.01})
+        rows_b, eff_b, _ = evaluate(
+            'fuse-eval-spec/v1', 'h', 'registered_policy_hash_v1',
+            '2026-01-05', '2026-01-05T16:00:00Z', 'shadow', vi_blk, {}, []
+        )
+        self.assertEqual(eff_b['fund:TQQQ'], 'NO-NEW-RISK')
+        self.assertEqual(inv.compute_permitted_exposure(vi_blk, rows_b, eff_b), 45000.0)
+        self.assertEqual(inv.check_bundle_against_baseline('pos.symbol_tqqq_nnr', vi_blk, rows_b, eff_b), [])
+
+        # Only TQQQ stale under V7 -> buying SOXL permits 50,000 cleanly
+        vi_soxl = copy.deepcopy(self.normal_vi)
+        vi_soxl.update({'joint_exposure': 45000.0, 'proposed_exposure': 50000.0, 'v7_spread_width': 0.02, 'o5_collar': 0.05, 'symbol': 'SOXL'})
+        vi_soxl['funds']['TQQQ'].update({'quote_staleness': 5.0, 'v5_tolerance': 0.01})
+        vi_soxl['funds']['SOXL'].update({'v5_tolerance': 0.01})
+        rows_s, eff_s, _ = evaluate(
+            'fuse-eval-spec/v1', 'h', 'registered_policy_hash_v1',
+            '2026-01-05', '2026-01-05T16:00:00Z', 'shadow', vi_soxl, {}, []
+        )
+        self.assertEqual(inv.compute_permitted_exposure(vi_soxl, rows_s, eff_s), 50000.0)
+        self.assertEqual(inv.check_bundle_against_baseline('pos.buy_soxl_only_tqqq_v7', vi_soxl, rows_s, eff_s), [])
+
+        # Negative joint_exposure fails closed to headroom=0.0 with zero checker false-positive
+        vi_neg = copy.deepcopy(self.normal_vi)
+        vi_neg['joint_exposure'] = -10.0
+        rows_n, eff_n, _ = evaluate(
+            'fuse-eval-spec/v1', 'h', 'registered_policy_hash_v1',
+            '2026-01-05', '2026-01-05T16:00:00Z', 'shadow', vi_neg, {}, []
+        )
+        self.assertEqual(inv.check_bundle_against_baseline('pos.neg_joint_exp', vi_neg, rows_n, eff_n), [])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -220,17 +220,34 @@ class TestFullComparator(unittest.TestCase):
 
     def test_generate_golden_table_serialized_bytes_with_trailing_lf_match_frozen(self):
         """Tools: generate_golden_table serialized with trailing LF matches frozen golden-table.json byte-for-byte."""
-        import hashlib, tempfile
+        import hashlib, io
         import generate_golden_table as ggt
         generated = ggt.generate_golden_table(REPO_ROOT / 'goldens' / 'scenarios.json')
         frozen_bytes = (REPO_ROOT / 'goldens' / 'golden-table.json').read_bytes()
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix='.json') as tmp:
-            json.dump(generated, tmp, indent=2)
-            tmp.write('\n')
-            tmp.flush()
-            gen_bytes = Path(tmp.name).read_bytes()
+        buf = io.StringIO()
+        json.dump(generated, buf, indent=2)
+        buf.write('\n')
+        gen_bytes = buf.getvalue().encode('utf-8')
         self.assertEqual(len(gen_bytes), len(frozen_bytes))
         self.assertEqual(hashlib.sha256(gen_bytes).hexdigest(), hashlib.sha256(frozen_bytes).hexdigest())
+
+    def test_r5_freeze_manifest_recompute_extra_keys_and_float_summary(self):
+        """R5 (G): Matrix harness detects tampered FREEZE hashes, extra O5 outcome/state keys, extra expected keys, and 6 vs 6.0."""
+        bad_freeze = {'file_hashes': {'scenarios.json': '0' * 64}, 'combined_freeze_hash': '0' * 64}
+        _, errs = run_matrix.verify_freeze_manifest(REPO_ROOT / 'goldens', bad_freeze)
+        self.assertTrue(len(errs) >= 2)
+
+        exp_o5 = {'state': 'NORMAL', 'would_have_tripped': True, 'kind': 'breaker', 'latched': False, 'reason': 'unresolved_fail_closed', 'rejection_count_this_session': 1}
+        act_extra = {**exp_o5, 'extra_spoof': 1}
+        self.assertFalse(run_matrix.compare_outcome(act_extra, exp_o5, row_id='O5')[0])
+        exp_extra = {**exp_o5, 'phantom_expected_field': 999}
+        self.assertFalse(run_matrix.compare_outcome(exp_o5, exp_extra, row_id='O5')[0])
+
+        self.assertFalse(run_matrix.compare_next_row_state(
+            {'O5': {'rejection_count': 1, 'last_rejection_session': '2026-01-05', 'extra_spoof': 1}},
+            {'O5': {'rejection_count': 1, 'last_rejection_session': '2026-01-05'}},
+        )[0])
+        self.assertFalse(run_matrix.strict_value_equal(6.0, 6))
 
 
 if __name__ == '__main__':

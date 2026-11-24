@@ -46,7 +46,15 @@ class TestCompleteInputD4Control(unittest.TestCase):
             'mode': 'shadow',
             'validated_inputs': {
                 'tier': 'balanced',
-                'funds': {},  # No matching fund holding - prevents masking
+                'funds': {
+                    # No matching TQQQ fund holding - prevents masking while keeping O3 position data valid
+                    'SOXL': {
+                        'share_count': 800,
+                        'ledger_value': 20000.0,
+                        'broker_position': 800,
+                        'broker_value': 20000.0,
+                    }
+                },
                 'pending_orders': {
                     'TQQQ': {
                         'order_id': 'order_test_001',
@@ -96,7 +104,14 @@ class TestCompleteInputD4Control(unittest.TestCase):
             'mode': 'shadow',
             'validated_inputs': {
                 'tier': 'balanced',
-                'funds': {},
+                'funds': {
+                    'SOXL': {
+                        'share_count': 800,
+                        'ledger_value': 20000.0,
+                        'broker_position': 800,
+                        'broker_value': 20000.0,
+                    }
+                },
                 'pending_orders': {
                     'TQQQ': {
                         'order_id': 'order_test_001',  # Same order
@@ -348,7 +363,8 @@ class TestTierChangeDominanceControl(unittest.TestCase):
                     'type': 'tier_change_card',
                     'from': 'conservative',
                     'to': 'balanced',
-                    'card_id': 'TC-001'
+                    'card_id': 'TC-001',
+                    'session': '2026-01-15',
                 }
             ]
         }
@@ -978,10 +994,16 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         self.assertTrue(r_bad['O9']['latched'])
         self.assertEqual(r_bad['O9']['reason'], 'unauthorized_change')
 
+        vi_ok = copy.deepcopy(vi)
+        vi_ok['max_loss_cap'] = 80000.0
         single_card = [
-            {'type': 'parameter_change_card', 'change_descriptors': {'param': 'max_loss_cap', 'from': 60000, 'to': 80000}}
+            {
+                'type': 'parameter_change_card',
+                'session': '2026-01-05',
+                'change_descriptors': {'param': 'max_loss_cap', 'from': 60000, 'to': 80000},
+            }
         ]
-        r_ok, _, _ = self._eval(vi, events=single_card)
+        r_ok, _, _ = self._eval(vi_ok, events=single_card)
         self.assertEqual(r_ok['O9']['state'], 'NORMAL')
         self.assertFalse(r_ok['O9']['would_have_tripped'])
 
@@ -1182,6 +1204,373 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         self.assertEqual(r_j1['outputs']['headroom'], 0.0)
         self.assertTrue(r_j1['outputs']['above_cap'])
         self.assertTrue(r_j1['outputs']['above_trim_threshold'])
+
+    def test_r5_unified_session_utc_midnight_dual_row_and_fund_rearm(self):
+        """R5 (A): session > as_of[:10], reject row!=row_id, require date on account & fund V1/V2/V3 re-arms."""
+        import copy
+
+        # 1. L4, L5, O1 crossing UTC midnight on same trading session='2026-01-05' stay restricted
+        vi_l4 = copy.deepcopy(self.normal_vi)
+        vi_l4['one_session_loss'] = 0.05
+        _, _, st_l4 = self._eval(vi_l4, session='2026-01-05')
+        r_l4_mid, _, _ = engine.evaluate(
+            'fuse-eval-spec/v1', 'h', 'registered_policy_hash_v1',
+            '2026-01-05', '2026-01-06T00:05:00Z', 'shadow',
+            copy.deepcopy(self.normal_vi), st_l4,
+            [{'type': 'rearm', 'row': 'L4', 'session': '2026-01-05'}],
+        )
+        self.assertEqual(r_l4_mid['L4']['state'], 'NO-NEW-RISK')
+        self.assertTrue(r_l4_mid['L4']['latched'])
+
+        # L4 also refuses re-arm on market_closed holiday session even after trip date
+        vi_l4_hol = copy.deepcopy(self.normal_vi)
+        vi_l4_hol.update({'session_calendar_status': 'holiday', 'exchange_status': 'closed'})
+        r_l4_hol, _, _ = self._eval(
+            vi_l4_hol, session='2026-01-06', prior=st_l4,
+            events=[{'type': 'rearm', 'row': 'L4', 'session': '2026-01-06'}],
+        )
+        self.assertEqual(r_l4_hol['L4']['state'], 'NO-NEW-RISK')
+
+        vi_l5 = copy.deepcopy(self.normal_vi)
+        vi_l5['market_halt_level'] = 1
+        _, _, st_l5 = self._eval(vi_l5, session='2026-01-05')
+        r_l5_mid, _, _ = engine.evaluate(
+            'fuse-eval-spec/v1', 'h', 'registered_policy_hash_v1',
+            '2026-01-05', '2026-01-06T00:05:00Z', 'shadow',
+            copy.deepcopy(self.normal_vi), st_l5, [],
+        )
+        self.assertEqual(r_l5_mid['L5']['state'], 'NO-NEW-RISK')
+
+        vi_stale = copy.deepcopy(self.normal_vi)
+        vi_stale['source_records']['market_data']['age_sessions'] = 2
+        _, _, st_o1 = self._eval(vi_stale, session='2026-01-05')
+        r_o1_mid, _, _ = engine.evaluate(
+            'fuse-eval-spec/v1', 'h', 'registered_policy_hash_v1',
+            '2026-01-05', '2026-01-06T00:05:00Z', 'shadow',
+            copy.deepcopy(self.normal_vi), st_o1, [],
+        )
+        self.assertEqual(r_o1_mid['O1']['state'], 'NO-NEW-RISK')
+        self.assertEqual(r_o1_mid['O1']['reason'], 'clearing_period')
+
+        # 2. Dual-row card row='O5', row_id='O7' cannot unlock either O5 or O7
+        vi_dual = copy.deepcopy(self.normal_vi)
+        vi_dual.update({'last_heartbeat': '2026-01-05T08:00:00Z', 'scheduled_interval': 3600, 'o5_collar': 0.05, 'o5_side': 'short'})
+        st_dual = {}
+        for _ in range(3):
+            _, _, st_dual = self._eval(vi_dual, session='2026-01-05', prior=st_dual)
+        vi_rec = copy.deepcopy(self.normal_vi)
+        vi_rec.update({'last_heartbeat': '2026-01-06T15:59:30Z', 'scheduled_interval': 3600, 'o5_collar': 0.05})
+        r_dual, _, _ = self._eval(
+            vi_rec, session='2026-01-06', prior=st_dual,
+            events=[{'type': 'rearm', 'row': 'O5', 'row_id': 'O7', 'session': '2026-01-06'}],
+        )
+        self.assertEqual(r_dual['O5']['state'], 'HALT')
+        self.assertEqual(r_dual['O7']['state'], 'NO-NEW-RISK')
+
+        # 3. V1, V2 (mismatch), V3 fund re-arms reject prior-day, undated, wrong-scope, account-scope cards
+        vi_f = copy.deepcopy(self.normal_vi)
+        vi_f['funds']['TQQQ']['fund_return'] = 0.05
+        vi_f['funds']['TQQQ']['corporate_action'] = {'type': 'split', 'ratio': 2.0, 'adjustment_complete': True, 'exact_reconciliation': False}
+        vi_f['funds']['TQQQ']['fund_event'] = 'exchange_halt'
+        _, _, st_f = self._eval(vi_f, session='2026-01-05')
+
+        for row_id in ('V1', 'V2', 'V3'):
+            for bad_ev in (
+                {'type': 'rearm', 'row': row_id, 'fund': 'TQQQ', 'session': '2026-01-05'},
+                {'type': 'rearm', 'row': row_id, 'fund': 'TQQQ'},
+                {'type': 'rearm', 'row': row_id, 'fund': 'TQQQ', 'scope': 'fund:SOXL', 'session': '2026-01-06'},
+                {'type': 'rearm', 'row': row_id, 'fund': 'TQQQ', 'scope': 'account', 'session': '2026-01-06'},
+                {'type': 'rearm', 'row': row_id, 'row_id': 'V4', 'fund': 'TQQQ', 'session': '2026-01-06'},
+            ):
+                r_bad, _, _ = self._eval(vi_rec, session='2026-01-06', prior=st_f, events=[bad_ev])
+                self.assertTrue(r_bad[row_id]['latched'], f"{row_id} accepted bad card {bad_ev}")
+
+            r_good, _, _ = self._eval(
+                vi_rec, session='2026-01-06', prior=st_f,
+                events=[{'type': 'rearm', 'row': row_id, 'fund': 'TQQQ', 'scope': 'fund:TQQQ', 'session': '2026-01-06'}],
+            )
+            self.assertEqual(r_good[row_id]['state'], 'NORMAL')
+            self.assertEqual(r_good[row_id]['reason'], 'authorized_rearm')
+
+    def test_r5_o8_kill_switch_latch_persistence_and_clear(self):
+        """R5 (B): O8 kill_switch persists in next_row_state['O8'] until explicit Q4 owner clear/rearm."""
+        import copy
+        vi = copy.deepcopy(self.normal_vi)
+        r1, eff1, st1 = self._eval(vi, session='2026-01-05', events=[{'type': 'kill_switch', 'session': '2026-01-05'}])
+        self.assertEqual(r1['O8']['state'], 'HALT')
+        self.assertEqual(st1['O8'], {'latched': True, 'trip_session': '2026-01-05'})
+        self.assertEqual(eff1['account'], 'HALT')
+
+        vi2 = copy.deepcopy(self.normal_vi)
+        vi2['last_heartbeat'] = '2026-01-06T15:59:30Z'
+        r2, eff2, st2 = self._eval(vi2, session='2026-01-06', prior=st1, events=[])
+        self.assertEqual(r2['O8']['state'], 'HALT')
+        self.assertTrue(r2['O8']['latched'])
+        self.assertEqual(r2['O8']['reason'], 'latched_prior_trip')
+        self.assertEqual(eff2['account'], 'HALT')
+        self.assertEqual(st2['O8'], {'latched': True, 'trip_session': '2026-01-05'})
+
+        # Undated / prior-date / fund-scoped clear must be refused
+        for bad_ev in (
+            {'type': 'kill_switch_clear'},
+            {'type': 'kill_switch_clear', 'session': '2026-01-05'},
+            {'type': 'kill_switch_clear', 'session': '2026-01-06', 'scope': 'fund:TQQQ'},
+            {'type': 'rearm', 'row': 'O8', 'row_id': 'O6', 'session': '2026-01-06'},
+        ):
+            r_refuse, _, _ = self._eval(vi2, session='2026-01-06', prior=st2, events=[bad_ev])
+            self.assertEqual(r_refuse['O8']['state'], 'HALT')
+            self.assertTrue(r_refuse['O8']['latched'])
+
+        r_clr, eff_clr, st_clr = self._eval(
+            vi2, session='2026-01-06', prior=st2,
+            events=[{'type': 'kill_switch_clear', 'session': '2026-01-06', 'scope': 'account'}],
+        )
+        self.assertEqual(r_clr['O8']['state'], 'NORMAL')
+        self.assertEqual(r_clr['O8']['reason'], 'authorized_rearm')
+        self.assertEqual(st_clr['O8'], {})
+        self.assertEqual(eff_clr['account'], 'NORMAL')
+
+        # Un-tripped session omits 'O8' from next_row_state
+        _, _, st_clean = self._eval(vi, session='2026-01-05')
+        self.assertNotIn('O8', st_clean)
+
+    def test_r5_v2_queue_preserved_across_second_ca_mismatch_strict_hwm_and_nan(self):
+        """R5 (C): Second CA mismatch keeps pending split, rejects string 'false' hwm_adjusted, sanitizes NaN mismatch."""
+        import copy, json
+
+        # 1. Split + distribution -> distribution fails with ledger NaN -> split remains pending even after V2 rearm
+        vi1 = copy.deepcopy(self.normal_vi)
+        vi1['funds']['TQQQ']['corporate_action'] = {'type': 'split', 'ratio': 2.0, 'adjustment_complete': False, 'exact_reconciliation': False}
+        _, _, st1 = self._eval(vi1, session='2026-01-05')
+
+        vi2 = copy.deepcopy(self.normal_vi)
+        vi2['last_heartbeat'] = '2026-01-06T15:59:30Z'
+        vi2['funds']['TQQQ']['corporate_action'] = {'type': 'distribution', 'adjustment_complete': False, 'exact_reconciliation': False}
+        _, _, st2 = self._eval(vi2, session='2026-01-06', prior=st1)
+
+        vi3_nan = copy.deepcopy(self.normal_vi)
+        vi3_nan['last_heartbeat'] = '2026-01-07T15:59:30Z'
+        vi3_nan['funds']['TQQQ']['ledger_value'] = float('nan')
+        vi3_nan['funds']['TQQQ']['corporate_action'] = {'type': 'distribution', 'adjustment_complete': True, 'exact_reconciliation': True}
+        _, _, st3_nan = self._eval(vi3_nan, session='2026-01-07', prior=st2)
+        json.dumps(st3_nan, allow_nan=False)
+        self.assertIsNone(st3_nan['V2']['latched_mismatches']['TQQQ']['ledger_value'])
+
+        vi3 = copy.deepcopy(self.normal_vi)
+        vi3['last_heartbeat'] = '2026-01-07T15:59:30Z'
+        vi3['funds']['TQQQ']['corporate_action'] = {'type': 'distribution', 'adjustment_complete': True, 'exact_reconciliation': False}
+        r3, _, st3 = self._eval(vi3, session='2026-01-07', prior=st2)
+        self.assertEqual(r3['V2']['state'], 'HALT')
+        self.assertEqual(r3['V2']['reason'], 'reconciliation_mismatch')
+        self.assertEqual(st3['V2']['pending_adjustments']['TQQQ']['type'], 'split')
+
+        # Step 4: Q4 rearm clears distribution mismatch latch ONLY; split still halts TQQQ!
+        vi4 = copy.deepcopy(self.normal_vi)
+        vi4['last_heartbeat'] = '2026-01-08T15:59:30Z'
+        r4, eff4, st4 = self._eval(
+            vi4, session='2026-01-08', prior=st3,
+            events=[{'type': 'rearm', 'row': 'V2', 'fund': 'TQQQ', 'session': '2026-01-08'}],
+        )
+        self.assertEqual(r4['V2']['state'], 'HALT')
+        self.assertEqual(r4['V2']['reason'], 'pending_corporate_action_carried_TQQQ')
+        self.assertEqual(eff4['fund:TQQQ'], 'HALT')
+        self.assertEqual(st4['V2']['pending_adjustments']['TQQQ']['type'], 'split')
+        self.assertNotIn('latched_mismatches', st4['V2'])
+
+        # Step 5: Reconciling split clears V2 cleanly; string "false" on hwm_adjusted fails closed
+        vi_bad_hwm = copy.deepcopy(self.normal_vi)
+        vi_bad_hwm['last_heartbeat'] = '2026-01-09T15:59:30Z'
+        vi_bad_hwm['funds']['TQQQ']['corporate_action'] = {'type': 'split', 'ratio': 2.0, 'adjustment_complete': True, 'exact_reconciliation': True, 'hwm_adjusted': 'false'}
+        r_bad_hwm, _, _ = self._eval(vi_bad_hwm, session='2026-01-09', prior=st4)
+        self.assertEqual(r_bad_hwm['V2']['state'], 'HALT')
+        self.assertTrue(r_bad_hwm['V2']['latched'])
+
+        vi5 = copy.deepcopy(self.normal_vi)
+        vi5['last_heartbeat'] = '2026-01-09T15:59:30Z'
+        vi5['funds']['TQQQ']['corporate_action'] = {'type': 'split', 'ratio': 2.0, 'adjustment_complete': True, 'exact_reconciliation': True, 'hwm_adjusted': True}
+        r5, eff5, _ = self._eval(vi5, session='2026-01-09', prior=st4)
+        self.assertEqual(r5['V2']['state'], 'NORMAL')
+        self.assertEqual(eff5['fund:TQQQ'], 'NORMAL')
+
+    def test_r5_o9_live_value_binding_and_card_date_enforcement(self):
+        """R5 (D): O9 requires Q4 card dates AND binds card target values to actual live validated_inputs."""
+        import copy
+        vi = copy.deepcopy(self.normal_vi)
+        vi['max_loss_cap'] = 80000.0
+        vi['o9_change_descriptors'] = {'param': 'max_loss_cap', 'from': 60000, 'to': 61000}
+        card_61k = [{'type': 'parameter_change_card', 'session': '2026-01-05', 'change_descriptors': {'param': 'max_loss_cap', 'from': 60000, 'to': 61000}}]
+        r_mismatch, _, _ = self._eval(vi, session='2026-01-05', events=card_61k)
+        self.assertEqual(r_mismatch['O9']['state'], 'HALT')
+        self.assertEqual(r_mismatch['O9']['reason'], 'unauthorized_change')
+
+        # Undated parameter_change_card & tier_change_card must both reject
+        vi_61 = copy.deepcopy(self.normal_vi)
+        vi_61['max_loss_cap'] = 61000.0
+        vi_61['o9_change_descriptors'] = {'param': 'max_loss_cap', 'from': 60000, 'to': 61000}
+        r_undated_p, _, _ = self._eval(
+            vi_61, session='2026-01-05',
+            events=[{'type': 'parameter_change_card', 'change_descriptors': {'param': 'max_loss_cap', 'from': 60000, 'to': 61000}}],
+        )
+        self.assertEqual(r_undated_p['O9']['state'], 'HALT')
+
+        vi_tc = copy.deepcopy(self.normal_vi)
+        vi_tc.update({'tier': 'conservative', 'tier_change_event': {'from': 'balanced', 'to': 'conservative'}})
+        r_undated_t, _, _ = self._eval(
+            vi_tc, session='2026-01-05',
+            events=[{'type': 'tier_change_card', 'from': 'balanced', 'to': 'conservative'}],
+        )
+        self.assertEqual(r_undated_t['O9']['state'], 'HALT')
+
+        r_ok_p, _, _ = self._eval(vi_61, session='2026-01-05', events=card_61k)
+        self.assertEqual(r_ok_p['O9']['state'], 'NORMAL')
+
+    def test_r5_o5_sell_reducing_long_notional_settled_cash_and_whitelists(self):
+        """R5 (E): O5 allows reducing sell of held shares, checks max(order_value, qty*unit_price), canonical settled_cash, strict account_whitelist."""
+        import copy
+        # Genuine reducing sell succeeds even 3x in one session with settled_cash=0
+        st = {}
+        for _ in range(3):
+            vi_sell = copy.deepcopy(self.normal_vi)
+            vi_sell.update({'o5_collar': 0.05, 'o5_side': 'sell', 'o5_symbol': 'TQQQ', 'qty': 1, 'settled_cash': 0.0})
+            r_sell, eff_sell, st = self._eval(vi_sell, session='2026-01-05', prior=st)
+            self.assertFalse(r_sell['O5']['would_have_tripped'])
+            self.assertEqual(r_sell['O5']['state'], 'NORMAL')
+            self.assertEqual(eff_sell['account'], 'NORMAL')
+
+        # Overselling (>1000 shares) or short rejected
+        for bad_kw in ({'o5_side': 'sell', 'o5_symbol': 'TQQQ', 'qty': 1001}, {'o5_side': 'short', 'o5_symbol': 'TQQQ', 'qty': 1}):
+            vi_bad = copy.deepcopy(self.normal_vi)
+            vi_bad.update({'o5_collar': 0.05, **bad_kw})
+            self.assertTrue(self._eval(vi_bad)[0]['O5']['would_have_tripped'])
+
+        # qty * unit_price beats deceptive o5_order_value=0 when settled_cash=0
+        vi_notional = copy.deepcopy(self.normal_vi)
+        vi_notional.update({'o5_collar': 0.05, 'o5_side': 'buy', 'o5_order_value': 0.0, 'qty': 2, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'settled_cash': 0.0})
+        self.assertTrue(self._eval(vi_notional)[0]['O5']['would_have_tripped'])
+
+        # Canonical settled_cash=200 wins over alias o5_settled_cash=0
+        vi_sc_win = copy.deepcopy(self.normal_vi)
+        vi_sc_win.update({'o5_collar': 0.05, 'o5_side': 'buy', 'settled_cash': 200.0, 'o5_settled_cash': 0.0, 'o5_order_value': 100.0})
+        self.assertFalse(self._eval(vi_sc_win)[0]['O5']['would_have_tripped'])
+
+        # account_whitelist=None or unapproved account masked by o5_account must both fail
+        vi_wl_none = copy.deepcopy(self.normal_vi)
+        vi_wl_none.update({'o5_collar': 0.05, 'account_whitelist': None, 'account': 'rogue'})
+        self.assertTrue(self._eval(vi_wl_none)[0]['O5']['would_have_tripped'])
+
+        vi_mask = copy.deepcopy(self.normal_vi)
+        vi_mask.update({'o5_collar': 0.05, 'account': 'rogue', 'o5_account': 'synthetic_account_1'})
+        self.assertTrue(self._eval(vi_mask)[0]['O5']['would_have_tripped'])
+
+    def test_r5_remaining_row_and_null_hardening(self):
+        """R5 (F): L0/L1/L2 NaN/bool, L3 day-10 counter, L6 {} / 1-index, O3 empty funds, O4 null/malformed BIL, O6 blank, V4 hi-vol holiday & 2nd-fund outputs, V5 omitted escalated & None shortfall, V7 non-bool pause."""
+        import copy
+
+        # L0 bool & L1/L2 NaN bankroll fail closed
+        vi_l0 = copy.deepcopy(self.normal_vi)
+        vi_l0['proposed_exposure'] = True
+        r_l0 = self._eval(vi_l0)[0]['L0']
+        self.assertTrue(r_l0['would_have_tripped'])
+        self.assertEqual(r_l0['reason'], 'missing_input')
+
+        vi_nan_bk = copy.deepcopy(self.normal_vi)
+        vi_nan_bk['bankroll'] = float('nan')
+        r_nan_bk, _, _ = self._eval(vi_nan_bk)
+        self.assertTrue(r_nan_bk['L1']['would_have_tripped'])
+        self.assertEqual(r_nan_bk['L2']['state'], 'NO-NEW-RISK')
+
+        # L3 day-10 without card computes 20 remaining days dynamically
+        vi_l3 = copy.deepcopy(self.normal_vi)
+        vi_l3['bankroll'] = 60000.0
+        _, _, st_l3 = self._eval(vi_l3, session='2026-01-05')
+        r_d10 = self._eval(copy.deepcopy(self.normal_vi), session='2026-01-15', prior=st_l3)[0]['L3']
+        self.assertEqual(r_d10['outputs']['cooling_off_days_remaining'], 20)
+
+        # L6 empty {} & 1-index dict fail closed HALT
+        for bad_idx in ({}, {'SPX': 0.01}):
+            vi_l6 = copy.deepcopy(self.normal_vi)
+            vi_l6['index_one_session_returns'] = bad_idx
+            self.assertEqual(self._eval(vi_l6)[0]['L6']['state'], 'HALT')
+
+        # O3 empty funds fails closed so L6 cannot be cleared without positions
+        vi_l6_trip = copy.deepcopy(self.normal_vi)
+        vi_l6_trip['market_halt_level'] = 3
+        _, _, st_l6 = self._eval(vi_l6_trip, session='2026-01-05')
+        vi_empty_funds = copy.deepcopy(self.normal_vi)
+        vi_empty_funds.update({'funds': {}, 'last_heartbeat': '2026-01-06T15:59:30Z'})
+        r_l6_no_pos, _, _ = self._eval(
+            vi_empty_funds, session='2026-01-06', prior=st_l6,
+            events=[{'type': 'rearm', 'row_id': 'L6', 'session': '2026-01-06'}],
+        )
+        self.assertEqual(r_l6_no_pos['O3']['state'], 'HALT')
+        self.assertEqual(r_l6_no_pos['L6']['state'], 'HALT')
+
+        # Public evaluate() handles funds=None & pending_orders=None without AttributeError
+        vi_nulls = copy.deepcopy(self.normal_vi)
+        vi_nulls['funds'] = None
+        vi_nulls['pending_orders'] = None
+        rows_null, _, _ = self._eval(vi_nulls)
+        self.assertEqual(len(rows_null), 24)
+
+        # O4 preserves BIL lock across malformed pending_orders & unidentified initial timeout
+        vi_bil = copy.deepcopy(self.normal_vi)
+        vi_bil['pending_orders'] = {'BIL': {'order_id': 'ord_b1', 'status': 'pending', 'timeout': True}}
+        _, _, st_bil1 = self._eval(vi_bil, session='2026-01-05')
+        vi_bil_bad = copy.deepcopy(self.normal_vi)
+        vi_bil_bad['pending_orders'] = {'BIL': 'malformed_payload'}
+        r_b2, eff_b2, st_b2 = self._eval(vi_bil_bad, session='2026-01-06', prior=st_bil1)
+        self.assertEqual(r_b2['O4']['state'], 'ORDER-UNKNOWN')
+        self.assertEqual(eff_b2['symbol:BIL'], 'ORDER-UNKNOWN')
+        self.assertEqual(st_b2['O4']['BIL']['original_order_id'], 'ord_b1')
+        vi_bil_empty = copy.deepcopy(self.normal_vi)
+        r_b3, eff_b3, _ = self._eval(vi_bil_empty, session='2026-01-07', prior=st_b2)
+        self.assertEqual(eff_b3['symbol:BIL'], 'ORDER-UNKNOWN')
+
+        vi_noid = copy.deepcopy(self.normal_vi)
+        vi_noid['pending_orders'] = {'BIL': {'status': 'pending', 'timeout': True}}
+        _, _, st_noid1 = self._eval(vi_noid, session='2026-01-05')
+        _, eff_noid2, _ = self._eval(copy.deepcopy(self.normal_vi), session='2026-01-06', prior=st_noid1)
+        self.assertEqual(eff_noid2['symbol:BIL'], 'ORDER-UNKNOWN')
+
+        # O6 blank policy hashes fail closed
+        vi_o6 = copy.deepcopy(self.normal_vi)
+        vi_o6.update({'loaded_policy_hash': '', 'registered_policy_hash': ''})
+        self.assertEqual(self._eval(vi_o6)[0]['O6']['state'], 'HALT')
+
+        # V4 high-vol on holiday keeps counter=9; 2nd-fund SOXL-only V4 still emits outputs
+        vi_hol_hi = copy.deepcopy(self.normal_vi)
+        vi_hol_hi.update({'session_calendar_status': 'holiday', 'exchange_status': 'closed'})
+        vi_hol_hi['funds']['TQQQ']['forecast_volatility'] = 0.90
+        r_v4_hol, _, st_v4_hol = self._eval(vi_hol_hi, session='2026-01-19', prior={'V4': {'TQQQ': {'clearing_counter': 9, 'last_session_below_threshold': '2026-01-16'}}})
+        self.assertEqual(st_v4_hol['V4']['TQQQ']['clearing_counter'], 9)
+
+        vi_soxl_v4 = copy.deepcopy(self.normal_vi)
+        vi_soxl_v4['funds']['SOXL']['forecast_volatility'] = 0.60
+        r_soxl_v4 = self._eval(vi_soxl_v4)[0]['V4']
+        self.assertIn('outputs', r_soxl_v4)
+        self.assertEqual(r_soxl_v4['outputs']['SOXL']['clearing_counter'], 0)
+
+        # V5 omitted escalated SOXL keeps fund:SOXL NO-NEW-RISK; missing shortfall returns None
+        vi_v5_miss = copy.deepcopy(self.normal_vi)
+        vi_v5_miss['funds'] = {'TQQQ': {**copy.deepcopy(self.normal_vi['funds']['TQQQ']), 'v5_tolerance': 0.01}}
+        vi_v5_miss['funds']['TQQQ'].pop('shortfall_observed')
+        r_v5_miss = self._eval(vi_v5_miss)[0]['V5']
+        self.assertIsNone(r_v5_miss['outputs']['excess_shortfall'])
+
+        vi_only_tqqq = copy.deepcopy(self.normal_vi)
+        vi_only_tqqq['funds'] = {'TQQQ': copy.deepcopy(self.normal_vi['funds']['TQQQ'])}
+        prior_v5_esc = {'V5': {'SOXL': {'consecutive_beyond_tolerance': 40, 'escalated': True, 'last_session': '2026-01-05'}}}
+        r_v5_esc, eff_v5_esc, _ = self._eval(vi_only_tqqq, session='2026-01-06', prior=prior_v5_esc)
+        self.assertEqual(r_v5_esc['V5']['state'], 'NO-NEW-RISK')
+        self.assertEqual(eff_v5_esc['fund:SOXL'], 'NO-NEW-RISK')
+
+        # V7 omitted/non-bool trading_pause fails closed
+        vi_v7_tp = copy.deepcopy(self.normal_vi)
+        vi_v7_tp['v7_spread_width'] = 0.02
+        vi_v7_tp['funds']['TQQQ'].pop('trading_pause')
+        r_v7_tp = self._eval(vi_v7_tp)[0]['V7']
+        self.assertTrue(r_v7_tp['would_have_tripped'])
+        self.assertEqual(r_v7_tp['reason'], 'missing_input')
 
 
 if __name__ == '__main__':

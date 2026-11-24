@@ -417,6 +417,50 @@ def set_l5_fresh_count(next_state: Dict, count: int) -> None:
     next_state['L5']['fresh_session_count'] = count
 
 
+def canonical_session_date(session: Optional[str], as_of: Optional[str] = None) -> Optional[str]:
+    """Return canonical trading-session identity: prefer session, fallback to as_of[:10]."""
+    if isinstance(session, str) and session.strip():
+        return session.strip()
+    if isinstance(as_of, str) and len(as_of.strip()) >= 10:
+        return as_of.strip()[:10]
+    return None
+
+
+def event_matches_row(event: Dict[str, Any], row_id: str) -> bool:
+    """Match row/row_id on an event, rejecting conflicting dual tags (row != row_id)."""
+    ev_row = event.get('row')
+    ev_row_id = event.get('row_id')
+    if ev_row is not None and ev_row_id is not None and ev_row != ev_row_id:
+        return False
+    target = ev_row if ev_row is not None else ev_row_id
+    return target == row_id
+
+
+def event_date_matches(
+    event: Dict[str, Any],
+    session: Optional[str] = None,
+    as_of: Optional[str] = None,
+    require_date: bool = True,
+) -> bool:
+    """Validate event session/as_of date against canonical session identity per Q4."""
+    cur_date = canonical_session_date(session, as_of)
+    ev_session = event.get('session')
+    ev_as_of = event.get('as_of')
+    has_session = isinstance(ev_session, str) and bool(ev_session.strip())
+    has_as_of = isinstance(ev_as_of, str) and len(ev_as_of.strip()) >= 10
+    if ev_session is not None and not has_session:
+        return False
+    if ev_as_of is not None and not has_as_of:
+        return False
+    if require_date and not (has_session or has_as_of):
+        return False
+    if has_session and cur_date is not None and ev_session.strip() != cur_date:
+        return False
+    if has_as_of and cur_date is not None and ev_as_of.strip()[:10] != cur_date:
+        return False
+    return True
+
+
 def matches_account_rearm(
     authorized_events: Optional[Any],
     row_id: str,
@@ -434,32 +478,97 @@ def matches_account_rearm(
     else:
         return None
 
-    cur_date = (
-        as_of[:10] if isinstance(as_of, str) and len(as_of) >= 10
-        else session
-    )
     for event in events_list:
         if not isinstance(event, dict):
             continue
         if event.get('type') != 'rearm':
             continue
-        if event.get('row') != row_id and event.get('row_id') != row_id:
+        if not event_matches_row(event, row_id):
             continue
         # Reject fund/symbol/joint scoped cards on account-level latches
         if event.get('fund') or event.get('symbol'):
             continue
         if 'scope' in event and event.get('scope') != 'account':
             continue
-        ev_session = event.get('session')
-        ev_as_of = event.get('as_of')
-        if require_date and ev_session is None and ev_as_of is None:
+        if not event_date_matches(event, session=session, as_of=as_of, require_date=require_date):
             continue
-        if ev_session is not None and session is not None and ev_session != session:
+        return event
+    return None
+
+
+def matches_fund_rearm(
+    authorized_events: Optional[Any],
+    row_id: str,
+    fund: str,
+    session: Optional[str] = None,
+    as_of: Optional[str] = None,
+    require_date: bool = True,
+) -> Optional[Dict[str, Any]]:
+    """Return matching fund-scoped rearm event per Q4 (row, fund, fund scope, date)."""
+    if not authorized_events:
+        return None
+    scope = f'fund:{fund}'
+    if isinstance(authorized_events, list):
+        events_list = authorized_events
+    elif isinstance(authorized_events, dict):
+        events_list = authorized_events.get(scope, [])
+    else:
+        return None
+
+    for event in events_list:
+        if not isinstance(event, dict):
             continue
-        if ev_as_of is not None:
-            ev_date = ev_as_of[:10] if isinstance(ev_as_of, str) and len(ev_as_of) >= 10 else None
-            if ev_date is None or (cur_date is not None and ev_date != cur_date):
+        if event.get('type') != 'rearm':
+            continue
+        if not event_matches_row(event, row_id):
+            continue
+        if event.get('symbol'):
+            continue
+        if event.get('fund') != fund:
+            continue
+        if 'scope' in event and event.get('scope') != scope:
+            continue
+        if not event_date_matches(event, session=session, as_of=as_of, require_date=require_date):
+            continue
+        return event
+    return None
+
+
+def matches_o8_clear(
+    authorized_events: Optional[Any],
+    session: Optional[str] = None,
+    as_of: Optional[str] = None,
+    require_date: bool = True,
+) -> Optional[Dict[str, Any]]:
+    """Return matching owner kill-switch clear/rearm event per Q4."""
+    if not authorized_events:
+        return None
+    if isinstance(authorized_events, list):
+        events_list = authorized_events
+    elif isinstance(authorized_events, dict):
+        events_list = authorized_events.get('account', [])
+    else:
+        return None
+
+    for event in events_list:
+        if not isinstance(event, dict):
+            continue
+        ev_type = event.get('type')
+        if ev_type == 'rearm':
+            if not event_matches_row(event, 'O8'):
                 continue
+        elif ev_type == 'kill_switch_clear':
+            if event.get('row') is not None or event.get('row_id') is not None:
+                if not event_matches_row(event, 'O8'):
+                    continue
+        else:
+            continue
+        if event.get('fund') or event.get('symbol'):
+            continue
+        if 'scope' in event and event.get('scope') != 'account':
+            continue
+        if not event_date_matches(event, session=session, as_of=as_of, require_date=require_date):
+            continue
         return event
     return None
 

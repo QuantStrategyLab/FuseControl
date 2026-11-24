@@ -114,7 +114,7 @@ def evaluate_O1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         }
 
     # Same-session stale->fresh does NOT clear within the same trading session
-    cur_date = as_of[:10] if isinstance(as_of, str) and len(as_of) >= 10 else session
+    cur_date = cst.canonical_session_date(session, as_of)
     prior_o1 = cst.get_o1_fresh_state(prior_state)
     if prior_o1.get('last_tripped_session') is not None and prior_o1.get('last_tripped_session') == cur_date:
         return {
@@ -213,8 +213,7 @@ def evaluate_O3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     prior_latch = cst.get_account_latch(prior_state, 'O3')
     if prior_latch:
         rearm = cst.matches_account_rearm(
-            authorized_events, 'O3', session=session, as_of=as_of,
-            require_date=(session is not None or as_of is not None),
+            authorized_events, 'O3', session=session, as_of=as_of, require_date=True,
         ) is not None
 
         if not rearm:
@@ -232,12 +231,14 @@ def evaluate_O3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     broker_cash = finite_float(inputs.get('broker_cash'))
     reconciliation_tolerance = finite_float(inputs.get('reconciliation_tolerance'))
 
-    # Also check fund-level positions
-    funds = inputs.get('funds', {})
-
-    # Fail closed if reconciliation data or tolerance is missing/non-finite/negative
-    if (positions_cash is None or broker_cash is None or
-            reconciliation_tolerance is None or reconciliation_tolerance < 0.0):
+    # Fail closed if cash or fund positions or tolerance is missing/empty/non-finite/negative
+    if (
+        'funds' not in inputs or
+        not isinstance(inputs.get('funds'), dict) or
+        len(inputs['funds']) == 0 or
+        positions_cash is None or broker_cash is None or
+        reconciliation_tolerance is None or reconciliation_tolerance < 0.0
+    ):
         return {
             'state': 'HALT',
             'would_have_tripped': True,
@@ -245,6 +246,8 @@ def evaluate_O3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'latched': True,
             'reason': 'missing_input'
         }
+
+    funds = inputs['funds']
 
     # Check cash reconciliation
     cash_mismatch = abs(positions_cash - broker_cash) > reconciliation_tolerance
@@ -320,14 +323,15 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     restart_marker = inputs.get('restart_marker', False)
     prior_pending = cst.get_o4_pending_order(prior_state, symbol)
 
-    # Get current pending order status
-    pending_order = inputs.get('o4_pending_order') or inputs.get('pending_orders', {}).get(symbol)
+    # Get current pending order status safely even if pending_orders is None or malformed
+    po_map = inputs.get('pending_orders')
+    raw_po = po_map.get(symbol) if isinstance(po_map, dict) else None
+    pending_order = inputs['o4_pending_order'] if 'o4_pending_order' in inputs else raw_po
 
-    # If no pending order input
-    if pending_order is None:
+    # If no pending order input (or empty dict)
+    if pending_order is None or (isinstance(pending_order, dict) and not pending_order):
         # B6: Check if we have a prior pending order
         if prior_pending:
-            # Still waiting for terminal status of original order (SUC-09 step 2)
             return {
                 'state': 'ORDER-UNKNOWN',
                 'would_have_tripped': True,
@@ -347,9 +351,9 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'symbol': symbol
         }
 
-    # Validate pending_order structure
+    # Validate pending_order structure while preserving prior_pending original_order_id
     if not isinstance(pending_order, dict):
-        return {
+        res = {
             'state': 'ORDER-UNKNOWN',
             'would_have_tripped': True,
             'kind': 'interlock_or_breaker',
@@ -357,19 +361,22 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': 'missing_input',
             'symbol': symbol
         }
+        if prior_pending:
+            res['original_order_id'] = prior_pending['original_order_id']
+        return res
 
     order_id = pending_order.get('order_id')
     status = pending_order.get('status')
     timed_out = pending_order.get('timeout', False) or pending_order.get('timed_out', False)
-    terminal = pending_order.get('terminal', False)
 
     # B6: If we have a prior pending order, check if this is the same order
     if prior_pending:
         prior_order_id = prior_pending.get('original_order_id')
+        has_valid_order_id = isinstance(order_id, str) and bool(order_id.strip())
+        unidentified_prior = isinstance(prior_order_id, str) and prior_order_id.startswith('unidentified_order_')
 
-        # If this is a different order, the original is still unknown (SUC-09 step 2)
-        if order_id != prior_order_id:
-            # Check if restart marker (SUC-10 step 2)
+        # Missing/mismatched order_id keeps the original order restricted in ORDER-UNKNOWN
+        if unidentified_prior or not has_valid_order_id or order_id != prior_order_id:
             reason = 'awaiting_original_order_status_after_restart' if restart_marker else 'awaiting_original_order_status'
             return {
                 'state': 'ORDER-UNKNOWN',
@@ -416,6 +423,7 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
     # No prior pending - check if current order timed out (SUC-09 step 1)
     if timed_out:
+        eff_order_id = order_id if (isinstance(order_id, str) and order_id.strip()) else f'unidentified_order_{symbol}'
         return {
             'state': 'ORDER-UNKNOWN',
             'would_have_tripped': True,
@@ -423,7 +431,7 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'latched': False,
             'reason': 'order_timeout',
             'symbol': symbol,
-            'original_order_id': order_id
+            'original_order_id': eff_order_id
         }
 
     # No timeout
@@ -541,53 +549,90 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     if symbol is not None and (not isinstance(whitelist, list) or symbol not in whitelist):
         violations.append('symbol_not_whitelisted')
 
-    # Account whitelist (canonical 'account_whitelist' takes precedence over legacy 'o5_account_whitelist')
-    account = inputs.get('o5_account') if 'o5_account' in inputs else inputs.get('account')
-    account_whitelist = inputs['account_whitelist'] if 'account_whitelist' in inputs else inputs.get('o5_account_whitelist')
-    if account is not None and account_whitelist is not None and (not isinstance(account_whitelist, list) or account not in account_whitelist):
+    # Account whitelist: fail closed on null/non-list whitelist and check BOTH account & o5_account if given
+    accounts_to_check = [a for a in (inputs.get('account'), inputs.get('o5_account')) if a is not None]
+    if 'account_whitelist' in inputs:
+        account_whitelist = inputs['account_whitelist']
+    elif 'o5_account_whitelist' in inputs:
+        account_whitelist = inputs['o5_account_whitelist']
+    else:
+        account_whitelist = None
+    if accounts_to_check and (
+        not isinstance(account_whitelist, list) or
+        any(a not in account_whitelist for a in accounts_to_check)
+    ):
         violations.append('account_not_whitelisted')
 
-    # Long only
-    side = inputs.get('o5_side')
-    if side is not None and side != 'buy':
-        violations.append('not_long_only')
-
-    # Within settled cash (canonical 'settled_cash' takes precedence; derive qty * price when order_value omitted)
-    order_value = inputs['o5_order_value'] if 'o5_order_value' in inputs else inputs.get('order_value')
     order_size = inputs.get('o5_order_size')
     if order_size is None:
         order_size = inputs.get('o5_order_qty', inputs.get('order_qty', inputs.get('qty')))
+
+    # Long only: allow reducing sells within existing long position; reject shorts & uncovered/oversells
+    side = inputs.get('o5_side') if 'o5_side' in inputs else inputs.get('side')
+    valid_reducing_sell = False
+    if side is not None:
+        if side == 'buy':
+            pass
+        elif side == 'sell':
+            sell_qty = finite_float(order_size)
+            funds_map = inputs.get('funds')
+            sym_data = funds_map.get(symbol) if (isinstance(funds_map, dict) and symbol is not None) else None
+            held_raw = None
+            if isinstance(sym_data, dict):
+                held_raw = sym_data.get('share_count')
+                if held_raw is None:
+                    held_raw = sym_data.get('position')
+            held_shares = finite_float(held_raw)
+            if (
+                sell_qty is not None and sell_qty > 0.0 and
+                held_shares is not None and held_shares > 0.0 and
+                sell_qty <= held_shares
+            ):
+                valid_reducing_sell = True
+            else:
+                violations.append('not_long_only')
+        else:
+            violations.append('not_long_only')
+
+    # Within settled cash (canonical 'settled_cash' wins cleanly over 'o5_settled_cash'; check max(order_value, qty * price))
+    raw_order_value = inputs['o5_order_value'] if 'o5_order_value' in inputs else inputs.get('order_value')
     unit_price = inputs.get('o5_order_price')
     if unit_price is None:
-        unit_price = inputs.get('o5_limit_price', inputs.get('limit_price', inputs.get('order_price', inputs.get('price'))))
+        unit_price = inputs.get(
+            'o5_limit_price',
+            inputs.get('limit_price', inputs.get('order_price', inputs.get('unit_price', inputs.get('price'))))
+        )
     ref_price = inputs.get('o5_reference_price')
 
-    if order_value is None and order_size is not None and (unit_price is not None or ref_price is not None):
+    derived_notional = None
+    notional_invalid = False
+    if order_size is not None and (unit_price is not None or ref_price is not None):
         osize_val = finite_float(order_size)
         uprice_val = finite_float(unit_price if unit_price is not None else ref_price)
         if osize_val is None or uprice_val is None or osize_val < 0.0 or uprice_val < 0.0:
-            violations.append('exceeds_settled_cash')
-            order_value = None
+            notional_invalid = True
         else:
-            order_value = osize_val * uprice_val
+            derived_notional = osize_val * uprice_val
 
-    if 'settled_cash' in inputs and 'o5_settled_cash' in inputs:
-        sc_canon = finite_float(inputs.get('settled_cash'))
-        sc_o5 = finite_float(inputs.get('o5_settled_cash'))
-        if sc_canon is None or sc_o5 is None:
-            settled_cash = None
-        else:
-            settled_cash = min(sc_canon, sc_o5)
-    elif 'settled_cash' in inputs:
-        settled_cash = inputs['settled_cash']
-    else:
-        settled_cash = inputs.get('o5_settled_cash')
+    settled_cash = inputs['settled_cash'] if 'settled_cash' in inputs else inputs.get('o5_settled_cash')
 
-    if order_value is not None:
-        ov = finite_float(order_value)
-        sc = finite_float(settled_cash)
-        if ov is None or sc is None or ov < 0.0 or sc < 0.0 or ov > sc:
+    if side != 'sell':
+        if notional_invalid:
             violations.append('exceeds_settled_cash')
+        elif raw_order_value is not None or derived_notional is not None:
+            ov = finite_float(raw_order_value) if raw_order_value is not None else None
+            if raw_order_value is not None and (ov is None or ov < 0.0):
+                violations.append('exceeds_settled_cash')
+            else:
+                if ov is not None and derived_notional is not None:
+                    eff_order_val = max(ov, derived_notional)
+                elif ov is not None:
+                    eff_order_val = ov
+                else:
+                    eff_order_val = derived_notional
+                sc = finite_float(settled_cash)
+                if eff_order_val is None or sc is None or sc < 0.0 or eff_order_val > sc:
+                    violations.append('exceeds_settled_cash')
 
     # Maximum order size
     max_order_size = inputs.get('o5_max_order_size')
@@ -678,8 +723,7 @@ def evaluate_O6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     prior_latch = cst.get_account_latch(prior_state, 'O6')
     if prior_latch:
         rearm = cst.matches_account_rearm(
-            authorized_events, 'O6', session=session, as_of=as_of,
-            require_date=(session is not None or as_of is not None),
+            authorized_events, 'O6', session=session, as_of=as_of, require_date=True,
         ) is not None
 
         if not rearm:
@@ -692,12 +736,15 @@ def evaluate_O6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'reason': 'latched_prior_trip'
             }
 
-    # Evaluate trigger - use input keys directly from scenario
+    # Evaluate trigger - require non-empty string policy hashes
     loaded_hash = inputs.get('loaded_policy_hash')
     registered_hash = inputs.get('registered_policy_hash')
 
-    # Fail closed on missing inputs
-    if loaded_hash is None or registered_hash is None:
+    # Fail closed on missing or blank/non-string policy hashes
+    if (
+        not isinstance(loaded_hash, str) or not loaded_hash.strip() or
+        not isinstance(registered_hash, str) or not registered_hash.strip()
+    ):
         return {
             'state': 'HALT',
             'would_have_tripped': True,
@@ -797,30 +844,65 @@ def evaluate_O7(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
 
 def evaluate_O8(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
-                authorized_events: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+                authorized_events: Optional[Dict[str, Any]],
+                session: Optional[str] = None,
+                as_of: Optional[str] = None) -> Dict[str, Any]:
     """O8: Kill switch → HALT.
 
     Kind: owner
     Scope: account
     State contribution: HALT
-    Clearing: Owner command
+    Clearing: Owner command via authorized_events
     """
-    # Check for owner kill command in authorized_events
+    events_list = []
+    if isinstance(authorized_events, list):
+        events_list = authorized_events
+    elif isinstance(authorized_events, dict):
+        events_list = authorized_events.get('account', [])
+
+    # Check for active owner kill_switch command in authorized_events
     kill_command = False
-    if authorized_events:
-        events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
-        for event in events_list:
-            if event.get('type') == 'kill_switch':
-                kill_command = True
-                break
+    for event in events_list:
+        if not isinstance(event, dict) or event.get('type') != 'kill_switch':
+            continue
+        if event.get('fund') or event.get('symbol'):
+            continue
+        if 'scope' in event and event.get('scope') != 'account':
+            continue
+        if not cst.event_date_matches(event, session=session, as_of=as_of, require_date=False):
+            continue
+        kill_command = True
+        break
 
     if kill_command:
         return {
             'state': 'HALT',
             'would_have_tripped': True,
             'kind': 'owner',
-            'latched': False,
+            'latched': True,
             'reason': 'kill_switch'
+        }
+
+    # Check persisted O8 latch (requires explicit Q4-validated clear/rearm event)
+    prior_latch = cst.get_account_latch(prior_state, 'O8')
+    if prior_latch:
+        cleared = cst.matches_o8_clear(
+            authorized_events, session=session, as_of=as_of, require_date=True
+        ) is not None
+        if cleared:
+            return {
+                'state': 'NORMAL',
+                'would_have_tripped': False,
+                'kind': 'owner',
+                'latched': False,
+                'reason': 'authorized_rearm'
+            }
+        return {
+            'state': 'HALT',
+            'would_have_tripped': True,
+            'kind': 'owner',
+            'latched': True,
+            'reason': 'latched_prior_trip'
         }
 
     return {
@@ -891,8 +973,6 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     elif isinstance(authorized_events, dict):
         events_list = authorized_events.get('account', [])
 
-    cur_date = as_of[:10] if isinstance(as_of, str) and len(as_of) >= 10 else session
-
     def _card_scope_date_ok(event: Any) -> bool:
         if not isinstance(event, dict):
             return False
@@ -900,21 +980,18 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             return False
         if 'scope' in event and event.get('scope') != 'account':
             return False
-        if event.get('session') is not None and session is not None and event.get('session') != session:
-            return False
-        if event.get('as_of') is not None:
-            ev_date = event['as_of'][:10] if isinstance(event['as_of'], str) and len(event['as_of']) >= 10 else None
-            if ev_date is None or (cur_date is not None and ev_date != cur_date):
-                return False
-        return True
+        return cst.event_date_matches(event, session=session, as_of=as_of, require_date=True)
 
     tier_authorized = True
     if tier_change_event:
-        tier_authorized = any(
+        target_tier = tier_change_event.get('to')
+        live_tier = inputs.get('tier')
+        tier_live_ok = target_tier is None or live_tier is None or live_tier == target_tier
+        tier_authorized = tier_live_ok and any(
             _card_scope_date_ok(event) and
             event.get('type') == 'tier_change_card' and
             event.get('from') == tier_change_event.get('from') and
-            event.get('to') == tier_change_event.get('to')
+            event.get('to') == target_tier
             for event in events_list
         )
 
@@ -929,16 +1006,74 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             return len(required) == 1 and card_desc == required[0]
         return card_desc == required
 
+    def _extract_descriptor_targets(desc: Any) -> List[tuple]:
+        targets: List[tuple] = []
+        if isinstance(desc, list):
+            for item in desc:
+                targets.extend(_extract_descriptor_targets(item))
+            return targets
+        if not isinstance(desc, dict):
+            return targets
+        param_name = desc.get('param') or desc.get('parameter') or desc.get('field') or desc.get('name')
+        if isinstance(param_name, str):
+            for val_key in ('to', 'new_value', 'target', 'value'):
+                if val_key in desc:
+                    targets.append((param_name, desc[val_key]))
+                    break
+            return targets
+        for k, v in desc.items():
+            if k in ('from', 'card_id', 'reason', 'note'):
+                continue
+            if isinstance(v, dict):
+                if 'to' in v or 'new_value' in v or 'target' in v:
+                    for val_key in ('to', 'new_value', 'target'):
+                        if val_key in v:
+                            targets.append((k, v[val_key]))
+                            break
+                elif k == 'limits':
+                    targets.extend(_extract_descriptor_targets(v))
+            else:
+                targets.append((k, v))
+        return targets
+
+    known_o9_policy_fields = {
+        'max_loss_cap', 'tier_joint_cap', 'tier', 'high_water_mark',
+        'h_value', 'H', 'tier_loss_budget_D', 'o5_collar', 'v5_tolerance',
+        'v7_spread_width', 'reconciliation_tolerance',
+    }
+
+    def _targets_match_live_inputs(targets: List[tuple]) -> bool:
+        limits_map = inputs.get('limits') if isinstance(inputs.get('limits'), dict) else {}
+        for field_name, target_val in targets:
+            if field_name in inputs:
+                live_val = inputs[field_name]
+            elif field_name in limits_map:
+                live_val = limits_map[field_name]
+            elif field_name in known_o9_policy_fields:
+                return False
+            else:
+                continue
+            t_num = finite_float(target_val)
+            l_num = finite_float(live_val)
+            if t_num is not None or l_num is not None:
+                if t_num is None or l_num is None or t_num != l_num:
+                    return False
+            elif live_val != target_val:
+                return False
+        return True
+
     params_authorized = True
     if change_descriptors:
-        # Require ONE single account-scoped parameter_change_card covering all changed fields/items
+        # Require ONE single Q4-validated parameter_change_card covering all descriptors AND matching live inputs
         param_cards = [
             event.get('change_descriptors')
             for event in events_list
             if _card_scope_date_ok(event) and event.get('type') == 'parameter_change_card'
         ]
+        desc_targets = _extract_descriptor_targets(change_descriptors)
         params_authorized = any(
-            _single_card_covers_descriptors(card, change_descriptors)
+            _single_card_covers_descriptors(card, change_descriptors) and
+            _targets_match_live_inputs(desc_targets + _extract_descriptor_targets(card))
             for card in param_cards
         )
 

@@ -66,6 +66,37 @@ def compute_no_trip_baseline_exposure(validated_inputs: Dict[str, Any]) -> Dict[
     }
 
 
+def _v7_blocks_target(
+    validated_inputs: Dict[str, Any],
+    rows_by_ID: Dict[str, Any],
+    target_sym: Optional[str],
+) -> bool:
+    """Return True iff V7 order suppression applies to target_sym (or whole portfolio if unset)."""
+    v7 = rows_by_ID.get('V7', {})
+    if not v7.get('would_have_tripped'):
+        return False
+    if not target_sym:
+        return True
+    funds = validated_inputs.get('funds')
+    if not isinstance(funds, dict) or target_sym not in funds or not isinstance(funds[target_sym], dict):
+        return True
+    fdata = funds[target_sym]
+    raw_thresh = fdata['v7_spread_width'] if 'v7_spread_width' in fdata else validated_inputs.get('v7_spread_width')
+    thresh = _finite_or_none(raw_thresh)
+    qs = _finite_or_none(fdata.get('quote_staleness'))
+    sw = _finite_or_none(fdata.get('spread_width'))
+    tp = fdata.get('trading_pause')
+    st = fdata.get('session_time')
+    if (
+        raw_thresh in (None, 'unresolved') or thresh is None or thresh < 0.0 or
+        qs is None or qs < 0.0 or qs > 1.0 or
+        sw is None or sw < 0.0 or sw > thresh or
+        not isinstance(tp, bool) or tp or st != 'regular'
+    ):
+        return True
+    return False
+
+
 def compute_permitted_exposure(
     validated_inputs: Dict[str, Any],
     rows_by_ID: Dict[str, Any],
@@ -111,6 +142,7 @@ def compute_permitted_exposure(
         validated_inputs.get('target_fund')
         or validated_inputs.get('proposed_fund')
         or validated_inputs.get('o5_symbol')
+        or validated_inputs.get('symbol')
     )
     target_blocked = bool(target_sym) and (
         effective_state_by_scope.get(f'fund:{target_sym}', 'NORMAL') != 'NORMAL'
@@ -125,7 +157,7 @@ def compute_permitted_exposure(
         or bool(l0.get('outputs', {}).get('increases_blocked'))
         or bool(j1.get('outputs', {}).get('above_cap'))
         or bool(rows_by_ID['O2'].get('would_have_tripped'))
-        or bool(rows_by_ID['V7'].get('would_have_tripped'))
+        or _v7_blocks_target(validated_inputs, rows_by_ID, target_sym)
         or bool(rows_by_ID['O5'].get('would_have_tripped'))
     )
     if increases_blocked:
@@ -163,9 +195,14 @@ def check_bundle_against_baseline(
     # Exact J1.outputs.headroom arithmetic check (A09)
     if j1_headroom is None:
         errors.append(f"{label}: J1.outputs.headroom missing or non-finite")
-    elif baseline['tier_joint_cap'] is None or baseline['joint_exposure'] is None:
+    elif (
+        baseline['tier_joint_cap'] is None or
+        baseline['joint_exposure'] is None or
+        baseline['tier_joint_cap'] < 0.0 or
+        baseline['joint_exposure'] < 0.0
+    ):
         if abs(j1_headroom - 0.0) > 1e-9:
-            errors.append(f"{label}: J1 headroom {j1_headroom} != 0.0 on missing inputs")
+            errors.append(f"{label}: J1 headroom {j1_headroom} != 0.0 on missing/negative inputs")
     else:
         raw_headroom = baseline['tier_joint_cap'] - baseline['joint_exposure']
         if validated_inputs.get('tier_change_event') and baseline['joint_exposure'] > baseline['tier_joint_cap']:
@@ -182,7 +219,7 @@ def check_bundle_against_baseline(
                 f"{label}: J1 headroom {j1_headroom} exceeds max allowed {max(0.0, raw_headroom)}"
             )
 
-    if baseline['baseline_permitted'] is not None and permitted > baseline['baseline_permitted']:
+    if baseline['baseline_permitted'] is not None and baseline['baseline_permitted'] >= 0.0 and permitted > baseline['baseline_permitted']:
         errors.append(
             f"{label}: permitted exposure {permitted} exceeds no-trip baseline {baseline['baseline_permitted']}"
         )
@@ -202,6 +239,7 @@ def check_bundle_against_baseline(
         validated_inputs.get('target_fund')
         or validated_inputs.get('proposed_fund')
         or validated_inputs.get('o5_symbol')
+        or validated_inputs.get('symbol')
     )
     target_restricted = bool(target_sym) and (
         effective_state_by_scope.get(f'fund:{target_sym}', 'NORMAL') != 'NORMAL'
@@ -217,9 +255,9 @@ def check_bundle_against_baseline(
         or bool(rows_by_ID['J1'].get('outputs', {}).get('above_cap'))
         or bool(rows_by_ID['O2'].get('would_have_tripped'))
         or bool(rows_by_ID['O5'].get('would_have_tripped'))
-        or bool(rows_by_ID['V7'].get('would_have_tripped'))
+        or _v7_blocks_target(validated_inputs, rows_by_ID, target_sym)
     )
-    if increase_must_be_blocked and baseline['joint_exposure'] is not None and permitted > baseline['joint_exposure']:
+    if increase_must_be_blocked and baseline['joint_exposure'] is not None and baseline['joint_exposure'] >= 0.0 and permitted > baseline['joint_exposure']:
         errors.append(
             f"{label}: blocking trip allowed exposure {permitted} > current {baseline['joint_exposure']}"
         )

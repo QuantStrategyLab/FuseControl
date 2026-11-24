@@ -28,50 +28,15 @@ def evaluate_L0(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     State contribution: none (outputs only)
     Required inputs: joint_exposure, max_loss_cap, proposed_exposure
     """
-    # Required inputs - fail closed if missing/invalid
-    joint_exposure = inputs.get('joint_exposure')
-    max_loss_cap = inputs.get('max_loss_cap')
-    proposed_exposure = inputs.get('proposed_exposure')
+    # Required finite non-negative inputs - fail closed on missing/NaN/inf/bool/negative (§4.4 rule 3, §5.2)
+    joint_exposure = finite_float(inputs.get('joint_exposure'))
+    max_loss_cap = finite_float(inputs.get('max_loss_cap'))
+    proposed_exposure = finite_float(inputs.get('proposed_exposure'))
 
-    # Fail closed on missing/invalid inputs (§4.4 rule 3, §5.2)
-    if joint_exposure is None or max_loss_cap is None or proposed_exposure is None:
-        return {
-            'state': 'NORMAL',
-            'would_have_tripped': True,
-            'kind': 'limit',
-            'latched': False,
-            'reason': 'missing_input',
-            'outputs': {
-                'cap': None,
-                'cap_breached': True,
-                'increases_blocked': True
-            }
-        }
-
-    # Type validation
-    try:
-        joint_exposure = float(joint_exposure)
-        max_loss_cap = float(max_loss_cap)
-        proposed_exposure = float(proposed_exposure)
-    except (TypeError, ValueError):
-        return {
-            'state': 'NORMAL',
-            'would_have_tripped': True,
-            'kind': 'limit',
-            'latched': False,
-            'reason': 'missing_input',
-            'outputs': {
-                'cap': None,
-                'cap_breached': True,
-                'increases_blocked': True
-            }
-        }
-
-    # Check for invalid values
-    import math
-    if (math.isnan(joint_exposure) or math.isnan(max_loss_cap) or math.isnan(proposed_exposure) or
-        math.isinf(joint_exposure) or math.isinf(max_loss_cap) or math.isinf(proposed_exposure) or
-        joint_exposure < 0 or max_loss_cap < 0 or proposed_exposure < 0):
+    if (
+        joint_exposure is None or max_loss_cap is None or proposed_exposure is None or
+        joint_exposure < 0.0 or max_loss_cap < 0.0 or proposed_exposure < 0.0
+    ):
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,
@@ -130,28 +95,12 @@ def evaluate_L1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     State contribution: none (but locks tier/H/HWM)
     Clearing: Clears when drawdown is back under D/3
     """
-    bankroll = inputs.get('bankroll')
-    high_water_mark = inputs.get('high_water_mark')
+    bankroll = finite_float(inputs.get('bankroll'))
+    high_water_mark = finite_float(inputs.get('high_water_mark'))
     tier = inputs.get('tier')
 
-    # Fail closed on missing inputs
-    if bankroll is None or high_water_mark is None or tier is None:
-        return {
-            'state': 'NORMAL',
-            'would_have_tripped': True,
-            'kind': 'interlock',
-            'latched': False,
-            'reason': 'missing_input',
-            'outputs': {
-                'locked_against_loosening': True,
-                'notify': True
-            }
-        }
-
-    try:
-        bankroll = float(bankroll)
-        high_water_mark = float(high_water_mark)
-    except (TypeError, ValueError):
+    # Fail closed on missing, NaN, inf, bool, or out-of-range inputs
+    if bankroll is None or high_water_mark is None or bankroll < 0.0 or high_water_mark <= 0.0 or tier is None:
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,
@@ -215,8 +164,7 @@ def evaluate_L2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     prior_latch = cst.get_l2_latch(prior_state)
     if prior_latch:
         rearm = cst.matches_account_rearm(
-            authorized_events, 'L2', session=session, as_of=as_of,
-            require_date=(session is not None or as_of is not None),
+            authorized_events, 'L2', session=session, as_of=as_of, require_date=True,
         ) is not None
 
         if rearm:
@@ -251,24 +199,12 @@ def evaluate_L2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         }
 
     # Evaluate trigger
-    bankroll = inputs.get('bankroll')
-    high_water_mark = inputs.get('high_water_mark')
+    bankroll = finite_float(inputs.get('bankroll'))
+    high_water_mark = finite_float(inputs.get('high_water_mark'))
     tier = inputs.get('tier')
 
-    # Fail closed on missing inputs
-    if bankroll is None or high_water_mark is None or tier is None:
-        return {
-            'state': 'NO-NEW-RISK',
-            'would_have_tripped': True,
-            'kind': 'breaker',
-            'latched': True,
-            'reason': 'missing_input'
-        }
-
-    try:
-        bankroll = float(bankroll)
-        high_water_mark = float(high_water_mark)
-    except (TypeError, ValueError):
+    # Fail closed on missing, NaN, inf, bool, or out-of-range inputs
+    if bankroll is None or high_water_mark is None or bankroll < 0.0 or high_water_mark <= 0.0 or tier is None:
         return {
             'state': 'NO-NEW-RISK',
             'would_have_tripped': True,
@@ -332,28 +268,20 @@ def evaluate_L3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         rearm = False
         cooling_off_days_remaining = 30
 
-        cur_date_str = (
-            as_of[:10] if isinstance(as_of, str) and len(as_of) >= 10
-            else session
-        )
+        cur_date_str = cst.canonical_session_date(session, as_of)
         trip_date_str = prior_latch.get('trip_session') or prior_latch.get('trip_date')
-        days_elapsed = 0
         if cur_date_str and trip_date_str:
             try:
                 days_elapsed = (date.fromisoformat(cur_date_str) - date.fromisoformat(trip_date_str)).days
+                cooling_off_days_remaining = max(0, 30 - max(0, days_elapsed))
             except ValueError:
-                days_elapsed = 0
+                cooling_off_days_remaining = 30
 
         matched_event = cst.matches_account_rearm(
-            authorized_events, 'L3', session=session, as_of=as_of, require_date=False
+            authorized_events, 'L3', session=session, as_of=as_of, require_date=True
         )
         if matched_event is not None:
             rearm = True
-            # Compute elapsed days strictly from persisted trip_session & current date (never caller days_since_trip)
-            if days_elapsed >= 30:
-                cooling_off_days_remaining = 0
-            else:
-                cooling_off_days_remaining = 30 - max(0, days_elapsed)
 
         if rearm and cooling_off_days_remaining == 0:
             # Q4 short-circuit after 30-day cooling-off: clear active lock, preserve loss record
@@ -457,7 +385,8 @@ def evaluate_L3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 def evaluate_L4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 authorized_events: Optional[Dict[str, Any]],
                 session: Optional[str] = None,
-                as_of: Optional[str] = None) -> Dict[str, Any]:
+                as_of: Optional[str] = None,
+                market_closed: bool = False) -> Dict[str, Any]:
     """L4: One-session loss reaches D/10 → NO-NEW-RISK.
 
     Kind: breaker
@@ -470,15 +399,11 @@ def evaluate_L4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     if prior_latch:
         rearm = False
         matched_event = cst.matches_account_rearm(
-            authorized_events, 'L4', session=session, as_of=as_of,
-            require_date=(session is not None or as_of is not None),
+            authorized_events, 'L4', session=session, as_of=as_of, require_date=True,
         )
-        if matched_event is not None:
-            # Next session minimum computed strictly from persisted trip_session (never caller sessions_since_trip)
-            cur_date = (
-                as_of[:10] if isinstance(as_of, str) and len(as_of) >= 10
-                else session
-            )
+        if matched_event is not None and not market_closed:
+            # Next session minimum computed strictly from persisted trading session (never as_of UTC midnight)
+            cur_date = cst.canonical_session_date(session, as_of)
             trip_sess = prior_latch.get('trip_session')
             if cur_date and trip_sess and cur_date > trip_sess:
                 rearm = True
@@ -561,10 +486,7 @@ def evaluate_L5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Clearing: Persists through remainder of trading session; clears on subsequent clean session (canonical per Q6)
     """
     prior_l5 = cst.get_l5_state(prior_state)
-    cur_date = (
-        as_of[:10] if isinstance(as_of, str) and len(as_of) >= 10
-        else session
-    )
+    cur_date = cst.canonical_session_date(session, as_of)
 
     market_halt_level = inputs.get('market_halt_level')
     triggered = (not isinstance(market_halt_level, bool)) and market_halt_level in (1, 2)
@@ -611,7 +533,8 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 authorized_events: Optional[Dict[str, Any]],
                 session: Optional[str] = None,
                 as_of: Optional[str] = None,
-                o3_failed: bool = False) -> Dict[str, Any]:
+                o3_failed: bool = False,
+                market_closed: bool = False) -> Dict[str, Any]:
     """L6: Market-wide Level 3 halt OR one-session fall ≥10% in either index → HALT.
 
     Kind: breaker
@@ -624,8 +547,7 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         rearm = (
             (not o3_failed) and
             cst.matches_account_rearm(
-                authorized_events, 'L6', session=session, as_of=as_of,
-                require_date=(session is not None or as_of is not None),
+                authorized_events, 'L6', session=session, as_of=as_of, require_date=True,
             ) is not None
         )
 
@@ -652,13 +574,18 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
     level_3_halt = (not isinstance(market_halt_level, bool)) and market_halt_level == 3
 
-    # Check ALL indices in index_one_session_returns; never abort past an invalid earlier entry
+    # Check ALL indices in index_one_session_returns; never abort past an invalid earlier entry.
+    # Require >= 2 valid benchmark index returns on non-closed sessions when dict is supplied
+    # (note: missing.L6 in frozen v2 golden-table.json requires None -> NORMAL until v3 refreeze).
     index_fall = False
     invalid_index_data = False
+    missing_index_data = False
     if index_returns is not None:
         if not isinstance(index_returns, dict):
             invalid_index_data = True
         else:
+            if not market_closed and len(index_returns) < 2:
+                missing_index_data = True
             for index in sorted(index_returns.keys()):
                 ret = index_returns[index]
                 r_val = finite_float(ret)
@@ -683,13 +610,13 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'latched': True,
             'reason': 'index_fall_10pct'
         }
-    if invalid_index_data:
+    if invalid_index_data or missing_index_data:
         return {
             'state': 'HALT',
             'would_have_tripped': True,
             'kind': 'breaker',
             'latched': True,
-            'reason': 'invalid_input'
+            'reason': 'invalid_input' if invalid_index_data else 'missing_input'
         }
 
     return {

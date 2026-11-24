@@ -13,7 +13,8 @@ from .canonical import finite_float as _is_valid_finite_number
 
 def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 authorized_events: Optional[Dict[str, Any]], fund: str,
-                session: Optional[str] = None, market_closed: bool = False) -> Dict[str, Any]:
+                session: Optional[str] = None, market_closed: bool = False,
+                as_of: Optional[str] = None) -> Dict[str, Any]:
     """V1: Tracking deviation exceeds thresholds → NO-NEW-RISK in that fund.
 
     Kind: breaker
@@ -24,22 +25,12 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Proposal thresholds per §4.5: 0.75pp (1 session), 2.0pp (5 sessions)
     """
     # Check for prior latch from canonical format (SUC-13)
-    scope = f'fund:{fund}'
     prior_latch = cst.get_v1_latch(prior_state, fund)
     prior_history = cst.get_v1_history(prior_state, fund)
     if prior_latch:
-        # Check for authorized re-arm
-        rearm = False
-        if authorized_events:
-            # Handle both list and dict formats
-            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get(scope, [])
-            for event in events_list:
-                if event.get('type') == 'rearm' and (event.get('row') == 'V1' or event.get('row_id') == 'V1'):
-                    # Also check fund match if specified
-                    if 'fund' in event and event['fund'] != fund:
-                        continue
-                    rearm = True
-                    break
+        rearm = cst.matches_fund_rearm(
+            authorized_events, 'V1', fund, session=session, as_of=as_of, require_date=True
+        ) is not None
 
         if rearm:
             # Q4 short-circuit: re-arm wins, return authorized_rearm WITHOUT re-evaluating
@@ -224,8 +215,33 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     }
 
 
+def _find_v2_pending_target(prior_pending: Optional[Dict[str, Any]], a_type: Any, c_ratio: Any) -> Any:
+    """Identify whether incoming corporate action targets primary or a queued pending entry."""
+    if not prior_pending or not a_type:
+        return None
+    if prior_pending.get('type') == a_type:
+        p_ratio = prior_pending.get('ratio')
+        if p_ratio is None or c_ratio is None or _is_valid_finite_number(c_ratio) == _is_valid_finite_number(p_ratio):
+            return 'primary'
+    queued_actions = prior_pending.get('queued_actions') or []
+    for idx, q in enumerate(queued_actions):
+        if isinstance(q, dict) and q.get('type') == a_type:
+            p_ratio = q.get('ratio')
+            if p_ratio is None or c_ratio is None or _is_valid_finite_number(c_ratio) == _is_valid_finite_number(p_ratio):
+                return ('queued', idx)
+    # Fallback: match by type only if a mismatching ratio failed reconciliation on primary/queued
+    if prior_pending.get('type') == a_type:
+        return 'primary'
+    for idx, q in enumerate(queued_actions):
+        if isinstance(q, dict) and q.get('type') == a_type:
+            return ('queued', idx)
+    return None
+
+
 def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
-                authorized_events: Optional[Dict[str, Any]], fund: str) -> Dict[str, Any]:
+                authorized_events: Optional[Dict[str, Any]], fund: str,
+                session: Optional[str] = None,
+                as_of: Optional[str] = None) -> Dict[str, Any]:
     """V2: Corporate action → HALT until adjusted and reconciled.
 
     Kind: interlock_or_breaker
@@ -235,26 +251,16 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
              otherwise latches and needs re-arm
     Mechanism B1: pending adjustment state must persist correctly
     """
-    scope = f'fund:{fund}'
-
-    # Check for prior mismatch latch (canonical format per Q6)
+    # Check for prior mismatch latch and pending adjustments (canonical format per Q6)
     prior_mismatch = cst.get_v2_latched_mismatch(prior_state, fund)
+    prior_pending = cst.get_v2_pending_adjustment(prior_state, fund)
+    mismatch_cleared = False
     if prior_mismatch:
-        # Latched mismatch - only owner can re-arm
-        rearm = False
-        if authorized_events:
-            # Handle both list and dict formats
-            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get(scope, [])
-            for event in events_list:
-                if event.get('type') == 'rearm' and (event.get('row') == 'V2' or event.get('row_id') == 'V2'):
-                    # Also check fund match if specified
-                    if 'fund' in event and event['fund'] != fund:
-                        continue
-                    rearm = True
-                    break
+        rearm = cst.matches_fund_rearm(
+            authorized_events, 'V2', fund, session=session, as_of=as_of, require_date=True
+        ) is not None
 
         if not rearm:
-            # Stay latched
             return {
                 'state': 'HALT',
                 'would_have_tripped': True,
@@ -263,8 +269,8 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'reason': 'latched_prior_mismatch',
                 'fund': fund
             }
-        else:
-            # Re-armed - clear the latch
+        mismatch_cleared = True
+        if not prior_pending and inputs.get('corporate_action') is None:
             return {
                 'state': 'NORMAL',
                 'would_have_tripped': False,
@@ -274,16 +280,12 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'fund': fund
             }
 
-    # Check for pending adjustment from prior state (B1 - canonical format per Q6)
-    prior_pending = cst.get_v2_pending_adjustment(prior_state, fund)
-
     # Get current corporate action input
     corporate_action = inputs.get('corporate_action')
 
-    # Fail closed on malformed action when there's NO prior pending (B1 control)
+    # Fail closed on malformed action
     if corporate_action is not None and not isinstance(corporate_action, dict):
-        # Malformed - fail closed with HALT
-        return {
+        res = {
             'state': 'HALT',
             'would_have_tripped': True,
             'kind': 'interlock_or_breaker',
@@ -291,12 +293,15 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': 'missing_input',
             'fund': fund
         }
+        if mismatch_cleared:
+            res['_v2_clear_mismatch_only'] = True
+        return res
 
     # If action is dict, validate required fields
     if isinstance(corporate_action, dict):
         # Empty {} while pending stays carried HALT without dropping pending state (A07/A12)
         if not corporate_action and prior_pending:
-            return {
+            res = {
                 'state': 'HALT',
                 'would_have_tripped': True,
                 'kind': 'interlock_or_breaker',
@@ -304,11 +309,22 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'reason': 'pending_corporate_action_carried',
                 'fund': fund
             }
+            if mismatch_cleared:
+                res['_v2_clear_mismatch_only'] = True
+            return res
 
         action_type = corporate_action.get('type')
         if action_type is None:
-            # Malformed - fail closed with HALT
-            return {
+            if mismatch_cleared and not prior_pending:
+                return {
+                    'state': 'NORMAL',
+                    'would_have_tripped': False,
+                    'kind': 'interlock_or_breaker',
+                    'latched': False,
+                    'reason': 'authorized_rearm',
+                    'fund': fund
+                }
+            res = {
                 'state': 'HALT',
                 'would_have_tripped': True,
                 'kind': 'interlock_or_breaker',
@@ -316,23 +332,33 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'reason': 'missing_input',
                 'fund': fund
             }
+            if mismatch_cleared:
+                res['_v2_clear_mismatch_only'] = True
+            return res
+
+        curr_ratio = corporate_action.get('ratio')
+        mismatch_target = _find_v2_pending_target(prior_pending, action_type, curr_ratio)
 
         raw_adj_complete = corporate_action.get('adjustment_complete', False)
         raw_exact_rec = corporate_action.get('exact_reconciliation', False)
         if not isinstance(raw_adj_complete, bool) or not isinstance(raw_exact_rec, bool):
-            return {
+            res = {
                 'state': 'HALT',
                 'would_have_tripped': True,
                 'kind': 'interlock_or_breaker',
                 'latched': True,
                 'reason': 'reconciliation_mismatch',
-                'fund': fund
+                'fund': fund,
+                '_v2_mismatch_target': mismatch_target,
             }
+            if mismatch_cleared:
+                res['_v2_clear_mismatch_only'] = True
+            return res
         adjustment_complete = raw_adj_complete is True
         exact_reconciliation = raw_exact_rec is True
 
         # R3 / A12 / R4: Exact reconciliation requires matching ledger/broker values,
-        # matching share_count == broker_position, exact boolean flags, uncompromised HWM,
+        # matching share_count == broker_position, exact boolean flags, strict boolean true HWM,
         # and exact action type + known ratio matching pending event(s).
         if adjustment_complete:
             ledger_val = _is_valid_finite_number(inputs.get('ledger_value'))
@@ -348,9 +374,11 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 broker_pos is not None and
                 share_count == broker_pos
             )
+            raw_ca_hwm = corporate_action.get('hwm_adjusted')
+            raw_in_hwm = inputs.get('hwm_adjusted')
             hwm_ok = (
-                corporate_action.get('hwm_adjusted') is not False and
-                inputs.get('hwm_adjusted') is not False
+                (raw_ca_hwm is None or (isinstance(raw_ca_hwm, bool) and raw_ca_hwm is True)) and
+                (raw_in_hwm is None or (isinstance(raw_in_hwm, bool) and raw_in_hwm is True))
             )
 
             def _item_matches(item: Dict[str, Any], a_type: Any, c_ratio: Any) -> bool:
@@ -367,7 +395,6 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                     c_ratio_num == p_ratio_num
                 )
 
-            curr_ratio = corporate_action.get('ratio')
             if exact_reconciliation and amounts_match and hwm_ok:
                 if prior_pending:
                     queued_actions = prior_pending.get('queued_actions') or []
@@ -378,10 +405,10 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                                 'would_have_tripped': False,
                                 'kind': 'interlock_or_breaker',
                                 'latched': False,
-                                'reason': 'exact_reconciliation_auto_clear',
+                                'reason': 'authorized_rearm' if mismatch_cleared else 'exact_reconciliation_auto_clear',
                                 'fund': fund
                             }
-                        return {
+                        res = {
                             'state': 'HALT',
                             'would_have_tripped': True,
                             'kind': 'interlock_or_breaker',
@@ -390,13 +417,16 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                             'fund': fund,
                             '_v2_reconcile_target': 'primary'
                         }
+                        if mismatch_cleared:
+                            res['_v2_clear_mismatch_only'] = True
+                        return res
                     matched_q_idx = next(
                         (idx for idx, q in enumerate(queued_actions)
                          if isinstance(q, dict) and _item_matches(q, action_type, curr_ratio)),
                         None
                     )
                     if matched_q_idx is not None:
-                        return {
+                        res = {
                             'state': 'HALT',
                             'would_have_tripped': True,
                             'kind': 'interlock_or_breaker',
@@ -405,33 +435,36 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                             'fund': fund,
                             '_v2_reconcile_target': ('queued', matched_q_idx)
                         }
+                        if mismatch_cleared:
+                            res['_v2_clear_mismatch_only'] = True
+                        return res
                 else:
                     return {
                         'state': 'NORMAL',
                         'would_have_tripped': False,
                         'kind': 'interlock_or_breaker',
                         'latched': False,
-                        'reason': 'none',
+                        'reason': 'authorized_rearm' if mismatch_cleared else 'none',
                         'fund': fund
                     }
 
             # Adjustment complete without complete matching reconciliation latches HALT
-            return {
+            res = {
                 'state': 'HALT',
                 'would_have_tripped': True,
                 'kind': 'interlock_or_breaker',
                 'latched': True,
                 'reason': 'reconciliation_mismatch',
-                'fund': fund
+                'fund': fund,
+                '_v2_mismatch_target': mismatch_target,
             }
+            if mismatch_cleared:
+                res['_v2_clear_mismatch_only'] = True
+            return res
 
         # Action announced or detected -> pending HALT (never overwrite unresolved prior action!)
-        if prior_pending:
-            reason = 'pending_corporate_action_carried'
-        else:
-            reason = 'pending_corporate_action'
-
-        return {
+        reason = 'pending_corporate_action_carried' if prior_pending else 'pending_corporate_action'
+        res = {
             'state': 'HALT',
             'would_have_tripped': True,
             'kind': 'interlock_or_breaker',
@@ -439,11 +472,13 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': reason,
             'fund': fund
         }
+        if mismatch_cleared:
+            res['_v2_clear_mismatch_only'] = True
+        return res
 
     # No current action - check for pending from prior (B1)
     if prior_pending:
-        # Pending action still outstanding - remain HALT
-        return {
+        res = {
             'state': 'HALT',
             'would_have_tripped': True,
             'kind': 'interlock_or_breaker',
@@ -451,6 +486,9 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': 'pending_corporate_action_carried',
             'fund': fund
         }
+        if mismatch_cleared:
+            res['_v2_clear_mismatch_only'] = True
+        return res
 
     # No action, no pending
     return {
@@ -458,13 +496,15 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         'would_have_tripped': False,
         'kind': 'interlock_or_breaker',
         'latched': False,
-        'reason': 'none',
+        'reason': 'authorized_rearm' if mismatch_cleared else 'none',
         'fund': fund
     }
 
 
 def evaluate_V3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
-                authorized_events: Optional[Dict[str, Any]], fund: str) -> Dict[str, Any]:
+                authorized_events: Optional[Dict[str, Any]], fund: str,
+                session: Optional[str] = None,
+                as_of: Optional[str] = None) -> Dict[str, Any]:
     """V3: Fund event → DE-RISK in that fund.
 
     Kind: breaker
@@ -472,22 +512,12 @@ def evaluate_V3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     State contribution: DE-RISK
     Clearing: Owner decides
     """
-    scope = f'fund:{fund}'
-
     # Check for prior latch (canonical format per Q6)
     prior_latch = cst.get_fund_latch(prior_state, 'V3', fund)
     if prior_latch:
-        # Check for authorized re-arm
-        rearm = False
-        if authorized_events:
-            # Handle both list and dict formats
-            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get(scope, [])
-            for event in events_list:
-                if event.get('type') == 'rearm' and (event.get('row') == 'V3' or event.get('row_id') == 'V3'):
-                    if 'fund' in event and event['fund'] != fund:
-                        continue
-                    rearm = True
-                    break
+        rearm = cst.matches_fund_rearm(
+            authorized_events, 'V3', fund, session=session, as_of=as_of, require_date=True
+        ) is not None
 
         if rearm:
             return {
@@ -569,6 +599,19 @@ def evaluate_V4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     else:
         is_active = True
 
+    # Closed/holiday sessions do not advance or reset an active 10-session clearing counter
+    if is_active and market_closed:
+        return {
+            'state': 'NO-NEW-RISK',
+            'would_have_tripped': True,
+            'kind': 'interlock',
+            'latched': False,
+            'reason': 'volatility_below_2x_but_not_yet_cleared',
+            'fund': fund,
+            'outputs': {'clearing_counter': clearing_count},
+            '_preserve_prior_v4_session': True,
+        }
+
     # Evaluate trigger using forecast_volatility from fund inputs
     forecast_volatility = _is_valid_finite_number(inputs.get('forecast_volatility'))
     long_run_volatility = _is_valid_finite_number(inputs.get('long_run_volatility'))
@@ -614,19 +657,6 @@ def evaluate_V4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'latched': False,
             'reason': 'none',
             'fund': fund
-        }
-
-    # Closed/holiday sessions do not count toward the 10-session clearing counter
-    if market_closed:
-        return {
-            'state': 'NO-NEW-RISK',
-            'would_have_tripped': True,
-            'kind': 'interlock',
-            'latched': False,
-            'reason': 'volatility_below_2x_but_not_yet_cleared',
-            'fund': fund,
-            'outputs': {'clearing_counter': clearing_count},
-            '_preserve_prior_v4_session': True,
         }
 
     # In clearing mode - check progress (B4: increment at most once per session)
@@ -730,7 +760,7 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': 'missing_input',
             'fund': fund,
             'outputs': {
-                'excess_shortfall': 0.0,
+                'excess_shortfall': None,
                 'consecutive_sessions_beyond_tolerance': 0,
                 'escalated_to_v1': False,
                 'disposition': 'missing_data' if (shortfall_observed is None or shortfall_predicted is None) else 'invalid_data'
@@ -924,7 +954,7 @@ def evaluate_V7(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # Get quote/liquidity indicators from fund inputs
     quote_staleness = inputs.get('quote_staleness')
     spread_width = inputs.get('spread_width')
-    trading_pause = inputs.get('trading_pause', False)
+    trading_pause = inputs.get('trading_pause')
     session_time = inputs.get('session_time')
 
     # Get spread width threshold from policy (unresolved per §4.5)
@@ -953,16 +983,20 @@ def evaluate_V7(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'fund': fund
         }
 
-    # Fail closed if quote_staleness or spread_width is missing, non-finite, or negative
+    # Fail closed if quote_staleness, spread_width, or trading_pause is missing/non-bool/non-finite/negative
     qs_val = _is_valid_finite_number(quote_staleness)
     sw_val = _is_valid_finite_number(spread_width)
-    if qs_val is None or sw_val is None or qs_val < 0.0 or sw_val < 0.0:
+    if (
+        qs_val is None or sw_val is None or qs_val < 0.0 or sw_val < 0.0 or
+        not isinstance(trading_pause, bool)
+    ):
+        missing_flag = (quote_staleness is None or spread_width is None or trading_pause is None)
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,
             'kind': 'interlock',
             'latched': False,
-            'reason': 'missing_input' if (quote_staleness is None or spread_width is None) else 'quote_or_liquidity_issue',
+            'reason': 'missing_input' if missing_flag else 'quote_or_liquidity_issue',
             'fund': fund
         }
 

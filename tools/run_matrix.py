@@ -121,13 +121,45 @@ def derive_expected_effective_map(
     return expected_map
 
 
-def compare_outcome(actual: Dict[str, Any], expected: Dict[str, Any]) -> Tuple[bool, List[str]]:
+_CANONICAL_ROW_PROJECTION_EXTRAS = {
+    None: {'outputs', 'symbols'},
+    'V4': {'outputs'},
+    'O4': {'symbols'},
+}
+_CANONICAL_OUTPUT_PROJECTION_EXTRAS = {
+    None: {'disposition'},
+    'V5': {'disposition'},
+}
+_CANONICAL_STATE_KEYS = {
+    'O5': {'rejection_count', 'last_rejection_session', 'latched'},
+    'L2': {'latched', 'trip_session'},
+    'L3': {'latched', 'trip_session', 'cooling_off_until', 'loss_record'},
+    'L4': {'latched', 'trip_session', 'details'},
+    'L6': {'latched', 'trip_session', 'details'},
+    'O3': {'latched', 'trip_session', 'details'},
+    'O6': {'latched', 'trip_session', 'details'},
+    'O7': {'latched', 'trip_session', 'details'},
+    'O8': {'latched', 'trip_session'},
+    'O9': {'latched', 'trip_session', 'details'},
+    'V1': {'latched', 'trip_session', 'deviation', 'session_returns'},
+    'V2': {'pending_adjustments', 'latched_mismatches'},
+    'V3': {'latched', 'trip_session', 'details'},
+    'V4': {'clearing_counter', 'last_session_below_threshold'},
+    'V5': {'consecutive_beyond_tolerance', 'escalated', 'last_session'},
+    'O4': {'original_order_id', 'status'},
+}
+
+
+def compare_outcome(
+    actual: Dict[str, Any],
+    expected: Dict[str, Any],
+    row_id: Optional[str] = None,
+) -> Tuple[bool, List[str]]:
     """Compare actual row outcome against expected golden outcome.
 
     Returns (matches, diff_messages).
-    Strips free-text 'reason' field for comparison per §6.1.
-    Per Slice 4(b): compares ALL declared fields including top-level fund, symbol,
-    original_order_id, deviation, counters with strict type equality.
+    Enforces every key declared in expected with strict Python type equality AND
+    rejects non-canonical unexpected extra keys on actual outcomes/outputs.
     """
     diffs = []
 
@@ -142,34 +174,45 @@ def compare_outcome(actual: Dict[str, Any], expected: Dict[str, Any]) -> Tuple[b
     if not strict_value_equal(actual_reason, expected_reason):
         diffs.append(f"  reason: actual={actual_reason!r} != expected={expected_reason!r}")
 
-    # Special mapping for SUC-06 clearing_counter (Slice 4b):
-    if 'clearing_counter' in expected:
-        actual_counter = actual.get('outputs', {}).get('clearing_counter')
-        expected_counter = expected.get('clearing_counter')
-        if not strict_value_equal(actual_counter, expected_counter):
-            diffs.append(
-                f"  clearing_counter: actual={actual_counter!r} (from outputs) != expected={expected_counter!r} (top-level)"
-            )
-
-    # G1.3: Enforce declared top-level successor evidence fields
-    for field in ['fund', 'symbol', 'original_order_id', 'deviation', 'rejection_count_this_session']:
-        if field in expected:
-            if field not in actual:
-                diffs.append(f"  {field}: missing in actual (expected={expected[field]!r})")
-            elif not strict_value_equal(actual[field], expected[field]):
-                diffs.append(f"  {field}: actual={actual[field]!r} != expected={expected[field]!r}")
-
-    # Outputs if present (excluding clearing_counter which is mapped above)
-    if 'outputs' in expected:
-        actual_outputs = actual.get('outputs', {})
-        expected_outputs = expected.get('outputs', {})
-        for key in expected_outputs:
-            if key not in actual_outputs:
-                diffs.append(f"  outputs.{key}: missing in actual")
-            elif not strict_value_equal(actual_outputs[key], expected_outputs[key]):
+    # Enforce EVERY key declared in expected (zero ignored projection fields)
+    for field, exp_val in expected.items():
+        if field in ('state', 'would_have_tripped', 'kind', 'latched', 'reason'):
+            continue
+        if field == 'clearing_counter':
+            actual_counter = actual.get('outputs', {}).get('clearing_counter')
+            if not strict_value_equal(actual_counter, exp_val):
                 diffs.append(
-                    f"  outputs.{key}: actual={actual_outputs[key]!r} != expected={expected_outputs[key]!r}"
+                    f"  clearing_counter: actual={actual_counter!r} (from outputs) != expected={exp_val!r} (top-level)"
                 )
+        elif field == 'outputs':
+            actual_outputs = actual.get('outputs')
+            if not isinstance(actual_outputs, dict) or not isinstance(exp_val, dict):
+                if not strict_value_equal(actual_outputs, exp_val):
+                    diffs.append(f"  outputs: actual={actual_outputs!r} != expected={exp_val!r}")
+                continue
+            for key in exp_val:
+                if key not in actual_outputs:
+                    diffs.append(f"  outputs.{key}: missing in actual")
+                elif not strict_value_equal(actual_outputs[key], exp_val[key]):
+                    diffs.append(
+                        f"  outputs.{key}: actual={actual_outputs[key]!r} != expected={exp_val[key]!r}"
+                    )
+            allowed_out_extras = _CANONICAL_OUTPUT_PROJECTION_EXTRAS.get(row_id, set())
+            extra_out_keys = sorted(set(actual_outputs.keys()) - set(exp_val.keys()) - allowed_out_extras)
+            if extra_out_keys:
+                diffs.append(f"  outputs extra keys in actual: {extra_out_keys}")
+        else:
+            if field not in actual:
+                diffs.append(f"  {field}: missing in actual (expected={exp_val!r})")
+            elif not strict_value_equal(actual[field], exp_val):
+                diffs.append(f"  {field}: actual={actual[field]!r} != expected={exp_val!r}")
+
+    allowed_extras = _CANONICAL_ROW_PROJECTION_EXTRAS.get(row_id, set())
+    if 'clearing_counter' in expected:
+        allowed_extras = allowed_extras | {'outputs'}
+    extra_top_keys = sorted(set(actual.keys()) - set(expected.keys()) - allowed_extras)
+    if extra_top_keys:
+        diffs.append(f"  extra keys in actual: {extra_top_keys}")
 
     return (len(diffs) == 0, diffs)
 
@@ -246,6 +289,11 @@ def compare_next_row_state(actual: Dict[str, Any], expected: Dict[str, Any]) -> 
             if actual_row_state is None:
                 diffs.append(f"  next_row_state.{row_id}: missing in actual")
             elif isinstance(expected_row_state, dict) and isinstance(actual_row_state, dict):
+                allowed_row_keys = _CANONICAL_STATE_KEYS.get(row_id)
+                if row_id == 'O5' or (allowed_row_keys is not None and not any(isinstance(v, dict) for v in actual_row_state.values())):
+                    extra_state_keys = sorted(set(actual_row_state.keys()) - set(expected_row_state.keys()) - (allowed_row_keys or set()))
+                    if extra_state_keys:
+                        diffs.append(f"  next_row_state.{row_id}: extra keys in actual: {extra_state_keys}")
                 # Deep comparison with exact Python type checks (rejects True == 1)
                 for scope_key in expected_row_state:
                     expected_scope_state = expected_row_state[scope_key]
@@ -254,7 +302,11 @@ def compare_next_row_state(actual: Dict[str, Any], expected: Dict[str, Any]) -> 
                     if actual_scope_state is None:
                         diffs.append(f"  next_row_state.{row_id}.{scope_key}: missing in actual")
                     elif isinstance(expected_scope_state, dict) and isinstance(actual_scope_state, dict):
-                        # Fund/symbol keyed: compare expected fields only (actual may have extras)
+                        if allowed_row_keys is not None and row_id != 'V2':
+                            extra_scope_keys = sorted(set(actual_scope_state.keys()) - set(expected_scope_state.keys()) - allowed_row_keys)
+                            if extra_scope_keys:
+                                diffs.append(f"  next_row_state.{row_id}.{scope_key}: extra keys in actual: {extra_scope_keys}")
+                        # Fund/symbol keyed: compare expected fields + reject unexpected non-canonical extras
                         for field in expected_scope_state:
                             if field not in actual_scope_state:
                                 diffs.append(f"  next_row_state.{row_id}.{scope_key}.{field}: missing in actual")
@@ -784,16 +836,16 @@ def run_successor_cases(successor_cases: Dict[str, Any], engine_hash: str) -> Di
                             authorized_events=[]
                         )
                         actual_cnt = rows_by_ID.get('V4', {}).get('outputs', {}).get('clearing_counter')
-                        if actual_cnt != exp_cnt:
+                        if not strict_value_equal(actual_cnt, exp_cnt):
                             case_failed = True
-                            case_diffs.append(f"Step {step_num} ({sess}) V4 clearing_counter={actual_cnt} != {exp_cnt}")
+                            case_diffs.append(f"Step {step_num} ({sess}) V4 clearing_counter={actual_cnt!r} != {exp_cnt!r}")
                             break
                         prior_state = next_row_state
                     if not case_failed:
                         end_cnt = prior_state.get('V4', {}).get('TQQQ', {}).get('clearing_counter')
-                        if end_cnt != step_data.get('counter_at_step_end'):
+                        if not strict_value_equal(end_cnt, step_data.get('counter_at_step_end')):
                             case_failed = True
-                            case_diffs.append(f"Step {step_num} counter_at_step_end={end_cnt} != {step_data.get('counter_at_step_end')}")
+                            case_diffs.append(f"Step {step_num} counter_at_step_end={end_cnt!r} != {step_data.get('counter_at_step_end')!r}")
                 elif 'expected_clearing_counter' in step_data:
                     final_sess = step_data.get('final_session')
                     if summary_sessions[-1] != final_sess:
@@ -815,13 +867,13 @@ def run_successor_cases(successor_cases: Dict[str, Any], engine_hash: str) -> Di
                         )
                         prior_state = next_row_state
                     v4_final = last_rows.get('V4', {})
-                    if v4_final.get('state') != step_data.get('expected_state'):
+                    if not strict_value_equal(v4_final.get('state'), step_data.get('expected_state')):
                         case_failed = True
-                        case_diffs.append(f"Step {step_num} final V4 state={v4_final.get('state')} != {step_data.get('expected_state')}")
-                    if v4_final.get('outputs', {}).get('clearing_counter') != step_data.get('expected_clearing_counter'):
+                        case_diffs.append(f"Step {step_num} final V4 state={v4_final.get('state')!r} != {step_data.get('expected_state')!r}")
+                    if not strict_value_equal(v4_final.get('outputs', {}).get('clearing_counter'), step_data.get('expected_clearing_counter')):
                         case_failed = True
                         case_diffs.append(
-                            f"Step {step_num} final V4 clearing_counter={v4_final.get('outputs', {}).get('clearing_counter')} != {step_data.get('expected_clearing_counter')}"
+                            f"Step {step_num} final V4 clearing_counter={v4_final.get('outputs', {}).get('clearing_counter')!r} != {step_data.get('expected_clearing_counter')!r}"
                         )
                     if prior_state.get('V4') != {}:
                         case_failed = True
@@ -932,7 +984,7 @@ def run_successor_cases(successor_cases: Dict[str, Any], engine_hash: str) -> Di
                 else:
                     # Compare row outcome
                     actual_row = rows_by_ID.get(row_id, {})
-                    outcome_match, outcome_diffs = compare_outcome(actual_row, expected_row)
+                    outcome_match, outcome_diffs = compare_outcome(actual_row, expected_row, row_id=row_id)
                     if not outcome_match:
                         case_failed = True
                         case_diffs.append(f"Step {step_num} row {row_id} mismatch:\n" + "\n".join(outcome_diffs))
@@ -976,6 +1028,33 @@ def compute_engine_hash() -> str:
     return hasher.hexdigest()
 
 
+def verify_freeze_manifest(goldens_dir: Path, freeze: Dict[str, Any]) -> Tuple[str, List[str]]:
+    """Independently recompute SHA-256 of golden files & combined_freeze_hash from disk."""
+    errors: List[str] = []
+    declared_hashes = freeze.get('file_hashes', {})
+    required_files = ('scenarios.json', 'golden-table.json', 'successor-cases.json')
+    recomputed: Dict[str, str] = {}
+    for fname in required_files:
+        fpath = goldens_dir / fname
+        if not fpath.exists():
+            errors.append(f"Missing frozen artifact: {fpath}")
+            continue
+        digest = hashlib.sha256(fpath.read_bytes()).hexdigest()
+        recomputed[fname] = digest
+        if declared_hashes.get(fname) != digest:
+            errors.append(
+                f"Freeze file_hashes[{fname!r}] mismatch: manifest={declared_hashes.get(fname)!r} != disk={digest!r}"
+            )
+    combined = hashlib.sha256(
+        "\n".join(recomputed[k] for k in sorted(recomputed.keys())).encode('utf-8')
+    ).hexdigest() if len(recomputed) == len(required_files) else ''
+    if freeze.get('combined_freeze_hash') != combined:
+        errors.append(
+            f"Freeze combined_freeze_hash mismatch: manifest={freeze.get('combined_freeze_hash')!r} != recomputed={combined!r}"
+        )
+    return combined, errors
+
+
 def main():
     parser = argparse.ArgumentParser(description='Run FUSE-1 trip matrix')
     parser.add_argument('--output', type=Path, help='Output JSON path for results bundle')
@@ -986,12 +1065,18 @@ def main():
     repo_root = Path(__file__).parent.parent
     goldens_dir = repo_root / 'goldens'
 
-    # Load artifacts
+    # Load artifacts & independently verify FREEZE.json SHA-256 digests from disk
     print("Loading frozen artifacts...")
     scenarios = load_json(goldens_dir / 'scenarios.json')
     golden_table = load_json(goldens_dir / 'golden-table.json')
     successor_cases = load_json(goldens_dir / 'successor-cases.json')
     freeze = load_json(goldens_dir / 'FREEZE.json')
+    recomputed_freeze_hash, freeze_errors = verify_freeze_manifest(goldens_dir, freeze)
+    if freeze_errors:
+        for err in freeze_errors:
+            print(f"ERROR: {err}", file=sys.stderr)
+        if args.strict:
+            sys.exit(1)
 
     # Compute engine hash
     engine_hash = compute_engine_hash()
@@ -1015,7 +1100,7 @@ def main():
         'description': 'FUSE-1 trip matrix execution results',
         'spec_version': 'fuse-eval-spec/v1',
         'engine_hash': engine_hash,
-        'freeze_hash': freeze['combined_freeze_hash'],
+        'freeze_hash': recomputed_freeze_hash,
         'enforcement_mode': 'shadow_would_have_tripped',
         'loss_breakers_armed': False,
         'base_cells': base_results,

@@ -264,6 +264,29 @@ class TestBoundOutputBundle(unittest.TestCase):
                         scenario, {}, []
                     )
 
+    def test_zero_file_io_during_evaluate_and_spec_version_check(self):
+        """R5 (G): evaluate() performs zero file I/O (precomputed engine_hash) and rejects invalid spec_version."""
+        import json
+        from unittest.mock import patch
+        vi = json.loads(
+            (repo_root / "goldens" / "scenarios.json").read_text(encoding="utf-8")
+        )["scenarios"]["normal"]["inputs"]["validated_inputs"]
+
+        with patch("pathlib.Path.read_bytes", side_effect=AssertionError("Unexpected file I/O in evaluate()")), \
+             patch("builtins.open", side_effect=AssertionError("Unexpected open() in evaluate()")):
+            rows, _, nxt = engine.evaluate(
+                "fuse-eval-spec/v1", "test-hash", "registered_policy_hash_v1",
+                "2026-01-05", "2026-01-05T16:00:00Z", "shadow", vi, {}, []
+            )
+        self.assertEqual(len(rows), 24)
+        self.assertEqual(nxt["engine_hash"], engine.compute_engine_hash())
+
+        with self.assertRaises(ValueError):
+            engine.evaluate(
+                "fuse-eval-spec/v999", "test-hash", "registered_policy_hash_v1",
+                "2026-01-05", "2026-01-05T16:00:00Z", "shadow", vi, {}, []
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

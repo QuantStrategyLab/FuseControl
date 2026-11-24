@@ -100,6 +100,8 @@ def evaluate(
             }
         rows_by_ID[row_id] = row_data
 
+    single_fund = fund_symbols[0] if len(fund_symbols) == 1 else None
+
     # Vehicle rows (V1-V7) - fund/symbol scope
     # Note: V4 aggregate has no 'outputs' field (per-fund only)
     for row_id in ['V1', 'V2', 'V3', 'V4']:
@@ -110,16 +112,19 @@ def evaluate(
             'V4': 'interlock'
         }[row_id]
 
-        rows_by_ID[row_id] = {
+        row_data = {
             'state': 'NORMAL',
             'would_have_tripped': False,
             'kind': kind,
             'latched': False,
             'reason': 'none'
         }
+        if single_fund is not None:
+            row_data['fund'] = single_fund
+        rows_by_ID[row_id] = row_data
 
     # V5 - diagnostic with structured outputs (unresolved case per test inputs)
-    rows_by_ID['V5'] = {
+    v5_row = {
         'state': 'NORMAL',
         'would_have_tripped': True,
         'kind': 'diagnostic',
@@ -132,9 +137,12 @@ def evaluate(
             'disposition': 'UNRESOLVED-FAIL-CLOSED'
         }
     }
+    if single_fund is not None:
+        v5_row['fund'] = single_fund
+    rows_by_ID['V5'] = v5_row
 
     # V6 - diagnostic with structured outputs (missing inputs case)
-    rows_by_ID['V6'] = {
+    v6_row = {
         'state': 'NORMAL',
         'would_have_tripped': False,
         'kind': 'diagnostic',
@@ -147,6 +155,9 @@ def evaluate(
             'notify': False
         }
     }
+    if single_fund is not None:
+        v6_row['fund'] = single_fund
+    rows_by_ID['V6'] = v6_row
 
     # V7 - symbol-scoped interlock (unresolved spread width trips without extra symbols key)
     rows_by_ID['V7'] = {
@@ -213,13 +224,16 @@ def evaluate(
             o4_row['symbols'] = list(timed_out_symbols)
         rows_by_ID['O4'] = o4_row
     else:
-        rows_by_ID['O4'] = {
+        o4_row = {
             'state': 'NORMAL',
             'would_have_tripped': False,
             'kind': 'interlock_or_breaker',
             'latched': False,
             'reason': 'none'
         }
+        if len(all_symbols) == 1:
+            o4_row['symbol'] = all_symbols[0]
+        rows_by_ID['O4'] = o4_row
 
     # J1 - joint scope limit
     rows_by_ID['J1'] = {

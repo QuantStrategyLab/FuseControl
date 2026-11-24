@@ -6,7 +6,6 @@ Implements the §5.1 signature with all 24 rows fully evaluated.
 import copy
 import hashlib
 from datetime import date, timedelta
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, Optional
 from . import rows_loss
@@ -17,14 +16,21 @@ from . import canonical_state as cst
 from .canonical import finite_float
 
 
-@lru_cache(maxsize=1)
-def compute_engine_hash() -> str:
+def _compute_canonical_engine_hash() -> str:
     """Compute canonical SHA-256 of sorted src/fuse_engine/*.py source bytes (§5.3)."""
     engine_dir = Path(__file__).resolve().parent
     hasher = hashlib.sha256()
     for py_file in sorted(engine_dir.glob('*.py')):
         hasher.update(py_file.read_bytes())
     return hasher.hexdigest()
+
+
+_CANONICAL_ENGINE_HASH = _compute_canonical_engine_hash()
+
+
+def compute_engine_hash() -> str:
+    """Return precomputed canonical engine bundle SHA-256 (zero runtime I/O in evaluate)."""
+    return _CANONICAL_ENGINE_HASH
 
 
 def _fund_sort_key(symbol: str) -> tuple[int, str]:
@@ -75,12 +81,14 @@ def evaluate(
         - effective_state_by_scope: precedence-resolved state per scope
         - next_row_state: complete successor state for next evaluation
     """
-    # A10 / Brief §0.4: FUSE-1 operates exclusively in read-only shadow mode
+    # A10 / §5.1: Validate spec_version and FUSE-1 shadow-only mode contract
+    if spec_version != 'fuse-eval-spec/v1':
+        raise ValueError(f"Unsupported spec_version: {spec_version!r}; expected 'fuse-eval-spec/v1'")
     if mode != 'shadow':
         raise ValueError(f"FUSE-1 operates in shadow mode only; forbidden mode={mode!r}")
 
-    # §5.3: Always bind authentic canonical engine hash; reject mismatched 64-hex pinned digests
-    canonical_engine_hash = compute_engine_hash()
+    # §5.2 / §5.3: Use precomputed canonical engine hash (zero file I/O); reject mismatched 64-hex pinned digests
+    canonical_engine_hash = _CANONICAL_ENGINE_HASH
     if (
         isinstance(engine_hash, str) and
         len(engine_hash) == 64 and
@@ -92,45 +100,56 @@ def evaluate(
         )
 
     # Initialize outputs
-    if prior_row_state is None:
+    if prior_row_state is None or not isinstance(prior_row_state, dict):
         prior_row_state = {}
     if authorized_events is None:
         authorized_events = {}
+    if validated_inputs is None or not isinstance(validated_inputs, dict):
+        validated_inputs = {}
 
     # Initialize next_row_state
     next_row_state = st.init_next_state()
 
-    # Get funds from inputs (sorted canonically for dict-order independence)
-    funds = validated_inputs.get('funds', {})
+    # Get funds safely (null/non-dict guards prevent AttributeError on public evaluate())
+    raw_funds = validated_inputs.get('funds')
+    funds = raw_funds if isinstance(raw_funds, dict) else {}
     fund_symbols = sorted(funds.keys(), key=_fund_sort_key)
 
     # Build scopes: enumerate symbols from funds, pending_orders, AND durable O4 (Q6 wiring)
-    # Use deterministic sorted ordering (A07.4: avoid PYTHONHASHSEED-dependent set iteration)
     all_symbols_set = set(fund_symbols)
-    pending_orders = validated_inputs.get('pending_orders', {})
+    raw_pending_orders = validated_inputs.get('pending_orders')
+    pending_orders = raw_pending_orders if isinstance(raw_pending_orders, dict) else {}
     all_symbols_set.update(pending_orders.keys())
     # Add symbols from durable O4 state
-    if prior_row_state and 'O4' in prior_row_state:
-        all_symbols_set.update(prior_row_state['O4'].keys())
+    prior_o4 = prior_row_state.get('O4')
+    if isinstance(prior_o4, dict):
+        all_symbols_set.update(prior_o4.keys())
     all_symbols = sorted(all_symbols_set)
 
-    # Also track any prior restricted funds (V1/V2/V3/V4) omitted from current funds dict (A07.2 / A08)
+    # Also track any prior restricted funds (V1/V2/V3/V4/V5 escalated) omitted from current funds dict
     prior_latched_funds = set()
     if prior_row_state:
-        for fn, fstate in prior_row_state.get('V1', {}).items():
+        for fn, fstate in (prior_row_state.get('V1') or {}).items():
             if isinstance(fstate, dict) and fstate.get('latched') and fn not in funds:
                 prior_latched_funds.add(fn)
-        for fn, mstate in prior_row_state.get('V2', {}).get('latched_mismatches', {}).items():
-            if mstate and fn not in funds:
-                prior_latched_funds.add(fn)
-        for fn, pstate in prior_row_state.get('V2', {}).get('pending_adjustments', {}).items():
-            if pstate and fn not in funds:
-                prior_latched_funds.add(fn)
-        for fn, v3state in prior_row_state.get('V3', {}).items():
+        prior_v2 = prior_row_state.get('V2') or {}
+        if isinstance(prior_v2, dict):
+            for fn, mstate in (prior_v2.get('latched_mismatches') or {}).items():
+                if mstate and fn not in funds:
+                    prior_latched_funds.add(fn)
+            for fn, pstate in (prior_v2.get('pending_adjustments') or {}).items():
+                if pstate and fn not in funds:
+                    prior_latched_funds.add(fn)
+        for fn, v3state in (prior_row_state.get('V3') or {}).items():
             if isinstance(v3state, dict) and v3state.get('latched') and fn not in funds:
                 prior_latched_funds.add(fn)
-        for fn, v4state in prior_row_state.get('V4', {}).items():
+        for fn, v4state in (prior_row_state.get('V4') or {}).items():
             if isinstance(v4state, dict) and v4state.get('clearing_counter') is not None and fn not in funds:
+                prior_latched_funds.add(fn)
+        for fn, v5state in (prior_row_state.get('V5') or {}).items():
+            if isinstance(v5state, dict) and fn not in funds and (
+                v5state.get('escalated') or (v5state.get('consecutive_beyond_tolerance') or 0) >= 40
+            ):
                 prior_latched_funds.add(fn)
 
     scopes = ['account']
@@ -204,12 +223,20 @@ def evaluate(
         # Loss record is never cleared (§4.3 L3)
         cst.clear_l3_lock(next_row_state, prior_row_state['L3']['loss_record'])
 
+    market_closed = (
+        validated_inputs.get('session_calendar_status') in ('holiday', 'closed', 'market_closed') or
+        validated_inputs.get('exchange_status') in ('holiday', 'closed', 'market_closed')
+    )
+
     # L4 - one-session loss D/10 breaker (canonical per Q6; A07.3 preserve original trip_session)
-    l4_result = rows_loss.evaluate_L4(validated_inputs, prior_row_state, authorized_events, session=session, as_of=as_of)
+    l4_result = rows_loss.evaluate_L4(
+        validated_inputs, prior_row_state, authorized_events,
+        session=session, as_of=as_of, market_closed=market_closed,
+    )
     rows_by_ID['L4'] = l4_result
     if l4_result['latched']:
         prior_latch = cst.get_account_latch(prior_row_state, 'L4')
-        trip_session = prior_latch['trip_session'] if prior_latch and prior_latch.get('trip_session') else session
+        trip_session = prior_latch['trip_session'] if prior_latch and prior_latch.get('trip_session') else cst.canonical_session_date(session, as_of)
         cst.set_account_latch(next_row_state, 'L4', trip_session)
     elif l4_result['reason'] == 'authorized_rearm':
         next_row_state['L4'] = {}
@@ -218,7 +245,7 @@ def evaluate(
     l5_result = rows_loss.evaluate_L5(validated_inputs, prior_row_state, authorized_events, session, as_of=as_of)
     rows_by_ID['L5'] = l5_result
     prior_l5 = cst.get_l5_state(prior_row_state)
-    l5_cur_date = as_of[:10] if isinstance(as_of, str) and len(as_of) >= 10 else session
+    l5_cur_date = cst.canonical_session_date(session, as_of)
     if l5_result['reason'] == 'market_halt_level_1_or_2':
         cst.set_l5_active_trip(next_row_state, l5_cur_date)
     elif l5_result['reason'] == 'clearing_period':
@@ -235,7 +262,7 @@ def evaluate(
     # L6 - market halt L3 or 10% index fall breaker (canonical per Q6; rearm requires reconciliation)
     l6_result = rows_loss.evaluate_L6(
         validated_inputs, prior_row_state, authorized_events,
-        session=session, as_of=as_of, o3_failed=o3_failed
+        session=session, as_of=as_of, o3_failed=o3_failed, market_closed=market_closed,
     )
     rows_by_ID['L6'] = l6_result
     if l6_result['latched']:
@@ -256,18 +283,13 @@ def evaluate(
     v6_outputs = {}
     v7_outputs = {}
 
-    market_closed = (
-        validated_inputs.get('session_calendar_status') in ('holiday', 'closed', 'market_closed') or
-        validated_inputs.get('exchange_status') in ('holiday', 'closed')
-    )
-
     for symbol in fund_symbols:
-        fund_inputs = funds[symbol]
+        fund_inputs = funds[symbol] if isinstance(funds[symbol], dict) else {}
 
         # V1 - tracking deviation (canonical format per Q6; 1-session and 5-session per §4.3/§6)
         v1_result = rows_vehicle.evaluate_V1(
             fund_inputs, prior_row_state, authorized_events, symbol,
-            session=session, market_closed=market_closed
+            session=session, market_closed=market_closed, as_of=as_of,
         )
         session_returns = v1_result.pop('_session_returns', None)
         v1_outputs[symbol] = v1_result
@@ -288,66 +310,88 @@ def evaluate(
             cst.clear_v1_latch(next_row_state, symbol)
 
         # V2 - corporate action
-        v2_result = rows_vehicle.evaluate_V2(fund_inputs, prior_row_state, authorized_events, symbol)
+        v2_result = rows_vehicle.evaluate_V2(
+            fund_inputs, prior_row_state, authorized_events, symbol,
+            session=session, as_of=as_of,
+        )
         v2_reconcile_target = v2_result.pop('_v2_reconcile_target', None)
+        v2_mismatch_target = v2_result.pop('_v2_mismatch_target', None)
+        v2_clear_mismatch_only = v2_result.pop('_v2_clear_mismatch_only', False)
         v2_outputs[symbol] = v2_result
 
-        # B1: Store V2 latches and mismatch details (SUC-02) - canonical format per Q6
+        # B1: Store V2 latches and finite-sanitized mismatch details (SUC-02) - canonical format per Q6
         if v2_result['latched']:
-            # For new reconciliation_mismatch, store mismatch details
+            # For new reconciliation_mismatch, store finite mismatch details
             if v2_result['reason'] == 'reconciliation_mismatch':
                 corporate_action = fund_inputs.get('corporate_action', {})
-                lv = fund_inputs.get('ledger_value')
-                bv = fund_inputs.get('broker_value')
-                try:
-                    mismatch_amt = abs(float(lv) - float(bv)) if (lv is not None and bv is not None) else None
-                except (TypeError, ValueError):
-                    mismatch_amt = None
+                lv_clean = finite_float(fund_inputs.get('ledger_value'))
+                bv_clean = finite_float(fund_inputs.get('broker_value'))
+                mismatch_amt = abs(lv_clean - bv_clean) if (lv_clean is not None and bv_clean is not None) else None
                 mismatch_details = {
                     'type': corporate_action.get('type') if isinstance(corporate_action, dict) else 'unknown',
-                    'ledger_value': lv,
-                    'broker_value': bv,
+                    'ledger_value': lv_clean,
+                    'broker_value': bv_clean,
                     'mismatch': mismatch_amt
                 }
                 cst.set_v2_latched_mismatch(next_row_state, symbol, mismatch_details)
-                if cst.get_v2_pending_adjustment(prior_row_state, symbol):
-                    cst.clear_v2_pending_adjustment(next_row_state, symbol)
             # For persisting latch (latched_prior_mismatch), carry forward details
             elif v2_result['reason'] == 'latched_prior_mismatch':
                 prior_mismatch = cst.get_v2_latched_mismatch(prior_row_state, symbol)
                 if prior_mismatch:
                     cst.set_v2_latched_mismatch(next_row_state, symbol, prior_mismatch)
         else:
-            # Clear latch on re-arm (Q4 short-circuit)
-            if v2_result['reason'] == 'authorized_rearm':
+            # Clear mismatch latch on Q4 re-arm even if carried pending actions remain
+            if v2_result['reason'] == 'authorized_rearm' or v2_clear_mismatch_only:
                 cst.clear_v2_latched_mismatch(next_row_state, symbol)
 
-        # Update pending state (B1 canonical format per Q6; never overwrite unresolved prior action)
+        # Update pending state (B1 canonical format per Q6; never drop unrelated queued/primary items)
         prior_pending = cst.get_v2_pending_adjustment(prior_row_state, symbol)
-        if v2_result['reason'] in ['pending_corporate_action', 'pending_corporate_action_carried']:
-            corporate_action = fund_inputs.get('corporate_action')
-            if v2_reconcile_target == 'primary' and prior_pending:
-                q_list = list(prior_pending.get('queued_actions') or [])
+
+        def _drop_pending_target(pending_obj: Dict[str, Any], target: Any) -> Optional[Dict[str, Any]]:
+            updated = copy.deepcopy(pending_obj)
+            if target == 'primary':
+                q_list = list(updated.get('queued_actions') or [])
+                if not q_list:
+                    return None
                 promoted = q_list.pop(0)
-                new_pending = {
+                new_p = {
                     'type': promoted.get('type'),
                     'ratio': promoted.get('ratio'),
                     'awaiting_reconciliation': True
                 }
                 if q_list:
-                    new_pending['queued_actions'] = q_list
-                cst.set_v2_pending_adjustment(next_row_state, symbol, new_pending)
-            elif isinstance(v2_reconcile_target, tuple) and v2_reconcile_target[0] == 'queued' and prior_pending:
-                new_pending = copy.deepcopy(prior_pending)
-                q_list = list(new_pending.get('queued_actions') or [])
-                idx_to_pop = v2_reconcile_target[1]
+                    new_p['queued_actions'] = q_list
+                return new_p
+            if isinstance(target, tuple) and target[0] == 'queued':
+                q_list = list(updated.get('queued_actions') or [])
+                idx_to_pop = target[1]
                 if 0 <= idx_to_pop < len(q_list):
                     q_list.pop(idx_to_pop)
                 if q_list:
-                    new_pending['queued_actions'] = q_list
+                    updated['queued_actions'] = q_list
                 else:
-                    new_pending.pop('queued_actions', None)
-                cst.set_v2_pending_adjustment(next_row_state, symbol, new_pending)
+                    updated.pop('queued_actions', None)
+                return updated
+            return updated
+
+        if v2_result['reason'] == 'reconciliation_mismatch':
+            if prior_pending:
+                if v2_mismatch_target is not None:
+                    remaining_pending = _drop_pending_target(prior_pending, v2_mismatch_target)
+                    if remaining_pending is not None:
+                        cst.set_v2_pending_adjustment(next_row_state, symbol, remaining_pending)
+                    else:
+                        cst.clear_v2_pending_adjustment(next_row_state, symbol)
+                else:
+                    cst.set_v2_pending_adjustment(next_row_state, symbol, copy.deepcopy(prior_pending))
+        elif v2_result['reason'] in ['pending_corporate_action', 'pending_corporate_action_carried']:
+            corporate_action = fund_inputs.get('corporate_action')
+            if v2_reconcile_target is not None and prior_pending:
+                remaining_pending = _drop_pending_target(prior_pending, v2_reconcile_target)
+                if remaining_pending is not None:
+                    cst.set_v2_pending_adjustment(next_row_state, symbol, remaining_pending)
+                else:
+                    cst.clear_v2_pending_adjustment(next_row_state, symbol)
             elif prior_pending:
                 new_pending = copy.deepcopy(prior_pending)
                 if isinstance(corporate_action, dict) and corporate_action.get('type'):
@@ -371,14 +415,17 @@ def evaluate(
                 }
                 cst.set_v2_pending_adjustment(next_row_state, symbol, pending)
         elif v2_result['reason'] in ('exact_reconciliation_auto_clear', 'authorized_rearm'):
-            # Clear pending on exact reconciliation or authorized re-arm (Q4)
+            # Clear pending on exact reconciliation or authorized re-arm (only when no pending remained)
             cst.clear_v2_pending_adjustment(next_row_state, symbol)
-        elif v2_result['reason'] != 'reconciliation_mismatch':
+        else:
             if prior_pending:
                 cst.set_v2_pending_adjustment(next_row_state, symbol, copy.deepcopy(prior_pending))
 
         # V3 - fund event (canonical format per Q6)
-        v3_result = rows_vehicle.evaluate_V3(fund_inputs, prior_row_state, authorized_events, symbol)
+        v3_result = rows_vehicle.evaluate_V3(
+            fund_inputs, prior_row_state, authorized_events, symbol,
+            session=session, as_of=as_of,
+        )
         v3_outputs[symbol] = v3_result
         if v3_result['latched']:
             # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
@@ -464,7 +511,7 @@ def evaluate(
     o1_result = rows_ops.evaluate_O1(validated_inputs, prior_row_state, authorized_events, session, as_of=as_of)
     rows_by_ID['O1'] = o1_result
     o1_state = cst.get_o1_fresh_state(prior_row_state)
-    o1_cur_date = as_of[:10] if isinstance(as_of, str) and len(as_of) >= 10 else session
+    o1_cur_date = cst.canonical_session_date(session, as_of)
     if o1_result['reason'] == 'clearing_period':
         cst.set_o1_fresh_state(
             next_row_state, 0, o1_cur_date,
@@ -505,9 +552,9 @@ def evaluate(
     restart_marker = validated_inputs.get('restart_marker')
 
     for symbol in all_symbols:
-        # Build order input for this symbol
+        # Build order input for this symbol safely even if funds[symbol] is missing/non-dict
         order_input = {}
-        if symbol in funds:
+        if symbol in funds and isinstance(funds[symbol], dict):
             order_input = funds[symbol].copy()
 
         # Add pending order if present
@@ -569,9 +616,17 @@ def evaluate(
     elif o7_result['reason'] == 'authorized_rearm':
         next_row_state['O7'] = {}
 
-    # O8 - kill switch
-    o8_result = rows_ops.evaluate_O8(validated_inputs, prior_row_state, authorized_events)
+    # O8 - kill switch (persists latch ONLY when fired/active; omits O8 from clean next_row_state)
+    o8_result = rows_ops.evaluate_O8(
+        validated_inputs, prior_row_state, authorized_events, session=session, as_of=as_of
+    )
     rows_by_ID['O8'] = o8_result
+    if o8_result['latched']:
+        prior_latch = cst.get_account_latch(prior_row_state, 'O8')
+        trip_session = prior_latch['trip_session'] if prior_latch and prior_latch.get('trip_session') else cst.canonical_session_date(session, as_of)
+        next_row_state['O8'] = {'latched': True, 'trip_session': trip_session}
+    elif o8_result['reason'] == 'authorized_rearm':
+        next_row_state['O8'] = {}
 
     # O9 - unauthorized parameter change (canonical format per Q6)
     o9_result = rows_ops.evaluate_O9(validated_inputs, prior_row_state, authorized_events, session=session, as_of=as_of)
@@ -675,20 +730,39 @@ def evaluate(
                             'outputs': {'clearing_counter': v4_fund_state['clearing_counter']}
                         }
 
-        # Re-aggregate V1/V2/V3/V4 if absent restricted funds were carried into outputs
+        # Preserve V5 state and escalated restrictions for funds omitted from current inputs
+        if 'V5' in prior_row_state and isinstance(prior_row_state['V5'], dict):
+            if 'V5' not in next_row_state:
+                next_row_state['V5'] = {}
+            for fund in sorted(prior_row_state['V5'].keys()):
+                v5_fund_state = prior_row_state['V5'][fund]
+                if fund not in fund_symbols and fund not in next_row_state['V5']:
+                    next_row_state['V5'][fund] = copy.deepcopy(v5_fund_state)
+                if fund not in fund_symbols and isinstance(v5_fund_state, dict) and (
+                    v5_fund_state.get('escalated') or (v5_fund_state.get('consecutive_beyond_tolerance') or 0) >= 40
+                ):
+                    v5_outputs[fund] = {
+                        'state': 'NO-NEW-RISK',
+                        'would_have_tripped': True,
+                        'kind': 'diagnostic',
+                        'latched': False,
+                        'reason': 'escalated_to_v1_treatment',
+                        'fund': fund,
+                        'outputs': {
+                            'excess_shortfall': None,
+                            'consecutive_sessions_beyond_tolerance': v5_fund_state.get('consecutive_beyond_tolerance', 40),
+                            'escalated_to_v1': True,
+                            'disposition': 'escalated_to_v1',
+                        },
+                    }
+
+        # Re-aggregate V1/V2/V3/V4/V5 if absent restricted/escalated funds were carried into outputs
         if prior_latched_funds:
             rows_by_ID['V1'] = aggregate_fund_row(v1_outputs)
             rows_by_ID['V2'] = aggregate_fund_row(v2_outputs)
             rows_by_ID['V3'] = aggregate_fund_row(v3_outputs)
             rows_by_ID['V4'] = aggregate_fund_row(v4_outputs)
-
-        # Preserve V5 state for funds not evaluated
-        if 'V5' in prior_row_state:
-            if 'V5' not in next_row_state:
-                next_row_state['V5'] = {}
-            for fund, v5_fund_state in prior_row_state['V5'].items():
-                if fund not in fund_symbols and fund not in next_row_state['V5']:
-                    next_row_state['V5'][fund] = v5_fund_state
+            rows_by_ID['V5'] = aggregate_diagnostic_row(v5_outputs)
 
         # O4 already preserved via symbol enumeration (all_symbols includes prior O4 keys)
 
@@ -841,8 +915,8 @@ def aggregate_fund_row(
         'reason': reason
     }
 
-    # Include per-fund outputs in deterministic order
-    if 'outputs' in sample:
+    # Include per-fund outputs in deterministic order whenever any fund emits outputs
+    if any('outputs' in fund_outputs[symbol] for symbol in ordered_keys):
         if len(ordered_keys) == 1:
             single_fund = ordered_keys[0]
             aggregate['outputs'] = copy.deepcopy(fund_outputs[single_fund].get('outputs', {}))
