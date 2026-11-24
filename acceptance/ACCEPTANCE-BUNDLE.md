@@ -3,13 +3,13 @@
 - **Branch:** `demo/fuse1-sonnet`
 - **Spec version:** `fuse-eval-spec/v1`
 - **Golden freeze version:** `fuse-eval-spec/v2` (`1da74ca5...`, owner-approved v2 refreeze `2026-11-24`, 0 bytes changed vs `710758c`)
-- **Code / fixture / tool / test head:** `98f15b724761bfcfa8190c849e626246c8099dd3` (`@codex` O5 P1 & framed engine hash remediation at `98f15b7` on top of `0d092dd`/`4f8f482`/`e9639f5`/`57c813b`/`882df2a`/`c39f4d0`/`0c9eb43`/`d816cca`/`72d5020`/`de50e4f`/`5ad8072`/`440373c`/`3a14e18`/`f9b6b3a`/`841b7cb`/`e3a7aba`/`18f8cdd`/`3277881`/`ef79aee`/`b1e2ec6`/`9335f26`/`710758c`/`d27f51a`/`b3084d7`; this bundle/docs commit follows)
+- **Code / fixture / tool / test head:** `ce51c92dfa466b2d609daed806f8b9c97ce80159` (`@codex` / `gpt-6.2-astra` O5 P1 & framed engine hash remediation at `ce51c92` on top of `a684584`/`98f15b7`/`0d092dd`/`4f8f482`/`e9639f5`/`57c813b`/`882df2a`/`c39f4d0`/`0c9eb43`/`d816cca`/`72d5020`/`de50e4f`/`5ad8072`/`440373c`/`3a14e18`/`f9b6b3a`/`841b7cb`/`e3a7aba`/`18f8cdd`/`3277881`/`ef79aee`/`b1e2ec6`/`9335f26`/`710758c`/`d27f51a`/`b3084d7`; this bundle/docs commit follows)
 
 ## Artifact Hashes
 
 ### Engine Hash (§5.3)
 ```
-050f04fea817e8e4169ab94b1edd78e752d81a55bf1e2c5cf4f8e69f97093cf1
+f0b882051c69edecb89270bc450410bb5f11a4a5abaaac3753f3046cf0e1974e
 ```
 
 Computed from canonical bundle (8 sorted Python files):
@@ -55,11 +55,11 @@ src/fuse_engine/state.py
 ### Result Bundle Hash
 
 ```
-4f50399b38970b19e61d8fc863c28b2009f514e5010adfc21b6ea265b5df798e
+d769477a052470331228c655a872161e01b25540034cc1b9a83c4a427e6bff65
 ```
-File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `ff5708c9d5a2e0bb89111e5fbf2f58dea121da764b98417e8f6a365948c6632e`.
+File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `ddfe37c87e96fa1cb58b00840c404fcc24d0b9aa4a994e87651dc4849d695bca`.
 
-## Matrix Results (Head `98f15b7`, `@codex` O5 P1 & Framed Hash Remediation Applied; Option A v2 `goldens/` Freeze Unchanged)
+## Matrix Results (Head `ce51c92`, `@codex` / `gpt-6.2-astra` O5 P1 & Framed Hash Remediation Applied; Option A v2 `goldens/` Freeze Unchanged)
 
 | Section | Passed | Failed | Total | % |
 |---------|--------|--------|-------|---|
@@ -82,7 +82,7 @@ File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `ff5708c9d5
 | F1-A03 | Matrix exact agreement | ✓ PASS (`264/264` strict type/raw dict + formal runner `264/264` §4.1 scope maps; `13/13` successor incl. `SUC-08` 70 continuous calls, `SUC-11`, `SUC-06/5`, `SUC-07/3`; `FREEZE.json` SHA-256 verified from disk) |
 | F1-A04 | Tier repetitions | ✓ EXECUTED (`132/132` formal runner full-key strict equality w/ real `0.4/0.6/0.8 × bankroll` caps, `tier_change` balanced+aggressive coverage, frozen priors, and `-1` cap mutation detection `110/22`) |
 | F1-A05 | Determinism | ✓ PASS (independent runs, `PYTHONHASHSEED=1,2,3`, `canonical_json` round-trip, zero file I/O in `evaluate()`, and swapped-order multi-fund V5/V6 produce identical outputs) |
-| F1-A06 | Fail-closed battery | ✓ PASS (Option A / frozen v2 bounds preserved at 0 diff bytes: `L0`/`L1`/`L2` `NaN`/`bool`; `L6` `{}` & `< 2` indices; `O1` blocks open-market `index_one_session_returns=None`/empty/non-finite even with contradictory `market_closed=True` alongside open calendar/exchange statuses, preserving `missing.L6 == NORMAL` and genuine `holiday`/`closed` `O1 == NORMAL`; `SUC-05` minimal `['source_records','tier']` Step 7; `O3` empty `funds`; `O5` conflicting symbol/whitelist/account/qty/side/order_value/price aliases, dollar-order `max_order_size` check via `ov_dec / eff_price`, missing/`null` `session_order_count`/`session_turnover` under caps, mandatory price collar when `order_present`, mandatory whitelisted `account` on active orders, projected turnover overrun `tt + proposed_notional > max_turnover`, `order_size <= 0`, exact `Decimal` notional/collar bounds (`3 * 33.20 == 99.60`), unbounded buys, empty `account_whitelist=[]` & null `account`/`account_whitelist`/notional/`settled_cash`/long-only sells; `O6` blank hashes; `O9` rejecting `"param": "limits"`/`"funds"`; `V5` `excess_shortfall=None` & holiday `UNRESOLVED-FAIL-CLOSED`; `V7` non-bool `trading_pause` & proposed order symbols outside `funds`; `evaluate()` null guards) |
+| F1-A06 | Fail-closed battery | ✓ PASS (Option A / frozen v2 bounds preserved at 0 diff bytes: `L0`/`L1`/`L2` `NaN`/`bool`; `L6` `{}` & `< 2` indices; `O1` blocks open-market `index_one_session_returns=None`/empty/non-finite even with contradictory `market_closed=True` alongside open calendar/exchange statuses, preserving `missing.L6 == NORMAL` and genuine `holiday`/`closed` `O1 == NORMAL`; `SUC-05` minimal `['source_records','tier']` Step 7; `O3` empty `funds`; `O5` conflicting symbol/whitelist/account/qty/side/order_value/price aliases, dollar-order & dual `qty+order_value` `max_order_size` check via `ov_dec / eff_price`, missing/`null` `session_order_count`/`session_turnover` under caps, mandatory price collar when `order_present`, mandatory whitelisted `account` on active orders, projected turnover overrun `tt + proposed_notional > max_turnover`, `order_size <= 0`, exact `Decimal` notional/collar bounds (`3 * 33.20 == 99.60`), unbounded buys, empty `account_whitelist=[]` & null `account`/`account_whitelist`/notional/`settled_cash`/long-only sells; `O6` blank hashes; `O9` rejecting `"param": "limits"`/`"funds"`; `V5` `excess_shortfall=None` & holiday `UNRESOLVED-FAIL-CLOSED`; `V7` non-bool `trading_pause` & proposed order symbols outside `funds`; `evaluate()` null guards) |
 | F1-A07 | Persistence battery | ✓ PASS (O8 kill-switch latch & Q4 clear; V2 carries forward `pending_action_identities` & `latched_mismatch_actions` on omitted funds, enqueues distinct CA incl. same-type different-details during active mismatch latch & retains pending items across mismatch rearm until reconciled, exact string `action_id` (`"001" != "1"`) & date identity matching, strict non-maskable `bool` `hwm_adjusted` across top/fund/CA incl. rejecting explicit `null`, finite mismatch state; V1 `five_session_history=[]` preservation, 5-entry `five_session_history` bootstrap still appends current session, & holiday preservation; V4 holiday freeze before `triggered` & 2nd-fund/omitted-fund `V4.outputs`; V5 escalation persists `NO-NEW-RISK` & count >= 40 across benign/omitted/missing-shortfall sessions until dated fund Q4 re-arm, and `market_closed` preserves prior count/session without advancing `39 -> 40`; L3/L4 canonical `session > as_of[:10]`, L3 dynamic day-10 counter, L4 holiday rearm refusal; L5/O1 canonical session intra-day retention; O4 `BIL` lock survival & newly malformed `pending_orders` durable `unidentified_order_<sym>` persistence until Q4 re-arm) |
 | F1-A08 | Precedence & authorization | ✓ PASS (account `HALT` dominates `joint`; O7 `NO-NEW-RISK` priority; omitted active `V4`/escalated `V5` kept in scopes & clearable via dated fund Q4 `rearm`; O4 clears `unidentified_order_<sym>` only via dated symbol-scoped Q4 `rearm` when `pending_orders` resolved; V7 evaluates proposed order symbols outside `funds` with matching `_v7_blocks_target`; Q4 rejects `row != row_id` across re-arms and O9 tier/parameter cards, runs same-session validation after `O5`/`O9` Q4 re-arm including rejecting `"param": "limits"`/`"funds"`, requires date on account + V1/V2/V3/V5 fund + O4 symbol re-arms & O9 cards, requires explicit non-empty tier targets & param targets, enforces consumer-row scope matching on `reconciliation_tolerance` and full-fund binding on account-level overridable policy cards) |
 | F1-A09 | No-exposure-increase invariant | ✓ PASS (`tools/check_exposure_invariants.py`: `168/168` bundles, includes `symbol` target, per-symbol V7 scoping incl. non-fund `quotes`/`symbols` without falsely clamping unrestricted targets, `0.0` headroom on negative `joint_exposure`, pre-call immutability snapshots) |
@@ -94,7 +94,7 @@ File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `ff5708c9d5
 
 ## PR #3 Gate Snapshot (Historical Remote Read-Only State)
 
-PR #3 (`QuantStrategyLab/FuseControl#3`) remains a draft PR whose remote `headRefOid` (`ad404ad915e101aa0ec007be3ca3ba078116d26b`) predates all local remediation commits (`31500c9..98f15b7` + this bundle/doc commit):
+PR #3 (`QuantStrategyLab/FuseControl#3`) remains a draft PR whose remote `headRefOid` (`ad404ad915e101aa0ec007be3ca3ba078116d26b`) predates all local remediation commits (`31500c9..ce51c92` + this bundle/doc commit):
 - On remote `ad404ad` (`gh pr view 3` at `2026-11-24T08:55:52Z`): `labels: []`, `ai-review: PENDING`, `Evaluate PR governance: FAILURE`, `risk-gate: FAILURE`, `Record the head a clearing label was added to: SKIPPED`, docs/Gitleaks/GitGuardian/`pr-template: SUCCESS`.
 - No remote CI run or `ai-review` exists for current local HEAD yet because pushing and PR edits are withheld pending owner push authorization.
 
