@@ -25,8 +25,11 @@ from .canonical import finite_float
 # V2 canonical state accessors
 
 
+_CA_NUMERIC_FIELDS = {'ratio', 'amount', 'dividend', 'cash_amount', 'distribution_amount', 'factor', 'price', 'split_ratio'}
+
+
 def canonical_ca_identity(ca_obj: Any) -> Optional[Dict[str, Any]]:
-    """Return normalized corporate-action identity excluding volatile completion flags."""
+    """Return normalized corporate-action identity keeping strings exact and excluding completion flags."""
     if not isinstance(ca_obj, dict) or not ca_obj.get('type'):
         return None
     volatile = {'adjustment_complete', 'exact_reconciliation', 'hwm_adjusted', 'awaiting_reconciliation'}
@@ -35,8 +38,18 @@ def canonical_ca_identity(ca_obj: Any) -> Optional[Dict[str, Any]]:
         if k in volatile:
             continue
         v = ca_obj[k]
-        num = finite_float(v)
-        ident[k] = num if num is not None else v
+        if isinstance(v, bool):
+            ident[k] = v
+        elif isinstance(v, (int, float)):
+            num = finite_float(v)
+            ident[k] = num if num is not None else v
+        elif k in _CA_NUMERIC_FIELDS and isinstance(v, str):
+            num = finite_float(v)
+            ident[k] = num if num is not None else v.strip()
+        elif isinstance(v, str):
+            ident[k] = v.strip()
+        else:
+            ident[k] = v
     return ident
 
 

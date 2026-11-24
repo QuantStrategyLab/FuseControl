@@ -1,11 +1,63 @@
 """Data and operations rows O1-O9, J1 per BRIEF-FUSE-1 §4.3 Table C."""
 
 import math
+from decimal import Decimal, InvalidOperation
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, List
 from . import state as st
 from . import canonical_state as cst
 from .canonical import finite_float
+
+
+def _to_decimal(value: Any) -> Optional[Decimal]:
+    """Convert finite non-bool numeric value/string to exact Decimal, or return None."""
+    if finite_float(value) is None:
+        return None
+    try:
+        return Decimal(value.strip()) if isinstance(value, str) else Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def _resolve_o5_alias(
+    inputs: Dict[str, Any],
+    keys: tuple,
+    kind: str,
+) -> tuple:
+    """Resolve an O5 input alias group uniformly; detect missing/invalid/conflicting values.
+
+    Returns (resolved_value, present_non_none, conflict_or_invalid).
+    """
+    entries = [(k, inputs[k]) for k in keys if k in inputs and inputs[k] is not None]
+    if not entries:
+        return None, False, False
+    parsed = []
+    for _, raw in entries:
+        if kind == 'decimal':
+            d = _to_decimal(raw)
+            if d is None:
+                return None, True, True
+            parsed.append(d)
+        elif kind == 'lower_str':
+            if not isinstance(raw, str) or not raw.strip():
+                return None, True, True
+            parsed.append(raw.strip().lower())
+        elif kind == 'str':
+            if not isinstance(raw, str) or not raw.strip():
+                return None, True, True
+            parsed.append(raw.strip())
+        elif kind == 'str_list':
+            if not isinstance(raw, list) or not all(isinstance(x, str) and x.strip() for x in raw):
+                return None, True, True
+            parsed.append(tuple(x.strip() for x in raw))
+        else:
+            parsed.append(raw)
+    first = parsed[0]
+    if any(item != first for item in parsed[1:]):
+        return None, True, True
+    if kind == 'str_list':
+        return list(first), True, False
+    return first, True, False
 
 
 def _parse_iso_ts(value: Any) -> Optional[datetime]:
@@ -561,119 +613,84 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'rejection_count_this_session': new_count
         }
 
-    # Check other pre-trade limits
+    # Check other pre-trade limits via unified alias resolution + exact Decimal arithmetic
     violations = []
 
-    # Symbol whitelist (canonical 'symbol_whitelist' takes precedence over legacy 'o5_symbol_whitelist')
-    symbol = inputs.get('o5_symbol') if 'o5_symbol' in inputs else inputs.get('symbol')
-    whitelist = inputs['symbol_whitelist'] if 'symbol_whitelist' in inputs else inputs.get('o5_symbol_whitelist', ['TQQQ', 'SOXL'])
-    if symbol is not None and (not isinstance(whitelist, list) or symbol not in whitelist):
+    symbol, symbol_present, symbol_conflict = _resolve_o5_alias(inputs, ('o5_symbol', 'symbol'), 'str')
+    whitelist, whitelist_present, whitelist_conflict = _resolve_o5_alias(
+        inputs, ('symbol_whitelist', 'o5_symbol_whitelist'), 'str_list'
+    )
+    if not whitelist_present and not whitelist_conflict:
+        whitelist = ['TQQQ', 'SOXL']
+    if (
+        symbol_conflict or
+        whitelist_conflict or
+        (symbol is not None and (not isinstance(whitelist, list) or symbol not in whitelist))
+    ):
         violations.append('symbol_not_whitelisted')
 
-    # Inspect ALL supplied qty aliases; fail closed on conflicting or invalid quantities
-    qty_entries = [
-        (qty_key, inputs[qty_key])
-        for qty_key in ('o5_order_size', 'order_size', 'o5_order_qty', 'order_qty', 'qty')
-        if qty_key in inputs and inputs[qty_key] is not None
-    ]
-    order_size = None
-    ambiguous_order_size = False
-    if qty_entries:
-        parsed_qtys = []
-        for _, raw_q in qty_entries:
-            q_num = finite_float(raw_q)
-            if q_num is None:
-                ambiguous_order_size = True
-                break
-            parsed_qtys.append(q_num)
-        if not ambiguous_order_size:
-            if len(set(parsed_qtys)) > 1:
-                ambiguous_order_size = True
-            else:
-                order_size = qty_entries[0][1]
-    if ambiguous_order_size:
+    # Inspect ALL supplied qty aliases; fail closed on conflicting, non-finite, or <= 0 quantities
+    order_size, qty_present, qty_conflict = _resolve_o5_alias(
+        inputs, ('o5_order_size', 'order_size', 'o5_order_qty', 'order_qty', 'qty'), 'decimal'
+    )
+    if qty_conflict or (qty_present and (order_size is None or order_size <= Decimal('0'))):
         violations.append('invalid_order_size')
 
-    # Side & notional inputs (inspect ALL side aliases; fail closed on conflicting/invalid side)
-    side_entries = [
-        (side_key, inputs[side_key])
-        for side_key in ('o5_side', 'side', 'order_side')
-        if side_key in inputs and inputs[side_key] is not None
-    ]
-    side = None
-    ambiguous_side = False
-    if side_entries:
-        norm_sides = []
-        for _, raw_s in side_entries:
-            if not isinstance(raw_s, str) or not raw_s.strip():
-                ambiguous_side = True
-                break
-            norm_sides.append(raw_s.strip().lower())
-        if not ambiguous_side:
-            if len(set(norm_sides)) > 1:
-                ambiguous_side = True
-            else:
-                side = norm_sides[0]
-    raw_order_value = inputs['o5_order_value'] if 'o5_order_value' in inputs else inputs.get('order_value')
-    unit_price = inputs.get('o5_order_price')
-    if unit_price is None:
-        unit_price = inputs.get(
-            'o5_limit_price',
-            inputs.get('limit_price', inputs.get('order_price', inputs.get('unit_price', inputs.get('price'))))
-        )
-    ref_price = inputs.get('o5_reference_price')
-
-    # Account whitelist: fail closed on null/empty/non-list whitelist, validate both account & o5_account,
-    # and require valid account/whitelist when an explicit order check is present
-    raw_account = inputs.get('account')
-    raw_o5_account = inputs.get('o5_account')
-    accounts_to_check = [a for a in (raw_account, raw_o5_account) if a is not None]
-    if 'account_whitelist' in inputs:
-        account_whitelist = inputs['account_whitelist']
-    elif 'o5_account_whitelist' in inputs:
-        account_whitelist = inputs['o5_account_whitelist']
-    else:
-        account_whitelist = None
-
-    order_present = ambiguous_order_size or ambiguous_side or any(
-        val is not None
-        for val in (side, order_size, raw_order_value, symbol, unit_price, ref_price)
+    # Side, order value, and prices (fail closed on ANY conflicting alias within a group)
+    side, side_present, side_conflict = _resolve_o5_alias(inputs, ('o5_side', 'side', 'order_side'), 'lower_str')
+    ov_dec, ov_present, ov_conflict = _resolve_o5_alias(inputs, ('o5_order_value', 'order_value'), 'decimal')
+    unit_price_dec, unit_price_present, unit_price_conflict = _resolve_o5_alias(
+        inputs,
+        ('o5_order_price', 'o5_limit_price', 'limit_price', 'order_price', 'unit_price', 'o5_unit_price', 'price'),
+        'decimal',
     )
+    ref_price_dec, ref_price_present, ref_price_conflict = _resolve_o5_alias(
+        inputs, ('o5_reference_price', 'reference_price'), 'decimal'
+    )
+
+    # Account & account whitelist: fail closed on conflicts, explicit nulls, empty whitelist, or unapproved accounts
+    account, acct_present, acct_conflict = _resolve_o5_alias(inputs, ('account', 'o5_account'), 'str')
+    account_whitelist, acct_wl_present, acct_wl_conflict = _resolve_o5_alias(
+        inputs, ('account_whitelist', 'o5_account_whitelist'), 'str_list'
+    )
+
+    order_present = any((
+        symbol_present, symbol_conflict,
+        qty_present, qty_conflict,
+        side_present, side_conflict,
+        ov_present, ov_conflict,
+        unit_price_present, unit_price_conflict,
+        ref_price_present, ref_price_conflict,
+    ))
     explicit_null_whitelist = (
         ('account_whitelist' in inputs and inputs['account_whitelist'] is None) or
-        ('o5_account_whitelist' in inputs and inputs['o5_account_whitelist'] is None) or
-        (account_whitelist is not None and not isinstance(account_whitelist, list))
+        ('o5_account_whitelist' in inputs and inputs['o5_account_whitelist'] is None)
     )
     invalid_whitelist = (
+        acct_wl_conflict or
         not isinstance(account_whitelist, list) or
         not any(isinstance(a, str) and a.strip() for a in account_whitelist)
     )
     explicit_null_account = (
-        ('account' in inputs and raw_account is None) or
-        ('o5_account' in inputs and raw_o5_account is None)
+        ('account' in inputs and inputs['account'] is None) or
+        ('o5_account' in inputs and inputs['o5_account'] is None)
     )
     if (
-        (accounts_to_check and (
-            invalid_whitelist or
-            any(a not in account_whitelist for a in accounts_to_check)
-        )) or
+        acct_conflict or
         explicit_null_whitelist or
-        (order_present and (
-            explicit_null_account or
-            invalid_whitelist
-        ))
+        (acct_wl_present and invalid_whitelist) or
+        (acct_present and (invalid_whitelist or account not in account_whitelist)) or
+        (order_present and (explicit_null_account or invalid_whitelist))
     ):
         violations.append('account_not_whitelisted')
 
     # Long only: allow reducing sells within existing long position; reject shorts, ambiguous sides & oversells
-    valid_reducing_sell = False
-    if ambiguous_side:
+    if side_conflict:
         violations.append('not_long_only')
     elif side is not None:
         if side == 'buy':
             pass
         elif side == 'sell':
-            sell_qty = finite_float(order_size) if not ambiguous_order_size else None
             funds_map = inputs.get('funds')
             sym_data = funds_map.get(symbol) if (isinstance(funds_map, dict) and symbol is not None) else None
             held_raw = None
@@ -681,74 +698,71 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 held_raw = sym_data.get('share_count')
                 if held_raw is None:
                     held_raw = sym_data.get('position')
-            held_shares = finite_float(held_raw)
-            if (
-                sell_qty is not None and sell_qty > 0.0 and
-                held_shares is not None and held_shares > 0.0 and
-                sell_qty <= held_shares
+            held_shares_dec = _to_decimal(held_raw)
+            if not (
+                not qty_conflict and
+                order_size is not None and order_size > Decimal('0') and
+                held_shares_dec is not None and held_shares_dec > Decimal('0') and
+                order_size <= held_shares_dec
             ):
-                valid_reducing_sell = True
-            else:
                 violations.append('not_long_only')
         else:
             violations.append('not_long_only')
 
-    # Within settled cash (canonical 'settled_cash' wins cleanly over 'o5_settled_cash'; check max(order_value, qty * price))
-
+    # Within settled cash (canonical 'settled_cash' wins cleanly over 'o5_settled_cash'; exact Decimal arithmetic)
     derived_notional = None
     notional_invalid = False
-    if order_size is not None and (unit_price is not None or ref_price is not None):
-        osize_val = finite_float(order_size)
-        uprice_val = finite_float(unit_price if unit_price is not None else ref_price)
-        if osize_val is None or uprice_val is None or osize_val < 0.0 or uprice_val < 0.0:
+    if (qty_present or qty_conflict) and (unit_price_present or unit_price_conflict or ref_price_present or ref_price_conflict):
+        eff_price_dec = unit_price_dec if not unit_price_conflict and unit_price_dec is not None else ref_price_dec
+        if (
+            qty_conflict or unit_price_conflict or ref_price_conflict or
+            order_size is None or order_size <= Decimal('0') or
+            eff_price_dec is None or eff_price_dec < Decimal('0')
+        ):
             notional_invalid = True
         else:
-            derived_notional = osize_val * uprice_val
+            derived_notional = order_size * eff_price_dec
 
-    settled_cash = inputs['settled_cash'] if 'settled_cash' in inputs else inputs.get('o5_settled_cash')
-    explicit_buy = ambiguous_side or (side == 'buy') or (side is None and (order_size is not None or ambiguous_order_size))
+    settled_cash_raw = inputs['settled_cash'] if 'settled_cash' in inputs else inputs.get('o5_settled_cash')
+    sc_dec = _to_decimal(settled_cash_raw)
+    explicit_buy = side_conflict or (side == 'buy') or (side is None and (qty_present or qty_conflict))
 
     if side != 'sell':
-        if notional_invalid:
+        if notional_invalid or ov_conflict or unit_price_conflict or ref_price_conflict:
             violations.append('exceeds_settled_cash')
-        elif raw_order_value is not None or derived_notional is not None:
-            ov = finite_float(raw_order_value) if raw_order_value is not None else None
-            if raw_order_value is not None and (ov is None or ov < 0.0):
+        elif ov_present or derived_notional is not None:
+            if ov_present and (ov_dec is None or ov_dec < Decimal('0')):
                 violations.append('exceeds_settled_cash')
-            elif explicit_buy and ov is not None and (
-                ov <= 0.0 or
-                (derived_notional is not None and ov < derived_notional)
+            elif explicit_buy and ov_dec is not None and (
+                ov_dec <= Decimal('0') or
+                (derived_notional is not None and ov_dec < derived_notional)
             ):
-                # Reject zero/negative or understated order_value on explicit buys
                 violations.append('exceeds_settled_cash')
             else:
-                if ov is not None and derived_notional is not None:
-                    eff_order_val = max(ov, derived_notional)
-                elif ov is not None:
-                    eff_order_val = ov
+                if ov_dec is not None and derived_notional is not None:
+                    eff_order_val = max(ov_dec, derived_notional)
+                elif ov_dec is not None:
+                    eff_order_val = ov_dec
                 else:
                     eff_order_val = derived_notional
-                sc = finite_float(settled_cash)
-                if eff_order_val is None or sc is None or sc < 0.0 or eff_order_val > sc:
+                if eff_order_val is None or sc_dec is None or sc_dec < Decimal('0') or eff_order_val > sc_dec:
                     violations.append('exceeds_settled_cash')
         elif explicit_buy:
-            # Unbounded buy notional (missing both order_value and finite price) fails closed
             violations.append('exceeds_settled_cash')
 
     # Maximum order size
-    max_order_size = inputs.get('o5_max_order_size')
-    if order_size is not None and max_order_size is not None:
-        osize = finite_float(order_size)
-        msize = finite_float(max_order_size)
-        if osize is None or msize is None or osize < 0.0 or msize < 0.0 or osize > msize:
+    max_order_size_raw = inputs.get('o5_max_order_size')
+    if (qty_present or qty_conflict) and max_order_size_raw is not None:
+        msize_dec = _to_decimal(max_order_size_raw)
+        if qty_conflict or order_size is None or msize_dec is None or order_size <= Decimal('0') or msize_dec < Decimal('0') or order_size > msize_dec:
             violations.append('exceeds_max_order_size')
 
     # Maximum orders per session
     orders_today = inputs.get('o5_orders_today', inputs.get('session_order_count', 0))
     max_orders = inputs.get('o5_max_orders_per_session')
     if max_orders is not None:
-        ot = finite_float(orders_today)
-        mo = finite_float(max_orders)
+        ot = _to_decimal(orders_today)
+        mo = _to_decimal(max_orders)
         if ot is None or mo is None or ot >= mo:
             violations.append('exceeds_max_orders')
 
@@ -756,21 +770,24 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     turnover_today = inputs.get('o5_turnover_today', inputs.get('session_turnover', 0))
     max_turnover = inputs.get('o5_max_turnover_per_session')
     if max_turnover is not None:
-        tt = finite_float(turnover_today)
-        mt = finite_float(max_turnover)
+        tt = _to_decimal(turnover_today)
+        mt = _to_decimal(max_turnover)
         if tt is None or mt is None or tt > mt:
             violations.append('exceeds_max_turnover')
 
-    # Price collar (validates finite positive order_price & reference_price against collar_pct)
-    if unit_price is not None or ref_price is not None:
-        op = finite_float(unit_price)
-        rp = finite_float(ref_price)
-        if op is None or rp is None or op <= 0.0 or rp <= 0.0:
+    # Price collar (exact Decimal arithmetic against collar_pct)
+    if unit_price_present or unit_price_conflict or ref_price_present or ref_price_conflict:
+        collar_dec = _to_decimal(o5_collar)
+        if (
+            unit_price_conflict or ref_price_conflict or
+            unit_price_dec is None or ref_price_dec is None or
+            unit_price_dec <= Decimal('0') or ref_price_dec <= Decimal('0') or collar_dec is None
+        ):
             violations.append('invalid_price')
         else:
-            lower_bound = rp * (1.0 - collar_pct)
-            upper_bound = rp * (1.0 + collar_pct)
-            if op < lower_bound or op > upper_bound:
+            lower_bound = ref_price_dec * (Decimal('1') - collar_dec)
+            upper_bound = ref_price_dec * (Decimal('1') + collar_dec)
+            if unit_price_dec < lower_bound or unit_price_dec > upper_bound:
                 violations.append('outside_price_collar')
 
     # If any violations, count as rejection
@@ -1173,9 +1190,12 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             param_name = desc.get('param') or desc.get('parameter') or desc.get('field') or desc.get('name')
             if not isinstance(param_name, str) or not param_name.strip():
                 return None
+            pname = param_name.strip()
+            if pname in ('limits', 'funds'):
+                return None
             for val_key in ('to', 'new_value', 'new', 'target', 'value'):
                 if val_key in desc and desc[val_key] is not None:
-                    return [(param_name.strip(), desc[val_key], eff_scope)]
+                    return [(pname, desc[val_key], eff_scope)]
             return None
 
         targets: List[tuple] = []

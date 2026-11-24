@@ -762,13 +762,17 @@ def evaluate(
                         'fund': fund
                     }
 
-        # Preserve V2 latched mismatches & pending adjustments for absent funds, and reflect in V2
+        # Preserve V2 latched mismatches, pending adjustments, and their action identities for absent funds
         prior_v2 = prior_row_state.get('V2', {})
         if isinstance(prior_v2, dict):
+            prior_mism_actions = prior_v2.get('latched_mismatch_actions', {})
+            prior_pend_idents = prior_v2.get('pending_action_identities', {})
             for fund in sorted(prior_v2.get('latched_mismatches', {}).keys()):
                 mismatch = prior_v2['latched_mismatches'][fund]
                 if fund not in fund_symbols and mismatch:
                     cst.set_v2_latched_mismatch(next_row_state, fund, mismatch)
+                    if isinstance(prior_mism_actions, dict) and isinstance(prior_mism_actions.get(fund), dict):
+                        cst.set_v2_latched_mismatch_action(next_row_state, fund, copy.deepcopy(prior_mism_actions[fund]))
                     v2_outputs[fund] = {
                         'state': 'HALT',
                         'would_have_tripped': True,
@@ -781,6 +785,8 @@ def evaluate(
                 pending = prior_v2['pending_adjustments'][fund]
                 if fund not in fund_symbols and pending:
                     cst.set_v2_pending_adjustment(next_row_state, fund, pending)
+                    if isinstance(prior_pend_idents, dict) and isinstance(prior_pend_idents.get(fund), dict):
+                        cst.set_v2_pending_identities(next_row_state, fund, copy.deepcopy(prior_pend_idents[fund]))
                     if fund not in v2_outputs:
                         v2_outputs[fund] = {
                             'state': 'HALT',
