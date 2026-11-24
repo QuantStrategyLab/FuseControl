@@ -163,12 +163,23 @@ def evaluate(
     v6_outputs = {}
     v7_outputs = {}
 
+    market_closed = (
+        validated_inputs.get('session_calendar_status') in ('holiday', 'closed') or
+        validated_inputs.get('exchange_status') == 'closed'
+    )
+
     for symbol in fund_symbols:
         fund_inputs = funds[symbol]
 
-        # V1 - tracking deviation (canonical format per Q6)
-        v1_result = rows_vehicle.evaluate_V1(fund_inputs, prior_row_state, authorized_events, symbol)
+        # V1 - tracking deviation (canonical format per Q6; 1-session and 5-session per §4.3/§6)
+        v1_result = rows_vehicle.evaluate_V1(
+            fund_inputs, prior_row_state, authorized_events, symbol,
+            session=session, market_closed=market_closed
+        )
+        session_returns = v1_result.pop('_session_returns', None)
         v1_outputs[symbol] = v1_result
+        if session_returns is not None:
+            cst.set_v1_history(next_row_state, symbol, session_returns)
         if v1_result['latched']:
             # Preserve original trip_session and deviation if already latched (§4.4 rule 3)
             prior_latch = cst.get_v1_latch(prior_row_state, symbol)

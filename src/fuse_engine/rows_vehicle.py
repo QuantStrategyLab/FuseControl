@@ -4,13 +4,28 @@ All vehicle rows operate on 3× daily-reset funds.
 Thresholds per §4.5 disposition register.
 """
 
+import math
 from typing import Any, Dict, Optional
 from . import state as st
 from . import canonical_state as cst
 
 
+def _is_valid_finite_number(value: Any) -> Optional[float]:
+    """Convert non-bool value to finite float, else return None."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        num = float(value)
+    except (TypeError, ValueError):
+        return None
+    if math.isnan(num) or math.isinf(num):
+        return None
+    return num
+
+
 def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
-                authorized_events: Optional[Dict[str, Any]], fund: str) -> Dict[str, Any]:
+                authorized_events: Optional[Dict[str, Any]], fund: str,
+                session: Optional[str] = None, market_closed: bool = False) -> Dict[str, Any]:
     """V1: Tracking deviation exceeds thresholds → NO-NEW-RISK in that fund.
 
     Kind: breaker
@@ -58,17 +73,8 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'fund': fund
         }
 
-    # Calculate one-session deviation from fund inputs
-    fund_return = inputs.get('fund_return')
-    index_return = inputs.get('index_return')
-    modelled_fee = inputs.get('modelled_fee')
-    modelled_financing = inputs.get('modelled_financing')
-
-    # Event-trigger rows don't fail closed on missing inputs (Fix 4):
-    # V1 requires affirmative evidence of tracking deviation exceeding threshold;
-    # O1 carries the data-integrity trip for missing inputs
-    if (fund_return is None or index_return is None or
-        modelled_fee is None or modelled_financing is None):
+    # On closed/holiday market days there is no trading session return
+    if market_closed:
         return {
             'state': 'NORMAL',
             'would_have_tripped': False,
@@ -78,18 +84,39 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'fund': fund
         }
 
-    try:
-        fund_return = float(fund_return)
-        index_return = float(index_return)
-        modelled_fee = float(modelled_fee)
-        modelled_financing = float(modelled_financing)
-    except (TypeError, ValueError):
+    # Calculate one-session deviation from fund inputs
+    raw_fund_return = inputs.get('fund_return')
+    raw_index_return = inputs.get('index_return')
+    raw_fee = inputs.get('modelled_fee')
+    raw_financing = inputs.get('modelled_financing')
+    sessions_window = inputs.get('sessions_window')
+
+    fund_return = _is_valid_finite_number(raw_fund_return)
+    index_return = _is_valid_finite_number(raw_index_return)
+    modelled_fee = _is_valid_finite_number(raw_fee)
+    modelled_financing = _is_valid_finite_number(raw_financing)
+
+    # Preserve missing.V1 golden semantics when ONLY index_return is explicitly None
+    # on a 1-session window (O1 carries missing index_returns), while failing closed
+    # on missing fund_return, fee, financing, non-finite NaN/inf, or 5-session window.
+    if raw_index_return is None and sessions_window != 5 and fund_return is not None and modelled_fee is not None and modelled_financing is not None:
         return {
             'state': 'NORMAL',
             'would_have_tripped': False,
             'kind': 'breaker',
             'latched': False,
             'reason': 'none',
+            'fund': fund
+        }
+
+    if (fund_return is None or index_return is None or
+            modelled_fee is None or modelled_financing is None):
+        return {
+            'state': 'NO-NEW-RISK',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': False,
+            'reason': 'missing_input',
             'fund': fund
         }
 
@@ -97,37 +124,101 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     expected_return = 3.0 * index_return - modelled_fee - modelled_financing
     one_session_dev = fund_return - expected_return
 
-    # For now, assume five-session deviation not available (would need history)
-    # Treat as unresolved - only check one-session
-    five_session_dev = None
+    # Maintain rolling 5-session history when sessions_window == 5 or history already active
+    prior_history = cst.get_v1_history(prior_state, fund)
+    explicit_history = inputs.get('five_session_history')
+    updated_history = None
+    if isinstance(explicit_history, list):
+        parsed = []
+        for entry in explicit_history:
+            if isinstance(entry, dict):
+                fr = _is_valid_finite_number(entry.get('fund_return'))
+                ir = _is_valid_finite_number(entry.get('index_return'))
+                mf = _is_valid_finite_number(entry.get('modelled_fee', 0.0))
+                mfin = _is_valid_finite_number(entry.get('modelled_financing', 0.0))
+                if fr is not None and ir is not None and mf is not None and mfin is not None:
+                    parsed.append({
+                        'session': entry.get('session'),
+                        'fund_return': fr,
+                        'expected_return': 3.0 * ir - mf - mfin
+                    })
+        updated_history = parsed[-5:]
+    elif sessions_window == 5 or prior_history:
+        updated_history = [dict(item) for item in prior_history]
+        curr_entry = {
+            'session': session,
+            'fund_return': fund_return,
+            'expected_return': expected_return,
+        }
+        if session is not None and any(item.get('session') == session for item in updated_history):
+            updated_history = [curr_entry if item.get('session') == session else item for item in updated_history]
+        else:
+            updated_history.append(curr_entry)
+        updated_history = updated_history[-5:]
 
     # Thresholds per §4.5 (proposal values)
     one_session_threshold = 0.0075  # 0.75 pp
     five_session_threshold = 0.020  # 2.0 pp
 
-    # Check triggers (only one-session for now)
-    triggered = abs(one_session_dev) > one_session_threshold
-    if five_session_dev is not None:
-        triggered = triggered or abs(five_session_dev) > five_session_threshold
+    # One-session trigger check
+    if abs(one_session_dev) > one_session_threshold:
+        res = {
+            'state': 'NO-NEW-RISK',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': True,
+            'reason': 'tracking_deviation_exceeds_0_75pp',
+            'deviation': abs(one_session_dev),
+            'fund': fund
+        }
+        if updated_history is not None:
+            res['_session_returns'] = updated_history
+        return res
 
-    if not triggered:
+    # Five-session branch per §4.3 / §4.5 / §6
+    if updated_history is not None:
+        if len(updated_history) < 5:
+            # Insufficient 5-session history: fail-closed unlatched refusal while retaining history
+            return {
+                'state': 'NO-NEW-RISK',
+                'would_have_tripped': True,
+                'kind': 'breaker',
+                'latched': False,
+                'reason': 'missing_input',
+                'fund': fund,
+                '_session_returns': updated_history,
+            }
+
+        comp_fund = math.prod(1.0 + item['fund_return'] for item in updated_history) - 1.0
+        comp_expected = math.prod(1.0 + item['expected_return'] for item in updated_history) - 1.0
+        five_session_dev = comp_fund - comp_expected
+        if abs(five_session_dev) > five_session_threshold:
+            return {
+                'state': 'NO-NEW-RISK',
+                'would_have_tripped': True,
+                'kind': 'breaker',
+                'latched': True,
+                'reason': 'tracking_deviation_exceeds_2_0pp',
+                'deviation': round(abs(five_session_dev), 12),
+                'fund': fund,
+                '_session_returns': updated_history,
+            }
         return {
             'state': 'NORMAL',
             'would_have_tripped': False,
             'kind': 'breaker',
             'latched': False,
             'reason': 'none',
-            'fund': fund
+            'fund': fund,
+            '_session_returns': updated_history,
         }
 
-    # Trip and latch (SUC-13: specific reason string, emit deviation per Q6)
     return {
-        'state': 'NO-NEW-RISK',
-        'would_have_tripped': True,
+        'state': 'NORMAL',
+        'would_have_tripped': False,
         'kind': 'breaker',
-        'latched': True,
-        'reason': 'tracking_deviation_exceeds_0_75pp',
-        'deviation': abs(one_session_dev),  # Emit deviation per Q6
+        'latched': False,
+        'reason': 'none',
         'fund': fund
     }
 
@@ -385,26 +476,12 @@ def evaluate_V4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         is_active = True
 
     # Evaluate trigger using forecast_volatility from fund inputs
-    forecast_volatility = inputs.get('forecast_volatility')
-    long_run_volatility = inputs.get('long_run_volatility')
+    forecast_volatility = _is_valid_finite_number(inputs.get('forecast_volatility'))
+    long_run_volatility = _is_valid_finite_number(inputs.get('long_run_volatility'))
 
-    # SUC-07: If NO volatility inputs at all, return None (no row emission)
-    # This is handled by checking if volatility data is completely absent
-    # For now, fail closed on missing inputs
-    if forecast_volatility is None or long_run_volatility is None:
-        return {
-            'state': 'NO-NEW-RISK',
-            'would_have_tripped': True,
-            'kind': 'interlock',
-            'latched': False,
-            'reason': 'missing_input',
-            'fund': fund
-        }
-
-    try:
-        forecast_volatility = float(forecast_volatility)
-        long_run_volatility = float(long_run_volatility)
-    except (TypeError, ValueError):
+    # Fail closed on missing, NaN, inf, or non-positive volatility inputs
+    if (forecast_volatility is None or long_run_volatility is None or
+            forecast_volatility < 0 or long_run_volatility <= 0):
         return {
             'state': 'NO-NEW-RISK',
             'would_have_tripped': True,

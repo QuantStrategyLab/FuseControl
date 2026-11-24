@@ -1,8 +1,22 @@
 """Data and operations rows O1-O9, J1 per BRIEF-FUSE-1 §4.3 Table C."""
 
+import math
 from typing import Any, Dict, Optional, List
 from . import state as st
 from . import canonical_state as cst
+
+
+def _is_valid_age(age: Any) -> bool:
+    """Return True iff age_sessions is a finite non-bool number in [0, 1]."""
+    if age is None or isinstance(age, bool):
+        return False
+    try:
+        val = float(age)
+    except (TypeError, ValueError):
+        return False
+    if math.isnan(val) or math.isinf(val):
+        return False
+    return 0.0 <= val <= 1.0
 
 
 def evaluate_O1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
@@ -15,8 +29,10 @@ def evaluate_O1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     Clearing: Clears after one session of fresh data
     Mechanism B3: fail closed when ANY required source is missing/NaN/stale
     """
-    # B3: Check source records for staleness
-    source_records = inputs.get('source_records', {})
+    # B3: Check source records for missing, non-finite, negative, or stale (> 1 session)
+    source_records = inputs.get('source_records')
+    if not isinstance(source_records, dict):
+        source_records = {}
 
     # Required source records
     required_source_names = [
@@ -28,70 +44,56 @@ def evaluate_O1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         'session_calendar'
     ]
 
-    # Check if any required source is stale (age_sessions > 1)
-    # Separate source_record issues from top-level field issues for reason formatting
     missing_source_records = []
     missing_toplevel_fields = []
 
     for source_name in required_source_names:
         source_record = source_records.get(source_name)
-        if source_record is None:
+        if not isinstance(source_record, dict):
             missing_source_records.append(source_name)
             continue
 
-        age_sessions = source_record.get('age_sessions')
-        if age_sessions is None or age_sessions > 1:
+        if not _is_valid_age(source_record.get('age_sessions')):
             missing_source_records.append(source_name)
 
-    # Also check required top-level inputs
-    # BUT: in source enumeration mode (SUC-05), skip this check - top-level fields are
-    # intentionally None for isolation testing. Only check source_records in that mode.
-    in_source_enumeration = all(
-        inputs.get(key) is None for key in ['bankroll', 'high_water_mark', 'joint_exposure', 'max_loss_cap']
+    # Validate tier unconditionally
+    if inputs.get('tier') is None:
+        missing_toplevel_fields.append('tier')
+
+    # Validate required account-level numerical evidence whenever operational/portfolio
+    # payload is present (removing the 4-field bypass while preserving isolated
+    # source_records-only SUC-05 source enumeration).
+    has_operational_payload = (
+        'funds' in inputs or
+        any(k in inputs for k in (
+            'bankroll', 'high_water_mark', 'joint_exposure', 'max_loss_cap',
+            'positions_cash', 'broker_cash', 'index_one_session_returns',
+            'proposed_exposure', 'one_session_loss', 'session_calendar_status',
+            'exchange_status', 'loaded_policy_hash', 'registered_policy_hash',
+        ))
     )
 
-    if not in_source_enumeration:
-        required_values = ['bankroll', 'high_water_mark', 'joint_exposure', 'max_loss_cap', 'tier']
+    if has_operational_payload:
+        required_values = ['bankroll', 'high_water_mark', 'joint_exposure', 'max_loss_cap']
         for key in required_values:
             value = inputs.get(key)
-            if value is None:
+            if value is None or isinstance(value, bool):
                 missing_toplevel_fields.append(key)
                 continue
-
-            # Check for NaN/invalid
-            if key != 'tier':
-                try:
-                    val = float(value)
-                    import math
-                    if math.isnan(val) or math.isinf(val):
-                        missing_toplevel_fields.append(key)
-                except (TypeError, ValueError):
+            try:
+                val = float(value)
+                if math.isnan(val) or math.isinf(val) or val < 0:
                     missing_toplevel_fields.append(key)
+            except (TypeError, ValueError):
+                missing_toplevel_fields.append(key)
 
-    # B3: If ANY source or field is missing/stale, fail closed - NO silent passes
-    has_issues = missing_source_records or missing_toplevel_fields
+    # B3: If ANY source or field is missing/stale/non-finite, fail closed
+    has_issues = bool(missing_source_records or missing_toplevel_fields)
 
     if has_issues:
-        # Bug fix: current missing source must REFUSE even after fresh session per Q6
-        # A prior fresh count ≥1 cannot turn a CURRENT missing input into NORMAL
-        # Still in trip state
-        # Determine reason format: source-specific vs generic
-        # SUC-05 (source enumeration testing): exactly one source_record issue, top-level fields None
-        # Base scenarios (normal operation): complete inputs with normal staleness/missing
-
-        # Check if we're in source enumeration mode:
-        # - Exactly one source_record issue
-        # - Top-level required fields (except tier) are all None
-        source_enumeration_mode = (
-            len(missing_source_records) == 1 and
-            all(inputs.get(key) is None for key in ['bankroll', 'high_water_mark', 'joint_exposure', 'max_loss_cap'])
-        )
-
-        if source_enumeration_mode:
-            # Source enumeration test (SUC-05) - use source-specific reason
+        if len(missing_source_records) == 1 and not missing_toplevel_fields and not has_operational_payload:
             reason = f'missing_required_source_{missing_source_records[0]}'
         else:
-            # Normal operation (base scenarios) - use generic reason
             reason = 'stale_or_missing_input'
 
         return {

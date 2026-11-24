@@ -249,6 +249,24 @@ def clear_l2_latch(next_state: Dict) -> None:
 
 # V1 canonical state accessors
 
+def get_v1_history(prior_state: Optional[Dict], fund: str) -> list:
+    """Get V1 rolling session return history for a fund."""
+    if not prior_state or 'V1' not in prior_state:
+        return []
+    fund_state = prior_state['V1'].get(fund, {})
+    history = fund_state.get('session_returns', [])
+    return list(history) if isinstance(history, list) else []
+
+
+def set_v1_history(next_state: Dict, fund: str, history: list) -> None:
+    """Persist V1 rolling session return history for a fund."""
+    if 'V1' not in next_state:
+        next_state['V1'] = {}
+    if fund not in next_state['V1']:
+        next_state['V1'][fund] = {}
+    next_state['V1'][fund]['session_returns'] = history
+
+
 def get_v1_latch(prior_state: Optional[Dict], fund: str) -> Optional[Dict]:
     """Get V1 latch state for a fund. Returns dict with latched, trip_session, deviation."""
     if not prior_state or 'V1' not in prior_state:
@@ -269,11 +287,15 @@ def set_v1_latch(next_state: Dict, fund: str, trip_session: str, deviation: floa
     """Set V1 latch state for a fund."""
     if 'V1' not in next_state:
         next_state['V1'] = {}
-    next_state['V1'][fund] = {
+    existing = next_state['V1'].get(fund, {})
+    entry = {
         'latched': True,
         'trip_session': trip_session,
         'deviation': deviation
     }
+    if 'session_returns' in existing:
+        entry['session_returns'] = existing['session_returns']
+    next_state['V1'][fund] = entry
 
 
 def clear_v1_latch(next_state: Dict, fund: str) -> None:

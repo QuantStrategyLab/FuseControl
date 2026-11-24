@@ -625,5 +625,115 @@ class TestFailClosedNegativeControls(unittest.TestCase):
         # become NORMAL just because prior O1_counter ≥1
 
 
+class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
+    """G3 (F1-A06): 9 silent-pass probes + §6 V1 five-session branch."""
+
+    @classmethod
+    def setUpClass(cls):
+        import json
+        cls.normal_vi = json.loads(
+            (repo_root / 'goldens' / 'scenarios.json').read_text(encoding='utf-8')
+        )['scenarios']['normal']['inputs']['validated_inputs']
+
+    def _eval(self, vi, session='2026-01-05', prior=None, events=None):
+        return engine.evaluate(
+            'fuse-eval-spec/v1', 'test-hash', 'registered_policy_hash_v1',
+            session, f'{session}T16:00:00Z', 'shadow', vi, prior or {}, events or []
+        )
+
+    def test_v1_missing_fund_return_refuses(self):
+        import copy
+        vi = copy.deepcopy(self.normal_vi)
+        vi['funds'] = {'TQQQ': copy.deepcopy(self.normal_vi['funds']['TQQQ'])}
+        vi['funds']['TQQQ'].pop('fund_return')
+        rows, _, _ = self._eval(vi)
+        self.assertEqual(rows['V1']['state'], 'NO-NEW-RISK')
+        self.assertTrue(rows['V1']['would_have_tripped'])
+        self.assertEqual(rows['V1']['reason'], 'missing_input')
+
+    def test_v4_nan_forecast_volatility_refuses(self):
+        import copy
+        vi = copy.deepcopy(self.normal_vi)
+        vi['funds'] = {'TQQQ': copy.deepcopy(self.normal_vi['funds']['TQQQ'])}
+        vi['funds']['TQQQ']['forecast_volatility'] = float('nan')
+        rows, _, _ = self._eval(vi)
+        self.assertEqual(rows['V4']['state'], 'NO-NEW-RISK')
+        self.assertTrue(rows['V4']['would_have_tripped'])
+        self.assertEqual(rows['V4']['reason'], 'missing_input')
+
+    def test_o1_all_six_sources_nan_age_refuse(self):
+        import copy
+        sources = [
+            'market_data', 'index_returns', 'volatility',
+            'positions', 'broker_reconciliation', 'session_calendar'
+        ]
+        for src in sources:
+            with self.subTest(source=src):
+                vi = copy.deepcopy(self.normal_vi)
+                vi['source_records'][src]['age_sessions'] = float('nan')
+                rows, _, _ = self._eval(vi)
+                self.assertEqual(rows['O1']['state'], 'NO-NEW-RISK')
+                self.assertTrue(rows['O1']['would_have_tripped'])
+
+    def test_o1_four_field_removal_refuses_even_with_fresh_sources(self):
+        import copy
+        vi = copy.deepcopy(self.normal_vi)
+        for key in ('bankroll', 'high_water_mark', 'joint_exposure', 'max_loss_cap'):
+            vi.pop(key)
+        rows, _, _ = self._eval(vi)
+        self.assertEqual(rows['O1']['state'], 'NO-NEW-RISK')
+        self.assertTrue(rows['O1']['would_have_tripped'])
+        self.assertEqual(rows['O1']['reason'], 'stale_or_missing_input')
+
+    def test_v1_five_session_jan5_to_9_trips_and_latches(self):
+        """§6 control: 5 consecutive 0.5pp days compound to 2.5251253pp -> NO-NEW-RISK latched."""
+        import copy
+        prior = {}
+        rows = {}
+        for day in ('2026-01-05', '2026-01-06', '2026-01-07', '2026-01-08', '2026-01-09'):
+            vi = copy.deepcopy(self.normal_vi)
+            vi['funds'] = {'TQQQ': copy.deepcopy(self.normal_vi['funds']['TQQQ'])}
+            vi['funds']['TQQQ'].update({
+                'fund_return': 0.005,
+                'index_return': 0.0,
+                'modelled_fee': 0.0,
+                'modelled_financing': 0.0,
+                'sessions_window': 5,
+            })
+            rows, _, prior = self._eval(vi, session=day, prior=prior)
+            if day != '2026-01-09':
+                self.assertEqual(rows['V1']['state'], 'NO-NEW-RISK')
+                self.assertFalse(rows['V1']['latched'])
+
+        self.assertEqual(rows['V1']['state'], 'NO-NEW-RISK')
+        self.assertTrue(rows['V1']['would_have_tripped'])
+        self.assertTrue(rows['V1']['latched'])
+        self.assertEqual(rows['V1']['reason'], 'tracking_deviation_exceeds_2_0pp')
+        self.assertAlmostEqual(rows['V1']['deviation'], 0.025251253125, places=9)
+        self.assertTrue(prior['V1']['TQQQ']['latched'])
+
+    def test_v1_five_session_benign_window_clears_and_missing_history_refuses(self):
+        import copy
+        vi = copy.deepcopy(self.normal_vi)
+        vi['funds'] = {'TQQQ': copy.deepcopy(self.normal_vi['funds']['TQQQ'])}
+        vi['funds']['TQQQ'].update({
+            'fund_return': 0.001,
+            'index_return': 0.0,
+            'modelled_fee': 0.0,
+            'modelled_financing': 0.0,
+            'sessions_window': 5,
+        })
+        rows_day1, _, _ = self._eval(vi, session='2026-01-05')
+        self.assertEqual(rows_day1['V1']['state'], 'NO-NEW-RISK')
+        self.assertEqual(rows_day1['V1']['reason'], 'missing_input')
+
+        prior = {}
+        for day in ('2026-01-05', '2026-01-06', '2026-01-07', '2026-01-08', '2026-01-09'):
+            rows_day, _, prior = self._eval(vi, session=day, prior=prior)
+        self.assertEqual(rows_day['V1']['state'], 'NORMAL')
+        self.assertFalse(rows_day['V1']['would_have_tripped'])
+        self.assertFalse(rows_day['V1']['latched'])
+
+
 if __name__ == '__main__':
     unittest.main()
