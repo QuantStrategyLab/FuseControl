@@ -332,11 +332,11 @@ def run_tier_repetitions(scenarios: Dict[str, Any], golden_table: Dict[str, Any]
         'failures': []
     }
 
-    # Tier-specific parameters (from U-01)
+    # Tier-specific parameters per spec §4.3 / goldens/DERIVATION.md (J1: 40k/60k/80k on 100k bankroll)
     tier_params = {
         'conservative': {'D': 0.15, 'joint_cap_ratio': 0.4},
-        'balanced': {'D': 0.30, 'joint_cap_ratio': 0.5},
-        'aggressive': {'D': 0.50, 'joint_cap_ratio': 0.6}
+        'balanced': {'D': 0.30, 'joint_cap_ratio': 0.6},
+        'aggressive': {'D': 0.50, 'joint_cap_ratio': 0.8}
     }
 
     for cell_key, cell_data in tier_repetitions.items():
@@ -347,33 +347,35 @@ def run_tier_repetitions(scenarios: Dict[str, Any], golden_table: Dict[str, Any]
         tier = cell_data['tier']
         expected_outcome = cell_data['outcome']
 
-        # Get base scenario inputs
+        # Get base scenario inputs (deep copy; honour frozen priors and events per G2)
         scenario = scenarios['scenarios'][scenario_name]
-        inputs = scenario['inputs']['validated_inputs'].copy()
+        scenario_inputs = scenario['inputs']
+        inputs = copy.deepcopy(scenario_inputs['validated_inputs'])
 
         # Apply tier-specific parameters
         inputs['tier'] = tier
         tier_param = tier_params[tier]
         inputs['tier_loss_budget_D'] = tier_param['D']
 
-        # Note: The golden tier repetitions appear to use the scenario's existing
-        # bankroll, tier_joint_cap, and max_loss_cap values without modification.
-        # This suggests tier repetitions test the row logic with different tier
-        # parameters but keep the scenario's base financial values.
-        # Only tier and tier_loss_budget_D are changed.
+        # Note: Frozen goldens/golden-table.json tier_repetitions kept scenario base caps
+        # (e.g. 60,000 for normal, 40,000 for tier_change); see tests/test_tier_oracles.py
+        # for the discriminating 40,000/60,000/80,000 oracle battery without modifying goldens/.
+
+        prior_state = copy.deepcopy(scenario_inputs.get('prior_row_state') or {})
+        auth_events = copy.deepcopy(scenario_inputs.get('authorized_events') or [])
 
         # Run evaluator
         try:
             rows, _, _ = evaluate(
-                spec_version='fuse-eval-spec/v1',
+                spec_version=scenario_inputs.get('spec_version', 'fuse-eval-spec/v1'),
                 engine_hash=engine_hash,
-                policy_hash='test-policy',
-                session=scenario['inputs']['session'],
-                as_of=scenario['inputs']['as_of'],
-                mode='shadow',
+                policy_hash=scenario_inputs.get('policy_hash', 'test-policy'),
+                session=scenario_inputs['session'],
+                as_of=scenario_inputs['as_of'],
+                mode=scenario_inputs.get('mode', 'shadow'),
                 validated_inputs=inputs,
-                prior_row_state={},
-                authorized_events={}
+                prior_row_state=prior_state,
+                authorized_events=auth_events
             )
 
             actual_row = rows.get(row_id, {})
