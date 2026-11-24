@@ -3,6 +3,7 @@
 Implements the §5.1 signature with all 24 rows fully evaluated.
 """
 
+from datetime import date, timedelta
 from typing import Any, Dict, Optional
 from . import rows_loss
 from . import rows_vehicle
@@ -64,16 +65,35 @@ def evaluate(
     fund_symbols = list(funds.keys())
 
     # Build scopes: enumerate symbols from funds, pending_orders, AND durable O4 (Q6 wiring)
-    # Include prior-only symbols so an order cannot disappear between calls
-    all_symbols = set(fund_symbols)
+    # Use deterministic sorted ordering (A07.4: avoid PYTHONHASHSEED-dependent set iteration)
+    all_symbols_set = set(fund_symbols)
     pending_orders = validated_inputs.get('pending_orders', {})
-    all_symbols.update(pending_orders.keys())
+    all_symbols_set.update(pending_orders.keys())
     # Add symbols from durable O4 state
     if prior_row_state and 'O4' in prior_row_state:
-        all_symbols.update(prior_row_state['O4'].keys())
+        all_symbols_set.update(prior_row_state['O4'].keys())
+    all_symbols = sorted(all_symbols_set)
+
+    # Also track any prior latched funds omitted from current funds dict (A07.2)
+    prior_latched_funds = set()
+    if prior_row_state:
+        for fn, fstate in prior_row_state.get('V1', {}).items():
+            if isinstance(fstate, dict) and fstate.get('latched') and fn not in funds:
+                prior_latched_funds.add(fn)
+        for fn, mstate in prior_row_state.get('V2', {}).get('latched_mismatches', {}).items():
+            if mstate and fn not in funds:
+                prior_latched_funds.add(fn)
+        for fn, pstate in prior_row_state.get('V2', {}).get('pending_adjustments', {}).items():
+            if pstate and fn not in funds:
+                prior_latched_funds.add(fn)
+        for fn, v3state in prior_row_state.get('V3', {}).items():
+            if isinstance(v3state, dict) and v3state.get('latched') and fn not in funds:
+                prior_latched_funds.add(fn)
 
     scopes = ['account']
     for symbol in fund_symbols:
+        scopes.append(f'fund:{symbol}')
+    for symbol in sorted(prior_latched_funds):
         scopes.append(f'fund:{symbol}')
     for symbol in all_symbols:
         scopes.append(f'symbol:{symbol}')
@@ -104,34 +124,50 @@ def evaluate(
         # Q4: clear latch on authorized re-arm - serialize as {"L2":{}}
         cst.clear_l2_latch(next_row_state)
 
-    # L3 - drawdown D breaker (canonical format per Q6)
-    l3_result = rows_loss.evaluate_L3(validated_inputs, prior_row_state, authorized_events)
+    # L3 - drawdown D breaker (canonical format per Q6; A07.3 durable loss_record & trip_session)
+    l3_result = rows_loss.evaluate_L3(validated_inputs, prior_row_state, authorized_events, session=session)
     rows_by_ID['L3'] = l3_result
     if l3_result['latched']:
-        # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
+        # Preserve original trip_session, cooling_off_until, and loss_record if already latched
         prior_latch = cst.get_l3_latch(prior_row_state)
-        trip_session = prior_latch['trip_session'] if prior_latch else session
-        # Build loss_record from validated_inputs
-        loss_record = {
-            'bankroll': validated_inputs.get('bankroll'),
-            'high_water_mark': validated_inputs.get('high_water_mark'),
-            'tier': validated_inputs.get('tier'),
-            'drawdown': (validated_inputs.get('high_water_mark', 0) - validated_inputs.get('bankroll', 0)) / validated_inputs.get('high_water_mark', 1) if validated_inputs.get('high_water_mark') else 0
-        }
-        # cooling_off_until: session date (Q4: 30-day period from trip_session)
-        cooling_off_until = trip_session  # Simplified: exact date would be trip_session + 30 days
+        if prior_latch:
+            trip_session = prior_latch['trip_session']
+            cooling_off_until = prior_latch.get('cooling_off_until', trip_session)
+            loss_record = prior_latch.get('loss_record')
+        else:
+            trip_session = session
+            try:
+                cooling_off_until = (date.fromisoformat(session) + timedelta(days=30)).isoformat()
+            except ValueError:
+                cooling_off_until = session
+            hwm = validated_inputs.get('high_water_mark')
+            bk = validated_inputs.get('bankroll')
+            dd = (hwm - bk) / hwm if hwm else 0
+            loss_record = {
+                'bankroll': bk,
+                'high_water_mark': hwm,
+                'tier': validated_inputs.get('tier'),
+                'drawdown': dd
+            }
         cst.set_l3_latch(next_row_state, trip_session, cooling_off_until, loss_record)
     elif l3_result['reason'] == 'authorized_rearm':
         # Q4: clear lock after cooling-off, preserve loss_record
         prior_latch = cst.get_l3_latch(prior_row_state)
         loss_record = prior_latch['loss_record'] if prior_latch and 'loss_record' in prior_latch else {}
         cst.clear_l3_lock(next_row_state, loss_record)
+    elif prior_row_state and isinstance(prior_row_state.get('L3'), dict) and prior_row_state['L3'].get('loss_record') is not None:
+        # Loss record is never cleared (§4.3 L3)
+        cst.clear_l3_lock(next_row_state, prior_row_state['L3']['loss_record'])
 
-    # L4 - one-session loss D/10 breaker (canonical per Q6)
-    l4_result = rows_loss.evaluate_L4(validated_inputs, prior_row_state, authorized_events)
+    # L4 - one-session loss D/10 breaker (canonical per Q6; A07.3 preserve original trip_session)
+    l4_result = rows_loss.evaluate_L4(validated_inputs, prior_row_state, authorized_events, session=session)
     rows_by_ID['L4'] = l4_result
     if l4_result['latched']:
-        cst.set_account_latch(next_row_state, 'L4', session)
+        prior_latch = cst.get_account_latch(prior_row_state, 'L4')
+        trip_session = prior_latch['trip_session'] if prior_latch and prior_latch.get('trip_session') else session
+        cst.set_account_latch(next_row_state, 'L4', trip_session)
+    elif l4_result['reason'] == 'authorized_rearm':
+        next_row_state['L4'] = {}
 
     # L5 - market halt L1/L2 interlock (canonical format per Q6)
     l5_result = rows_loss.evaluate_L5(validated_inputs, prior_row_state, authorized_events, session)
@@ -144,13 +180,19 @@ def evaluate(
         cst.set_l5_fresh_count(next_row_state, 0)
     # L5 latch (if needed) uses general account latch accessor
     if l5_result.get('latched'):
-        cst.set_account_latch(next_row_state, 'L5', session)
+        prior_latch = cst.get_account_latch(prior_row_state, 'L5')
+        trip_session = prior_latch['trip_session'] if prior_latch and prior_latch.get('trip_session') else session
+        cst.set_account_latch(next_row_state, 'L5', trip_session)
 
     # L6 - market halt L3 or 10% index fall breaker (canonical per Q6)
     l6_result = rows_loss.evaluate_L6(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['L6'] = l6_result
     if l6_result['latched']:
-        cst.set_account_latch(next_row_state, 'L6', session)
+        prior_latch = cst.get_account_latch(prior_row_state, 'L6')
+        trip_session = prior_latch['trip_session'] if prior_latch and prior_latch.get('trip_session') else session
+        cst.set_account_latch(next_row_state, 'L6', trip_session)
+    elif l6_result['reason'] == 'authorized_rearm':
+        next_row_state['L6'] = {}
 
     # ==== VEHICLE ROWS (V1-V7) - Fund/symbol scope ====
 
@@ -203,13 +245,21 @@ def evaluate(
             # For new reconciliation_mismatch, store mismatch details
             if v2_result['reason'] == 'reconciliation_mismatch':
                 corporate_action = fund_inputs.get('corporate_action', {})
+                lv = fund_inputs.get('ledger_value')
+                bv = fund_inputs.get('broker_value')
+                try:
+                    mismatch_amt = abs(float(lv) - float(bv)) if (lv is not None and bv is not None) else None
+                except (TypeError, ValueError):
+                    mismatch_amt = None
                 mismatch_details = {
                     'type': corporate_action.get('type'),
-                    'ledger_value': fund_inputs.get('ledger_value'),
-                    'broker_value': fund_inputs.get('broker_value'),
-                    'mismatch': abs(fund_inputs.get('ledger_value', 0) - fund_inputs.get('broker_value', 0))
+                    'ledger_value': lv,
+                    'broker_value': bv,
+                    'mismatch': mismatch_amt
                 }
                 cst.set_v2_latched_mismatch(next_row_state, symbol, mismatch_details)
+                if cst.get_v2_pending_adjustment(prior_row_state, symbol):
+                    cst.clear_v2_pending_adjustment(next_row_state, symbol)
             # For persisting latch (latched_prior_mismatch), carry forward details
             elif v2_result['reason'] == 'latched_prior_mismatch':
                 prior_mismatch = cst.get_v2_latched_mismatch(prior_row_state, symbol)
@@ -248,6 +298,9 @@ def evaluate(
             trip_session = prior_latch['trip_session'] if prior_latch else session
             details = {'reason': v3_result['reason'], 'fund_event': v3_result.get('fund_event')}
             cst.set_fund_latch(next_row_state, 'V3', symbol, trip_session, details)
+        elif v3_result['reason'] == 'authorized_rearm':
+            if 'V3' not in next_row_state:
+                next_row_state['V3'] = {}
 
         # V4 - extreme volatility (B4 canonical format per Q6)
         v4_result = rows_vehicle.evaluate_V4(fund_inputs, prior_row_state, authorized_events, symbol, session)
@@ -264,6 +317,15 @@ def evaluate(
         elif v4_result['reason'] == 'cleared_after_ten_sessions':
             # At count 10, report 10 and remove the fund entry per Q1
             cst.clear_v4_state(next_row_state, symbol)
+        elif v4_result['reason'] == 'missing_input':
+            # A07.1: Missing forecast earns zero clearing credit but MUST preserve active V4 counter
+            prior_v4 = cst.get_v4_state(prior_row_state, symbol)
+            if prior_v4['clearing_counter'] is not None:
+                cst.set_v4_state(
+                    next_row_state, symbol,
+                    prior_v4['clearing_counter'],
+                    prior_v4['last_session_below_threshold']
+                )
 
         # V5 - decay monitor (B5 canonical format per Q6)
         v5_result = rows_vehicle.evaluate_V5(fund_inputs, prior_row_state, authorized_events, symbol, session)
@@ -398,9 +460,79 @@ def evaluate(
     j1_result = rows_ops.evaluate_J1(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['J1'] = j1_result
 
-    # Preserve durable scope state for funds/symbols not in current inputs (Q6)
-    # V4, V5, O4 state must survive across calls even when scope is absent
+    # Preserve durable scope state for funds/symbols not in current inputs (Q6 & A07.2)
+    # V1, V2, V3, V4, V5, O4 state must survive across calls even when scope is absent
     if prior_row_state:
+        # Preserve V1 state (latches and 5-session history) for absent funds, and reflect active latches
+        for fund in sorted(prior_row_state.get('V1', {}).keys()):
+            v1_fund_state = prior_row_state['V1'][fund]
+            if fund not in fund_symbols and isinstance(v1_fund_state, dict) and v1_fund_state:
+                if 'V1' not in next_row_state:
+                    next_row_state['V1'] = {}
+                if fund not in next_row_state['V1']:
+                    next_row_state['V1'][fund] = v1_fund_state
+                if v1_fund_state.get('latched'):
+                    v1_outputs[fund] = {
+                        'state': 'NO-NEW-RISK',
+                        'would_have_tripped': True,
+                        'kind': 'breaker',
+                        'latched': True,
+                        'reason': 'latched_prior_trip',
+                        'fund': fund
+                    }
+
+        # Preserve V2 latched mismatches & pending adjustments for absent funds, and reflect in V2
+        prior_v2 = prior_row_state.get('V2', {})
+        if isinstance(prior_v2, dict):
+            for fund in sorted(prior_v2.get('latched_mismatches', {}).keys()):
+                mismatch = prior_v2['latched_mismatches'][fund]
+                if fund not in fund_symbols and mismatch:
+                    cst.set_v2_latched_mismatch(next_row_state, fund, mismatch)
+                    v2_outputs[fund] = {
+                        'state': 'HALT',
+                        'would_have_tripped': True,
+                        'kind': 'interlock_or_breaker',
+                        'latched': True,
+                        'reason': 'latched_prior_mismatch',
+                        'fund': fund
+                    }
+            for fund in sorted(prior_v2.get('pending_adjustments', {}).keys()):
+                pending = prior_v2['pending_adjustments'][fund]
+                if fund not in fund_symbols and pending:
+                    cst.set_v2_pending_adjustment(next_row_state, fund, pending)
+                    if fund not in v2_outputs:
+                        v2_outputs[fund] = {
+                            'state': 'HALT',
+                            'would_have_tripped': True,
+                            'kind': 'interlock_or_breaker',
+                            'latched': False,
+                            'reason': 'pending_corporate_action_carried',
+                            'fund': fund
+                        }
+
+        # Preserve V3 latches for absent funds
+        for fund in sorted(prior_row_state.get('V3', {}).keys()):
+            v3_fund_state = prior_row_state['V3'][fund]
+            if fund not in fund_symbols and isinstance(v3_fund_state, dict) and v3_fund_state.get('latched'):
+                if 'V3' not in next_row_state:
+                    next_row_state['V3'] = {}
+                if fund not in next_row_state['V3']:
+                    next_row_state['V3'][fund] = v3_fund_state
+                v3_outputs[fund] = {
+                    'state': 'DE-RISK',
+                    'would_have_tripped': True,
+                    'kind': 'breaker',
+                    'latched': True,
+                    'reason': 'latched_prior_trip',
+                    'fund': fund
+                }
+
+        # Re-aggregate V1/V2/V3 if absent latched funds were carried into outputs
+        if prior_latched_funds:
+            rows_by_ID['V1'] = aggregate_fund_row(v1_outputs)
+            rows_by_ID['V2'] = aggregate_fund_row(v2_outputs)
+            rows_by_ID['V3'] = aggregate_fund_row(v3_outputs)
+
         # Preserve V4 state for funds not evaluated
         if 'V4' in prior_row_state:
             if 'V4' not in next_row_state:
@@ -442,14 +574,10 @@ def evaluate(
 
     effective_state_by_scope['account'] = account_state
 
-    # Q5: Account HALT dominates every narrower scope (§4.1)
-    # If account is HALT, all fund and symbol scopes are also HALT
+    # A08 / Q5: Account HALT dominates every narrower scope (§4.1), including joint
     if account_state == 'HALT':
         for scope in scopes:
-            if scope != 'account' and scope != 'joint':
-                effective_state_by_scope[scope] = 'HALT'
-        # Joint scope resolves independently
-        effective_state_by_scope['joint'] = j1_result['state']
+            effective_state_by_scope[scope] = 'HALT'
     else:
         # Account not HALT - resolve each scope independently
         for scope in scopes:

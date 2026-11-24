@@ -4,6 +4,7 @@ All loss rows operate on bankroll basis, flow-adjusted and split-adjusted.
 Thresholds are fractions of D (tier loss budget).
 """
 
+from datetime import date
 from typing import Any, Dict, Optional
 from . import state as st
 from . import canonical_state as cst
@@ -317,7 +318,8 @@ def evaluate_L2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
 
 def evaluate_L3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
-                authorized_events: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+                authorized_events: Optional[Dict[str, Any]],
+                session: Optional[str] = None) -> Dict[str, Any]:
     """L3: Drawdown reaches D → DE-RISK to zero, then locked flat.
 
     Kind: breaker
@@ -335,30 +337,51 @@ def evaluate_L3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         if authorized_events:
             events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
             for event in events_list:
-                if event.get('type') == 'rearm' and event.get('row_id') == 'L3':
+                if event.get('type') == 'rearm' and (event.get('row') == 'L3' or event.get('row_id') == 'L3'):
                     rearm = True
-                    # Check if cooling-off period satisfied
-                    days_elapsed = event.get('days_since_trip', 0)
+                    if 'days_since_trip' in event:
+                        days_elapsed = int(event['days_since_trip'])
+                    elif session and prior_latch.get('trip_session'):
+                        try:
+                            days_elapsed = (date.fromisoformat(session) - date.fromisoformat(prior_latch['trip_session'])).days
+                        except ValueError:
+                            days_elapsed = 0
+                    else:
+                        days_elapsed = 0
                     if days_elapsed >= 30:
                         cooling_off_days_remaining = 0
                     else:
-                        cooling_off_days_remaining = 30 - days_elapsed
+                        cooling_off_days_remaining = 30 - max(0, days_elapsed)
                     break
 
-        if not rearm or cooling_off_days_remaining > 0:
-            # Stay latched
+        if rearm and cooling_off_days_remaining == 0:
+            # Q4 short-circuit after 30-day cooling-off: clear active lock, preserve loss record
             return {
-                'state': 'DE-RISK',
-                'would_have_tripped': True,
+                'state': 'NORMAL',
+                'would_have_tripped': False,
                 'kind': 'breaker',
-                'latched': True,
-                'reason': 'latched_prior_trip',
+                'latched': False,
+                'reason': 'authorized_rearm',
                 'outputs': {
-                    'cooling_off_days_remaining': cooling_off_days_remaining,
-                    'locked_flat': True,
+                    'cooling_off_days_remaining': 0,
+                    'locked_flat': False,
                     'loss_record_cleared': False
                 }
             }
+
+        # Stay latched
+        return {
+            'state': 'DE-RISK',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': True,
+            'reason': 'latched_prior_trip',
+            'outputs': {
+                'cooling_off_days_remaining': cooling_off_days_remaining,
+                'locked_flat': True,
+                'loss_record_cleared': False
+            }
+        }
 
     # Evaluate trigger
     bankroll = inputs.get('bankroll')
@@ -449,7 +472,8 @@ def evaluate_L3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
 
 def evaluate_L4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
-                authorized_events: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+                authorized_events: Optional[Dict[str, Any]],
+                session: Optional[str] = None) -> Dict[str, Any]:
     """L4: One-session loss reaches D/10 → NO-NEW-RISK.
 
     Kind: breaker
@@ -467,19 +491,30 @@ def evaluate_L4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             for event in events_list:
                 if event.get('type') == 'rearm' and (event.get('row') == 'L4' or event.get('row_id') == 'L4'):
                     # Must be next session or later
-                    if event.get('sessions_since_trip', 0) >= 1:
+                    if 'sessions_since_trip' in event:
+                        if event.get('sessions_since_trip', 0) >= 1:
+                            rearm = True
+                    elif session and prior_latch.get('trip_session') and session > prior_latch['trip_session']:
                         rearm = True
                     break
 
-        if not rearm:
-            # Stay latched
+        if rearm:
             return {
-                'state': 'NO-NEW-RISK',
-                'would_have_tripped': True,
+                'state': 'NORMAL',
+                'would_have_tripped': False,
                 'kind': 'breaker',
-                'latched': True,
-                'reason': 'latched_prior_trip'
+                'latched': False,
+                'reason': 'authorized_rearm'
             }
+
+        # Stay latched
+        return {
+            'state': 'NO-NEW-RISK',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': True,
+            'reason': 'latched_prior_trip'
+        }
 
     # Evaluate trigger
     one_session_loss = inputs.get('one_session_loss')
@@ -630,15 +665,23 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                     rearm = True
                     break
 
-        if not rearm:
-            # Stay latched
+        if rearm:
             return {
-                'state': 'HALT',
-                'would_have_tripped': True,
+                'state': 'NORMAL',
+                'would_have_tripped': False,
                 'kind': 'breaker',
-                'latched': True,
-                'reason': 'latched_prior_trip'
+                'latched': False,
+                'reason': 'authorized_rearm'
             }
+
+        # Stay latched
+        return {
+            'state': 'HALT',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': True,
+            'reason': 'latched_prior_trip'
+        }
 
     # Evaluate trigger
     market_halt_level = inputs.get('market_halt_level')

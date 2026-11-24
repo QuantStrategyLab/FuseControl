@@ -148,9 +148,8 @@ class TestFullComparator(unittest.TestCase):
             both_equal += 1
         self.assertEqual(both_equal, 240)
 
-    @unittest.expectedFailure
     def test_all_264_cells_both_row_and_scope_equal(self):
-        """All 264 base cells match both row dict and independently derived scope map (pending G4 A08 joint dominance)."""
+        """All 264 base cells match both row dict and independently derived scope map (including tier_change joint HALT)."""
         both_equal = 0
         failures = []
         for cell_key, cell in self.golden_table['base_cells'].items():

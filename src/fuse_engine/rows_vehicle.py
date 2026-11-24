@@ -308,29 +308,47 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         adjustment_complete = corporate_action.get('adjustment_complete', False)
         exact_reconciliation = corporate_action.get('exact_reconciliation', False)
 
-        # If adjustment complete and exact reconciliation, auto-clear (SUC-01 step 3)
-        if adjustment_complete and exact_reconciliation and prior_pending:
-            return {
-                'state': 'NORMAL',
-                'would_have_tripped': False,
-                'kind': 'interlock_or_breaker',
-                'latched': False,
-                'reason': 'exact_reconciliation_auto_clear',
-                'fund': fund
-            }
-        elif adjustment_complete and exact_reconciliation:
-            # No prior pending - benign
-            return {
-                'state': 'NORMAL',
-                'would_have_tripped': False,
-                'kind': 'interlock_or_breaker',
-                'latched': False,
-                'reason': 'none',
-                'fund': fund
-            }
+        # A12: Recompute exact reconciliation from amounts; flag alone never clears a mismatch
+        if adjustment_complete:
+            ledger_val = _is_valid_finite_number(inputs.get('ledger_value'))
+            broker_val = _is_valid_finite_number(inputs.get('broker_value'))
+            share_count = _is_valid_finite_number(inputs.get('share_count'))
+            broker_pos = _is_valid_finite_number(inputs.get('broker_position'))
+            tol = _is_valid_finite_number(inputs.get('reconciliation_tolerance'))
+            tol_val = tol if (tol is not None and tol >= 0.0) else 0.0
 
-        # If adjustment complete but NOT exact reconciliation, latch
-        if adjustment_complete and not exact_reconciliation:
+            amounts_match = (
+                ledger_val is not None and
+                broker_val is not None and
+                abs(ledger_val - broker_val) <= tol_val
+            )
+            if share_count is not None or broker_pos is not None:
+                amounts_match = amounts_match and (
+                    share_count is not None and
+                    broker_pos is not None and
+                    share_count == broker_pos
+                )
+
+            if exact_reconciliation and amounts_match:
+                if prior_pending:
+                    return {
+                        'state': 'NORMAL',
+                        'would_have_tripped': False,
+                        'kind': 'interlock_or_breaker',
+                        'latched': False,
+                        'reason': 'exact_reconciliation_auto_clear',
+                        'fund': fund
+                    }
+                return {
+                    'state': 'NORMAL',
+                    'would_have_tripped': False,
+                    'kind': 'interlock_or_breaker',
+                    'latched': False,
+                    'reason': 'none',
+                    'fund': fund
+                }
+
+            # Adjustment complete without exact matching amounts latches HALT
             return {
                 'state': 'HALT',
                 'would_have_tripped': True,
@@ -402,19 +420,30 @@ def evaluate_V3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get(scope, [])
             for event in events_list:
                 if event.get('type') == 'rearm' and (event.get('row') == 'V3' or event.get('row_id') == 'V3'):
+                    if 'fund' in event and event['fund'] != fund:
+                        continue
                     rearm = True
                     break
 
-        if not rearm:
-            # Stay latched
+        if rearm:
             return {
-                'state': 'DE-RISK',
-                'would_have_tripped': True,
+                'state': 'NORMAL',
+                'would_have_tripped': False,
                 'kind': 'breaker',
-                'latched': True,
-                'reason': 'latched_prior_trip',
+                'latched': False,
+                'reason': 'authorized_rearm',
                 'fund': fund
             }
+
+        # Stay latched
+        return {
+            'state': 'DE-RISK',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': True,
+            'reason': 'latched_prior_trip',
+            'fund': fund
+        }
 
     # Evaluate trigger
     fund_event = inputs.get('fund_event')

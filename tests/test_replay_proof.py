@@ -498,5 +498,153 @@ class TestReplayProof(unittest.TestCase):
         assert_no_private_aliases(state_restored, "Two-fund V4 state")
 
 
+class TestG4StateContinuityAndDominance(unittest.TestCase):
+    """G4 (F1-A07 + F1-A08 + F1-A12): Astra §5 items 1-4 + dominance + V2 negative control."""
+
+    @classmethod
+    def setUpClass(cls):
+        repo = Path(__file__).parent.parent
+        cls.normal_vi = json.loads(
+            (repo / 'goldens' / 'scenarios.json').read_text(encoding='utf-8')
+        )['scenarios']['normal']['inputs']['validated_inputs']
+        cls.suc_cases = json.loads(
+            (repo / 'goldens' / 'successor-cases.json').read_text(encoding='utf-8')
+        )['cases']
+
+    def _ev(self, vi, session='2026-01-05', prior=None, events=None):
+        return evaluate(
+            'fuse-eval-spec/v1', 'test-hash', 'registered_policy_hash_v1',
+            session, f'{session}T16:00:00Z', 'shadow', vi, prior or {}, events or []
+        )
+
+    def test_v4_counter_survives_missing_forecast(self):
+        import copy
+        vi = copy.deepcopy(self.normal_vi)
+        vi['funds'] = {'TQQQ': copy.deepcopy(self.normal_vi['funds']['TQQQ'])}
+        vi['funds']['TQQQ']['forecast_volatility'] = 0.50
+        _, _, s1 = self._ev(vi, '2026-01-05')
+
+        vi['funds']['TQQQ']['forecast_volatility'] = None
+        r2, _, s2 = self._ev(vi, '2026-01-06', s1)
+        self.assertEqual(r2['V4']['reason'], 'missing_input')
+        self.assertEqual(s2['V4']['TQQQ']['clearing_counter'], 0)
+
+        vi['funds']['TQQQ']['forecast_volatility'] = 0.30
+        r3, _, s3 = self._ev(vi, '2026-01-07', s2)
+        self.assertEqual(r3['V4']['state'], 'NO-NEW-RISK')
+        self.assertEqual(r3['V4']['outputs']['clearing_counter'], 1)
+        self.assertEqual(s3['V4']['TQQQ']['clearing_counter'], 1)
+
+    def test_tqqq_v1_and_v2_latches_survive_soxl_only_evaluation(self):
+        import copy
+        s13 = self.suc_cases['SUC-13']['steps'][0]['inputs']['validated_inputs']
+        _, _, s_v1 = self._ev(s13, '2026-01-05')
+        s02 = self.suc_cases['SUC-02']['steps'][0]['inputs']['validated_inputs']
+        _, _, s_v2 = self._ev(s02, '2026-01-05')
+
+        vi_soxl = copy.deepcopy(self.normal_vi)
+        vi_soxl['funds'] = {'SOXL': copy.deepcopy(self.normal_vi['funds']['SOXL'])}
+
+        r_mid1, _, s_mid1 = self._ev(vi_soxl, '2026-01-06', s_v1)
+        self.assertTrue(r_mid1['V1']['latched'])
+        self.assertTrue(s_mid1['V1']['TQQQ']['latched'])
+        r_ret1, _, _ = self._ev(copy.deepcopy(self.normal_vi), '2026-01-07', s_mid1)
+        self.assertEqual(r_ret1['V1']['state'], 'NO-NEW-RISK')
+        self.assertTrue(r_ret1['V1']['latched'])
+
+        r_mid2, _, s_mid2 = self._ev(vi_soxl, '2026-01-06', s_v2)
+        self.assertTrue(r_mid2['V2']['latched'])
+        self.assertIn('TQQQ', s_mid2['V2']['latched_mismatches'])
+        r_ret2, _, _ = self._ev(copy.deepcopy(self.normal_vi), '2026-01-07', s_mid2)
+        self.assertEqual(r_ret2['V2']['state'], 'HALT')
+        self.assertTrue(r_ret2['V2']['latched'])
+
+    def test_l3_loss_record_and_l4_trip_date_preserved(self):
+        import copy
+        vi_l3 = copy.deepcopy(self.normal_vi)
+        vi_l3['bankroll'] = 60000.0
+        _, _, s_l3 = self._ev(vi_l3, '2026-01-05')
+        orig_record = s_l3['L3']['loss_record']
+        self.assertEqual(orig_record['drawdown'], 0.4)
+
+        vi_rec = copy.deepcopy(self.normal_vi)
+        r_d1, _, s_d1 = self._ev(vi_rec, '2026-01-06', s_l3, [{'type': 'rearm', 'row_id': 'L3', 'days_since_trip': 1}])
+        self.assertEqual(r_d1['L3']['outputs']['cooling_off_days_remaining'], 29)
+        self.assertEqual(s_d1['L3']['loss_record'], orig_record)
+
+        r_d30, _, s_d30 = self._ev(vi_rec, '2026-02-05', s_d1, [{'type': 'rearm', 'row_id': 'L3', 'days_since_trip': 30}])
+        self.assertEqual(r_d30['L3']['state'], 'NORMAL')
+        self.assertEqual(r_d30['L3']['reason'], 'authorized_rearm')
+        self.assertFalse(s_d30['L3']['latched'])
+        self.assertEqual(s_d30['L3']['loss_record'], orig_record)
+
+        _, _, s_after = self._ev(vi_rec, '2026-02-06', s_d30)
+        self.assertEqual(s_after['L3']['loss_record'], orig_record)
+
+        vi_l4 = copy.deepcopy(self.normal_vi)
+        vi_l4['one_session_loss'] = 0.05
+        _, _, s_l4_1 = self._ev(vi_l4, '2026-01-05')
+        _, _, s_l4_2 = self._ev(vi_rec, '2026-01-06', s_l4_1)
+        self.assertEqual(s_l4_2['L4']['trip_session'], '2026-01-05')
+
+    def test_o4_dual_order_deterministic_across_hash_seeds(self):
+        import copy, hashlib, os, subprocess
+        vi = copy.deepcopy(self.normal_vi)
+        vi['pending_orders'] = {
+            'TQQQ': {'order_id': 'ord_t', 'status': 'pending', 'timeout': True},
+            'SOXL': {'order_id': 'ord_s', 'status': 'pending', 'timeout': True},
+        }
+        _, _, s_dual = self._ev(vi, '2026-01-05')
+        dual_json = canonical_json(s_dual)
+
+        results = []
+        for seed in ('1', '2', '3'):
+            code = (
+                "import json, hashlib, sys; sys.path.insert(0, 'src'); "
+                "from fuse_engine import evaluate; from fuse_engine.canonical import canonical_json; "
+                "vi = json.load(open('goldens/scenarios.json'))['scenarios']['normal']['inputs']['validated_inputs']; "
+                f"prior = json.loads({dual_json!r}); "
+                "res = evaluate('fuse-eval-spec/v1', 'test-hash', 'registered_policy_hash_v1', "
+                "'2026-01-06', '2026-01-06T16:00:00Z', 'shadow', vi, prior, []); "
+                "print(res[0]['O4']['symbols'], hashlib.sha256(canonical_json(res).encode()).hexdigest())"
+            )
+            env = {**os.environ, 'PYTHONHASHSEED': seed}
+            out = subprocess.check_output(
+                [sys.executable, '-c', code], cwd=str(Path(__file__).parent.parent), env=env
+            ).decode().strip()
+            results.append(out)
+        self.assertEqual(len(set(results)), 1, f"Non-deterministic across PYTHONHASHSEED: {results}")
+
+    def test_account_halt_dominates_joint_scope(self):
+        import copy
+        vi = copy.deepcopy(self.normal_vi)
+        vi['funds']['TQQQ']['fund_event'] = 'liquidation'
+        vi['funds']['TQQQ']['forecast_volatility'] = 0.60
+        vi['funds']['TQQQ']['long_run_volatility'] = 0.24
+        vi['pending_orders'] = {'TQQQ': {'order_id': 'ord_t', 'status': 'pending', 'timeout': True}}
+        _, eff1, s1 = self._ev(vi, '2026-01-05')
+        self.assertEqual(eff1['joint'], 'NORMAL')
+
+        vi2 = copy.deepcopy(vi)
+        vi2['broker_cash'] = 95000.0
+        _, eff2, _ = self._ev(vi2, '2026-01-06', s1)
+        self.assertEqual(eff2['account'], 'HALT')
+        self.assertEqual(eff2['joint'], 'HALT')
+
+    def test_v2_contradictory_exact_flag_with_amount_mismatch_latches_halt(self):
+        import copy
+        s1_in = self.suc_cases['SUC-01']['steps'][0]['inputs']['validated_inputs']
+        s2_in = self.suc_cases['SUC-01']['steps'][1]['inputs']['validated_inputs']
+        s3_in = copy.deepcopy(self.suc_cases['SUC-01']['steps'][2]['inputs']['validated_inputs'])
+        _, _, st1 = self._ev(s1_in, '2026-01-05')
+        _, _, st2 = self._ev(s2_in, '2026-01-06', st1)
+        s3_in['funds']['TQQQ']['broker_value'] = 24900.0
+        rows, _, st3 = self._ev(s3_in, '2026-01-07', st2)
+        self.assertEqual(rows['V2']['state'], 'HALT')
+        self.assertTrue(rows['V2']['latched'])
+        self.assertEqual(rows['V2']['reason'], 'reconciliation_mismatch')
+        self.assertIn('TQQQ', st3['V2']['latched_mismatches'])
+
+
 if __name__ == '__main__':
     unittest.main()
