@@ -1572,6 +1572,210 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         self.assertTrue(r_v7_tp['would_have_tripped'])
         self.assertEqual(r_v7_tp['reason'], 'missing_input')
 
+    def test_r6_o5_order_size_and_null_account_fail_closed(self):
+        """R6 P1-1: O5 resolves order_size uniformly for buy/sell and fails closed on null account/whitelist."""
+        vi_buy = copy.deepcopy(self.normal_vi)
+        vi_buy.update({
+            'o5_collar': 0.05, 'side': 'buy', 'symbol': 'TQQQ',
+            'order_size': 2, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'settled_cash': 0.0,
+        })
+        r_buy, _, _ = self._eval(vi_buy)
+        self.assertTrue(r_buy['O5']['would_have_tripped'])
+        self.assertEqual(r_buy['O5']['reason'], 'pre_trade_limit_violation')
+
+        # Reducing sell via spec-canonical order_size succeeds 3x without HALT
+        st_sell = {}
+        for _ in range(3):
+            vi_sell = copy.deepcopy(self.normal_vi)
+            vi_sell.update({
+                'o5_collar': 0.05, 'side': 'sell', 'symbol': 'TQQQ',
+                'order_size': 2, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'settled_cash': 0.0,
+            })
+            r_sell, eff_sell, st_sell = self._eval(vi_sell, session='2026-01-05', prior=st_sell)
+            self.assertFalse(r_sell['O5']['would_have_tripped'])
+            self.assertEqual(r_sell['O5']['state'], 'NORMAL')
+            self.assertEqual(eff_sell['account'], 'NORMAL')
+
+        # Explicit buy with account=None and account_whitelist=None (and account=None alone) must fail closed
+        for extra in ({'account': None, 'account_whitelist': None}, {'account': None}):
+            vi_null = copy.deepcopy(self.normal_vi)
+            vi_null.update({
+                'o5_collar': 0.05, 'side': 'buy', 'symbol': 'TQQQ',
+                'order_size': 2, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'settled_cash': 1000.0,
+                **extra,
+            })
+            r_null, _, _ = self._eval(vi_null)
+            self.assertTrue(r_null['O5']['would_have_tripped'])
+            self.assertEqual(r_null['O5']['reason'], 'pre_trade_limit_violation')
+
+    def test_r6_v2_enqueues_distinct_ca_during_active_mismatch_latch(self):
+        """R6 P1-2: Announcing split while distribution mismatch is latched preserves split across distribution rearm."""
+        vi1 = copy.deepcopy(self.normal_vi)
+        vi1['funds']['TQQQ']['corporate_action'] = {
+            'type': 'distribution', 'adjustment_complete': True, 'exact_reconciliation': False,
+        }
+        r1, _, st1 = self._eval(vi1, session='2026-01-05')
+        self.assertEqual(r1['V2']['reason'], 'reconciliation_mismatch')
+
+        # Step 2: while distribution mismatch is latched, split is announced without rearm -> enqueued!
+        vi2 = copy.deepcopy(self.normal_vi)
+        vi2['last_heartbeat'] = '2026-01-06T15:59:30Z'
+        vi2['funds']['TQQQ']['corporate_action'] = {
+            'type': 'split', 'ratio': 2.0, 'adjustment_complete': False, 'exact_reconciliation': False,
+        }
+        r2, _, st2 = self._eval(vi2, session='2026-01-06', prior=st1)
+        self.assertEqual(r2['V2']['reason'], 'latched_prior_mismatch')
+        self.assertIn('latched_mismatches', st2['V2'])
+        self.assertEqual(st2['V2']['pending_adjustments']['TQQQ']['type'], 'split')
+
+        # Step 3: Q4 rearm clears distribution mismatch ONLY; carried split keeps fund:TQQQ HALT until reconciled
+        vi3 = copy.deepcopy(self.normal_vi)
+        vi3['last_heartbeat'] = '2026-01-07T15:59:30Z'
+        r3, eff3, st3 = self._eval(
+            vi3, session='2026-01-07', prior=st2,
+            events=[{'type': 'rearm', 'row': 'V2', 'fund': 'TQQQ', 'session': '2026-01-07'}],
+        )
+        self.assertEqual(r3['V2']['state'], 'HALT')
+        self.assertEqual(r3['V2']['reason'], 'pending_corporate_action_carried_TQQQ')
+        self.assertEqual(eff3['fund:TQQQ'], 'HALT')
+        self.assertNotIn('latched_mismatches', st3['V2'])
+        self.assertEqual(st3['V2']['pending_adjustments']['TQQQ']['type'], 'split')
+
+        # Step 4: Exact reconciliation for split clears V2 cleanly
+        vi4 = copy.deepcopy(self.normal_vi)
+        vi4['last_heartbeat'] = '2026-01-08T15:59:30Z'
+        vi4['funds']['TQQQ']['corporate_action'] = {
+            'type': 'split', 'ratio': 2.0, 'adjustment_complete': True, 'exact_reconciliation': True, 'hwm_adjusted': True,
+        }
+        r4, eff4, st4 = self._eval(vi4, session='2026-01-08', prior=st3)
+        self.assertEqual(r4['V2']['state'], 'NORMAL')
+        self.assertEqual(eff4['fund:TQQQ'], 'NORMAL')
+        self.assertEqual(st4.get('V2', {}), {})
+
+    def test_r6_v2_explicit_null_hwm_adjusted_fails_closed(self):
+        """R6 P1-3: Explicit hwm_adjusted=None in corporate_action or inputs must fail reconciliation -> HALT."""
+        vi1 = copy.deepcopy(self.normal_vi)
+        vi1['funds']['TQQQ']['corporate_action'] = {
+            'type': 'split', 'ratio': 2.0, 'adjustment_complete': False, 'exact_reconciliation': False,
+        }
+        _, _, st1 = self._eval(vi1, session='2026-01-05')
+
+        for loc in ('ca', 'fund', 'top'):
+            vi2 = copy.deepcopy(self.normal_vi)
+            vi2['last_heartbeat'] = '2026-01-06T15:59:30Z'
+            vi2['funds']['TQQQ']['corporate_action'] = {
+                'type': 'split', 'ratio': 2.0, 'adjustment_complete': True, 'exact_reconciliation': True,
+            }
+            if loc == 'ca':
+                vi2['funds']['TQQQ']['corporate_action']['hwm_adjusted'] = None
+            elif loc == 'fund':
+                vi2['funds']['TQQQ']['hwm_adjusted'] = None
+            else:
+                vi2['hwm_adjusted'] = None
+            r2, eff2, _ = self._eval(vi2, session='2026-01-06', prior=st1)
+            self.assertEqual(r2['V2']['state'], 'HALT')
+            self.assertTrue(r2['V2']['latched'])
+            self.assertEqual(r2['V2']['reason'], 'reconciliation_mismatch')
+            self.assertEqual(eff2['fund:TQQQ'], 'HALT')
+
+    def test_r6_o9_requires_target_checks_fund_scope_and_rejects_conflicting_row(self):
+        """R6 P1-4: O9 rejects missing target, checks fund-level overrides against V7 runtime values, and rejects row!=row_id."""
+        # 1. Missing target value ('from' only) fails closed even if card repeats it
+        vi_notarget = copy.deepcopy(self.normal_vi)
+        vi_notarget.update({'max_loss_cap': 80000.0, 'o9_change_descriptors': {'param': 'max_loss_cap', 'from': 60000}})
+        r_nt, _, _ = self._eval(
+            vi_notarget, session='2026-01-05',
+            events=[{'type': 'parameter_change_card', 'session': '2026-01-05', 'change_descriptors': {'param': 'max_loss_cap', 'from': 60000}}],
+        )
+        self.assertEqual(r_nt['O9']['state'], 'HALT')
+        self.assertEqual(r_nt['O9']['reason'], 'unauthorized_change')
+
+        # 2. Fund-targeted card (v7_spread_width=0.02 for TQQQ) fails when funds['TQQQ']['v7_spread_width'] is silently 0.20
+        vi_fund_ovr = copy.deepcopy(self.normal_vi)
+        vi_fund_ovr['v7_spread_width'] = 0.02
+        vi_fund_ovr['funds']['TQQQ']['v7_spread_width'] = 0.20
+        vi_fund_ovr['funds']['TQQQ']['spread_width'] = 0.10
+        vi_fund_ovr['o9_change_descriptors'] = {'param': 'v7_spread_width', 'fund': 'TQQQ', 'from': 0.01, 'to': 0.02}
+        r_fo, _, _ = self._eval(
+            vi_fund_ovr, session='2026-01-05',
+            events=[{'type': 'parameter_change_card', 'session': '2026-01-05', 'fund': 'TQQQ', 'change_descriptors': {'param': 'v7_spread_width', 'fund': 'TQQQ', 'from': 0.01, 'to': 0.02}}],
+        )
+        self.assertEqual(r_fo['O9']['state'], 'HALT')
+
+        # Account-level v7_spread_width=0.02 card must also fail if any fund overrides to 0.20
+        vi_acct_ovr = copy.deepcopy(vi_fund_ovr)
+        vi_acct_ovr['o9_change_descriptors'] = {'param': 'v7_spread_width', 'from': 0.01, 'to': 0.02}
+        r_ao, _, _ = self._eval(
+            vi_acct_ovr, session='2026-01-05',
+            events=[{'type': 'parameter_change_card', 'session': '2026-01-05', 'change_descriptors': {'param': 'v7_spread_width', 'from': 0.01, 'to': 0.02}}],
+        )
+        self.assertEqual(r_ao['O9']['state'], 'HALT')
+
+        # Exact fund-level match passes cleanly
+        vi_fund_ok = copy.deepcopy(vi_fund_ovr)
+        vi_fund_ok['funds']['TQQQ']['v7_spread_width'] = 0.02
+        vi_fund_ok['funds']['TQQQ']['spread_width'] = 0.01
+        r_ok, _, _ = self._eval(
+            vi_fund_ok, session='2026-01-05',
+            events=[{'type': 'parameter_change_card', 'session': '2026-01-05', 'fund': 'TQQQ', 'change_descriptors': {'param': 'v7_spread_width', 'from': 0.01, 'to': 0.02}}],
+        )
+        self.assertEqual(r_ok['O9']['state'], 'NORMAL')
+
+        # 3. Conflicting row='O5', row_id='O7' on parameter_change_card / tier_change_card fails closed
+        vi_conflict = copy.deepcopy(self.normal_vi)
+        vi_conflict.update({'max_loss_cap': 80000.0, 'o9_change_descriptors': {'param': 'max_loss_cap', 'from': 60000, 'to': 80000}})
+        r_cf, _, _ = self._eval(
+            vi_conflict, session='2026-01-05',
+            events=[{'type': 'parameter_change_card', 'row': 'O5', 'row_id': 'O7', 'session': '2026-01-05', 'change_descriptors': {'param': 'max_loss_cap', 'from': 60000, 'to': 80000}}],
+        )
+        self.assertEqual(r_cf['O9']['state'], 'HALT')
+
+    def test_r6_o1_blocks_open_market_missing_index_returns_and_clamps_exposure(self):
+        """R6 P1-5: Open-market index_one_session_returns=None triggers O1 NO-NEW-RISK & blocks exposure raise, preserving holiday O1 NORMAL."""
+        sys.path.insert(0, str(repo_root / 'tools'))
+        from check_exposure_invariants import compute_permitted_exposure
+
+        vi_open = copy.deepcopy(self.normal_vi)
+        vi_open.update({'index_one_session_returns': None, 'proposed_exposure': 50000.0, 'v7_spread_width': 0.02, 'o5_collar': 0.05})
+        vi_open['funds']['TQQQ']['v5_tolerance'] = 0.01
+        vi_open['funds']['SOXL']['v5_tolerance'] = 0.01
+        rows, eff, _ = self._eval(vi_open, session='2026-01-05')
+        self.assertEqual(rows['O1']['state'], 'NO-NEW-RISK')
+        self.assertEqual(rows['O1']['reason'], 'stale_or_missing_input')
+        self.assertEqual(rows['L6']['state'], 'NORMAL')
+        self.assertEqual(eff['account'], 'NO-NEW-RISK')
+        self.assertEqual(compute_permitted_exposure(vi_open, rows, eff), 45000.0)
+
+        # Holiday / closed sessions with index_one_session_returns=None preserve O1 == NORMAL
+        vi_hol = copy.deepcopy(self.normal_vi)
+        vi_hol.update({'session_calendar_status': 'holiday', 'exchange_status': 'closed', 'index_one_session_returns': None})
+        rows_hol, _, _ = self._eval(vi_hol, session='2026-01-19')
+        self.assertEqual(rows_hol['O1']['state'], 'NORMAL')
+
+    def test_r6_v5_preserves_40_session_escalation_on_missing_shortfall_or_tolerance(self):
+        """R6 P1-6: Active 40-session V5 escalation stays NO-NEW-RISK & keeps counter=40 on missing shortfall/tolerance."""
+        sys.path.insert(0, str(repo_root / 'tools'))
+        from check_exposure_invariants import compute_permitted_exposure
+
+        prior_esc = {'V5': {'TQQQ': {'consecutive_beyond_tolerance': 40, 'escalated': True, 'last_session': '2026-01-05'}}}
+        for miss_kw in ({'shortfall_observed': None, 'v5_tolerance': 0.01}, {'shortfall_observed': 0.01, 'v5_tolerance': None}):
+            vi = copy.deepcopy(self.normal_vi)
+            vi.update({'proposed_exposure': 50000.0, 'v7_spread_width': 0.02, 'o5_collar': 0.05, 'symbol': 'TQQQ'})
+            vi['funds']['TQQQ'].update(miss_kw)
+            vi['funds']['SOXL']['v5_tolerance'] = 0.01
+            rows, eff, st = self._eval(vi, session='2026-01-06', prior=prior_esc)
+            self.assertEqual(rows['V5']['state'], 'NO-NEW-RISK')
+            self.assertTrue(rows['V5']['would_have_tripped'])
+            self.assertEqual(rows['V5']['reason'], 'escalated_to_v1_treatment')
+            self.assertIsNone(rows['V5']['outputs']['excess_shortfall'])
+            self.assertEqual(rows['V5']['outputs']['consecutive_sessions_beyond_tolerance'], 40)
+            self.assertTrue(rows['V5']['outputs']['escalated_to_v1'])
+            self.assertEqual(rows['V5']['outputs']['disposition'], 'escalated_to_v1')
+            self.assertEqual(eff['fund:TQQQ'], 'NO-NEW-RISK')
+            self.assertTrue(st['V5']['TQQQ']['escalated'])
+            self.assertEqual(st['V5']['TQQQ']['consecutive_beyond_tolerance'], 40)
+            self.assertEqual(compute_permitted_exposure(vi, rows, eff), 45000.0)
+
 
 if __name__ == '__main__':
     unittest.main()

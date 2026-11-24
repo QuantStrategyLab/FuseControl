@@ -254,6 +254,7 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # Check for prior mismatch latch and pending adjustments (canonical format per Q6)
     prior_mismatch = cst.get_v2_latched_mismatch(prior_state, fund)
     prior_pending = cst.get_v2_pending_adjustment(prior_state, fund)
+    corporate_action = inputs.get('corporate_action')
     mismatch_cleared = False
     if prior_mismatch:
         rearm = cst.matches_fund_rearm(
@@ -261,7 +262,7 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         ) is not None
 
         if not rearm:
-            return {
+            res = {
                 'state': 'HALT',
                 'would_have_tripped': True,
                 'kind': 'interlock_or_breaker',
@@ -269,8 +270,13 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'reason': 'latched_prior_mismatch',
                 'fund': fund
             }
+            if isinstance(corporate_action, dict) and corporate_action.get('type'):
+                inc_type = corporate_action.get('type')
+                if inc_type != prior_mismatch.get('type') or not corporate_action.get('adjustment_complete'):
+                    res['_v2_enqueue_pending'] = True
+            return res
         mismatch_cleared = True
-        if not prior_pending and inputs.get('corporate_action') is None:
+        if not prior_pending and corporate_action is None:
             return {
                 'state': 'NORMAL',
                 'would_have_tripped': False,
@@ -279,9 +285,6 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'reason': 'authorized_rearm',
                 'fund': fund
             }
-
-    # Get current corporate action input
-    corporate_action = inputs.get('corporate_action')
 
     # Fail closed on malformed action
     if corporate_action is not None and not isinstance(corporate_action, dict):
@@ -374,12 +377,15 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 broker_pos is not None and
                 share_count == broker_pos
             )
-            raw_ca_hwm = corporate_action.get('hwm_adjusted')
-            raw_in_hwm = inputs.get('hwm_adjusted')
-            hwm_ok = (
-                (raw_ca_hwm is None or (isinstance(raw_ca_hwm, bool) and raw_ca_hwm is True)) and
-                (raw_in_hwm is None or (isinstance(raw_in_hwm, bool) and raw_in_hwm is True))
+            ca_hwm_ok = (
+                'hwm_adjusted' not in corporate_action or
+                (isinstance(corporate_action['hwm_adjusted'], bool) and corporate_action['hwm_adjusted'] is True)
             )
+            in_hwm_ok = (
+                'hwm_adjusted' not in inputs or
+                (isinstance(inputs['hwm_adjusted'], bool) and inputs['hwm_adjusted'] is True)
+            )
+            hwm_ok = ca_hwm_ok and in_hwm_ok
 
             def _item_matches(item: Dict[str, Any], a_type: Any, c_ratio: Any) -> bool:
                 if item.get('type') != a_type:
@@ -707,15 +713,42 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     persistence_count = v5_state['consecutive_beyond_tolerance']
     prior_escalated = v5_state['escalated']
     last_session = v5_state['last_session']
+    is_escalated_prior = bool(prior_escalated) or (
+        isinstance(persistence_count, (int, float)) and
+        not isinstance(persistence_count, bool) and
+        persistence_count >= 40
+    )
+
+    def _preserved_escalated_result() -> Dict[str, Any]:
+        preserved_count = (
+            persistence_count
+            if isinstance(persistence_count, int) and not isinstance(persistence_count, bool)
+            else 40
+        )
+        return {
+            'state': 'NO-NEW-RISK',
+            'would_have_tripped': True,
+            'kind': 'diagnostic',
+            'latched': False,
+            'reason': 'escalated_to_v1_treatment',
+            'fund': fund,
+            'outputs': {
+                'excess_shortfall': None,
+                'consecutive_sessions_beyond_tolerance': preserved_count,
+                'escalated_to_v1': True,
+                'disposition': 'escalated_to_v1'
+            }
+        }
 
     # Calculate excess shortfall from fund inputs
     shortfall_observed = inputs.get('shortfall_observed')
     shortfall_predicted = inputs.get('shortfall_predicted')
     v5_tolerance = inputs.get('v5_tolerance')  # From validated_inputs if supplied
 
-    # If tolerance unresolved, treat as unresolved (not missing data)
+    # If tolerance unresolved, treat as unresolved (preserve active 40-session escalation!)
     if v5_tolerance is None or v5_tolerance == 'unresolved':
-        # Unresolved tolerance - diagnostic only, no escalation (Fix 2)
+        if is_escalated_prior:
+            return _preserved_escalated_result()
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,
@@ -731,9 +764,11 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             }
         }
 
-    # A11: Fail closed on NaN/inf/bool/negative v5_tolerance
+    # A11: Fail closed on NaN/inf/bool/negative v5_tolerance (preserve active escalation!)
     tol_val = _is_valid_finite_number(v5_tolerance)
     if tol_val is None or tol_val < 0.0:
+        if is_escalated_prior:
+            return _preserved_escalated_result()
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,
@@ -752,6 +787,8 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     obs_val = _is_valid_finite_number(shortfall_observed)
     pred_val = _is_valid_finite_number(shortfall_predicted)
     if obs_val is None or pred_val is None:
+        if is_escalated_prior:
+            return _preserved_escalated_result()
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,

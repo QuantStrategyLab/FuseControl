@@ -82,6 +82,12 @@ def evaluate_O1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         ))
     )
 
+    is_closed = (
+        inputs.get('market_closed') is True or
+        inputs.get('session_calendar_status') in ('holiday', 'closed', 'market_closed') or
+        inputs.get('exchange_status') in ('holiday', 'closed', 'market_closed')
+    )
+
     if has_operational_payload:
         required_values = ['bankroll', 'high_water_mark', 'joint_exposure', 'max_loss_cap']
         for key in required_values:
@@ -95,6 +101,18 @@ def evaluate_O1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                     missing_toplevel_fields.append(key)
             except (TypeError, ValueError):
                 missing_toplevel_fields.append(key)
+
+        if not is_closed and (
+            'index_one_session_returns' in inputs or
+            inputs.get('session_calendar_status') == 'open'
+        ):
+            idx_rets = inputs.get('index_one_session_returns')
+            if (
+                not isinstance(idx_rets, dict) or
+                len(idx_rets) < 2 or
+                any(finite_float(v) is None for v in idx_rets.values())
+            ):
+                missing_toplevel_fields.append('index_one_session_returns')
 
     # B3: If ANY source or field is missing/stale/non-finite, fail closed
     has_issues = bool(missing_source_records or missing_toplevel_fields)
@@ -549,26 +567,62 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     if symbol is not None and (not isinstance(whitelist, list) or symbol not in whitelist):
         violations.append('symbol_not_whitelisted')
 
-    # Account whitelist: fail closed on null/non-list whitelist and check BOTH account & o5_account if given
-    accounts_to_check = [a for a in (inputs.get('account'), inputs.get('o5_account')) if a is not None]
+    order_size = None
+    for qty_key in ('o5_order_size', 'order_size', 'o5_order_qty', 'order_qty', 'qty'):
+        if inputs.get(qty_key) is not None:
+            order_size = inputs.get(qty_key)
+            break
+
+    # Side & notional inputs (extract before account whitelist check so explicit order checks never bypass null account)
+    side = inputs.get('o5_side') if 'o5_side' in inputs else inputs.get('side')
+    raw_order_value = inputs['o5_order_value'] if 'o5_order_value' in inputs else inputs.get('order_value')
+    unit_price = inputs.get('o5_order_price')
+    if unit_price is None:
+        unit_price = inputs.get(
+            'o5_limit_price',
+            inputs.get('limit_price', inputs.get('order_price', inputs.get('unit_price', inputs.get('price'))))
+        )
+    ref_price = inputs.get('o5_reference_price')
+
+    # Account whitelist: fail closed on null/non-list whitelist, validate both account & o5_account,
+    # and require valid account/whitelist when an explicit order check is present
+    raw_account = inputs.get('account')
+    raw_o5_account = inputs.get('o5_account')
+    accounts_to_check = [a for a in (raw_account, raw_o5_account) if a is not None]
     if 'account_whitelist' in inputs:
         account_whitelist = inputs['account_whitelist']
     elif 'o5_account_whitelist' in inputs:
         account_whitelist = inputs['o5_account_whitelist']
     else:
         account_whitelist = None
-    if accounts_to_check and (
-        not isinstance(account_whitelist, list) or
-        any(a not in account_whitelist for a in accounts_to_check)
+
+    order_present = any(
+        val is not None
+        for val in (side, order_size, raw_order_value, symbol, unit_price, ref_price)
+    )
+    explicit_null_whitelist = (
+        ('account_whitelist' in inputs and inputs['account_whitelist'] is None) or
+        ('o5_account_whitelist' in inputs and inputs['o5_account_whitelist'] is None) or
+        (account_whitelist is not None and not isinstance(account_whitelist, list))
+    )
+    explicit_null_account = (
+        ('account' in inputs and raw_account is None) or
+        ('o5_account' in inputs and raw_o5_account is None)
+    )
+    if (
+        (accounts_to_check and (
+            not isinstance(account_whitelist, list) or
+            any(a not in account_whitelist for a in accounts_to_check)
+        )) or
+        explicit_null_whitelist or
+        (order_present and (
+            explicit_null_account or
+            (not accounts_to_check and account_whitelist is None)
+        ))
     ):
         violations.append('account_not_whitelisted')
 
-    order_size = inputs.get('o5_order_size')
-    if order_size is None:
-        order_size = inputs.get('o5_order_qty', inputs.get('order_qty', inputs.get('qty')))
-
     # Long only: allow reducing sells within existing long position; reject shorts & uncovered/oversells
-    side = inputs.get('o5_side') if 'o5_side' in inputs else inputs.get('side')
     valid_reducing_sell = False
     if side is not None:
         if side == 'buy':
@@ -595,14 +649,6 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             violations.append('not_long_only')
 
     # Within settled cash (canonical 'settled_cash' wins cleanly over 'o5_settled_cash'; check max(order_value, qty * price))
-    raw_order_value = inputs['o5_order_value'] if 'o5_order_value' in inputs else inputs.get('order_value')
-    unit_price = inputs.get('o5_order_price')
-    if unit_price is None:
-        unit_price = inputs.get(
-            'o5_limit_price',
-            inputs.get('limit_price', inputs.get('order_price', inputs.get('unit_price', inputs.get('price'))))
-        )
-    ref_price = inputs.get('o5_reference_price')
 
     derived_notional = None
     notional_invalid = False
@@ -973,14 +1019,56 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     elif isinstance(authorized_events, dict):
         events_list = authorized_events.get('account', [])
 
-    def _card_scope_date_ok(event: Any) -> bool:
+    def _parse_event_scope(event_or_desc: Dict[str, Any]) -> tuple:
+        """Return (ok, target_scope_or_none) for card or descriptor scope tags."""
+        ev_fund = event_or_desc.get('fund')
+        ev_symbol = event_or_desc.get('symbol')
+        has_scope = 'scope' in event_or_desc
+        ev_scope = event_or_desc.get('scope')
+        if ev_fund is not None and (not isinstance(ev_fund, str) or not ev_fund.strip()):
+            return False, None
+        if ev_symbol is not None and (not isinstance(ev_symbol, str) or not ev_symbol.strip()):
+            return False, None
+        if ev_fund is not None and ev_symbol is not None and ev_fund.strip() != ev_symbol.strip():
+            return False, None
+        target = ev_fund.strip() if isinstance(ev_fund, str) else (ev_symbol.strip() if isinstance(ev_symbol, str) else None)
+        if has_scope:
+            if not isinstance(ev_scope, str) or not ev_scope.strip():
+                return False, None
+            sc = ev_scope.strip()
+            if sc == 'account':
+                if target is not None:
+                    return False, None
+            elif sc.startswith('fund:') or sc.startswith('symbol:'):
+                sc_target = sc.split(':', 1)[1].strip()
+                if not sc_target or (target is not None and target != sc_target):
+                    return False, None
+                target = sc_target
+            else:
+                return False, None
+        return True, target
+
+    def _card_row_date_ok(event: Any) -> bool:
         if not isinstance(event, dict):
+            return False
+        if 'row' in event or 'row_id' in event:
+            if not cst.event_matches_row(event, 'O9'):
+                return False
+        return cst.event_date_matches(event, session=session, as_of=as_of, require_date=True)
+
+    def _tier_card_scope_date_ok(event: Any) -> bool:
+        if not _card_row_date_ok(event):
             return False
         if event.get('fund') or event.get('symbol'):
             return False
         if 'scope' in event and event.get('scope') != 'account':
             return False
-        return cst.event_date_matches(event, session=session, as_of=as_of, require_date=True)
+        return True
+
+    def _param_card_scope_date_ok(event: Any) -> tuple:
+        if not _card_row_date_ok(event):
+            return False, None
+        return _parse_event_scope(event)
 
     tier_authorized = True
     if tier_change_event:
@@ -988,94 +1076,202 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         live_tier = inputs.get('tier')
         tier_live_ok = target_tier is None or live_tier is None or live_tier == target_tier
         tier_authorized = tier_live_ok and any(
-            _card_scope_date_ok(event) and
+            _tier_card_scope_date_ok(event) and
             event.get('type') == 'tier_change_card' and
             event.get('from') == tier_change_event.get('from') and
             event.get('to') == target_tier
             for event in events_list
         )
 
+    def _extract_descriptor_targets_strict(desc: Any, default_scope: Optional[str] = None) -> Optional[List[tuple]]:
+        if isinstance(desc, list):
+            if not desc:
+                return None
+            targets: List[tuple] = []
+            for item in desc:
+                item_targets = _extract_descriptor_targets_strict(item, default_scope=default_scope)
+                if not item_targets:
+                    return None
+                targets.extend(item_targets)
+            return targets
+        if not isinstance(desc, dict) or not desc:
+            return None
+
+        scope_ok, local_scope = _parse_event_scope(desc)
+        if not scope_ok:
+            return None
+        if default_scope is not None and local_scope is not None and default_scope != local_scope:
+            return None
+        eff_scope = local_scope if local_scope is not None else default_scope
+
+        if any(k in desc for k in ('param', 'parameter', 'field', 'name')):
+            param_name = desc.get('param') or desc.get('parameter') or desc.get('field') or desc.get('name')
+            if not isinstance(param_name, str) or not param_name.strip():
+                return None
+            for val_key in ('to', 'new_value', 'new', 'target', 'value'):
+                if val_key in desc and desc[val_key] is not None:
+                    return [(param_name.strip(), desc[val_key], eff_scope)]
+            return None
+
+        targets: List[tuple] = []
+        meta_keys = {'from', 'card_id', 'reason', 'note', 'fund', 'symbol', 'scope', 'session', 'as_of'}
+        for k, v in desc.items():
+            if k in meta_keys:
+                continue
+            if k == 'limits':
+                if not isinstance(v, dict) or not v:
+                    return None
+                sub = _extract_descriptor_targets_strict(v, default_scope=eff_scope)
+                if not sub:
+                    return None
+                targets.extend(sub)
+            elif k == 'funds':
+                if not isinstance(v, dict) or not v:
+                    return None
+                for f_sym, f_val in v.items():
+                    if not isinstance(f_sym, str) or not f_sym.strip() or not isinstance(f_val, dict) or not f_val:
+                        return None
+                    if eff_scope is not None and eff_scope != f_sym.strip():
+                        return None
+                    sub = _extract_descriptor_targets_strict(f_val, default_scope=f_sym.strip())
+                    if not sub:
+                        return None
+                    targets.extend(sub)
+            elif isinstance(v, dict):
+                found_val = False
+                for val_key in ('to', 'new_value', 'new', 'target', 'value'):
+                    if val_key in v and v[val_key] is not None:
+                        targets.append((k, v[val_key], eff_scope))
+                        found_val = True
+                        break
+                if not found_val:
+                    return None
+            else:
+                if v is None:
+                    return None
+                targets.append((k, v, eff_scope))
+        return targets if targets else None
+
     def _single_card_covers_descriptors(card_desc: Any, required: Any) -> bool:
+        def _dict_covers(c_item: Any, r_item: Any) -> bool:
+            if not isinstance(c_item, dict) or not isinstance(r_item, dict):
+                return False
+            for k, v in r_item.items():
+                if k in ('fund', 'symbol', 'scope'):
+                    continue
+                if k not in c_item or c_item[k] != v:
+                    return False
+            return True
+
         if isinstance(required, dict):
-            return isinstance(card_desc, dict) and all(
-                k in card_desc and card_desc[k] == v for k, v in required.items()
-            )
+            return _dict_covers(card_desc, required)
         if isinstance(required, list):
             if isinstance(card_desc, list):
-                return all(desc in card_desc for desc in required)
-            return len(required) == 1 and card_desc == required[0]
+                return all(any(_dict_covers(c_item, req_item) for c_item in card_desc) for req_item in required)
+            return len(required) == 1 and _dict_covers(card_desc, required[0])
         return card_desc == required
 
-    def _extract_descriptor_targets(desc: Any) -> List[tuple]:
-        targets: List[tuple] = []
-        if isinstance(desc, list):
-            for item in desc:
-                targets.extend(_extract_descriptor_targets(item))
-            return targets
-        if not isinstance(desc, dict):
-            return targets
-        param_name = desc.get('param') or desc.get('parameter') or desc.get('field') or desc.get('name')
-        if isinstance(param_name, str):
-            for val_key in ('to', 'new_value', 'target', 'value'):
-                if val_key in desc:
-                    targets.append((param_name, desc[val_key]))
-                    break
-            return targets
-        for k, v in desc.items():
-            if k in ('from', 'card_id', 'reason', 'note'):
-                continue
-            if isinstance(v, dict):
-                if 'to' in v or 'new_value' in v or 'target' in v:
-                    for val_key in ('to', 'new_value', 'target'):
-                        if val_key in v:
-                            targets.append((k, v[val_key]))
-                            break
-                elif k == 'limits':
-                    targets.extend(_extract_descriptor_targets(v))
-            else:
-                targets.append((k, v))
-        return targets
-
-    known_o9_policy_fields = {
+    account_only_fields = {
         'max_loss_cap', 'tier_joint_cap', 'tier', 'high_water_mark',
-        'h_value', 'H', 'tier_loss_budget_D', 'o5_collar', 'v5_tolerance',
-        'v7_spread_width', 'reconciliation_tolerance',
+        'h_value', 'H', 'tier_loss_budget_D', 'o5_collar',
     }
+    overridable_policy_fields = {
+        'v7_spread_width', 'v5_tolerance', 'v6_threshold', 'reconciliation_tolerance',
+    }
+    known_o9_policy_fields = account_only_fields | overridable_policy_fields
+
+    def _values_match(live_val: Any, target_val: Any) -> bool:
+        if isinstance(live_val, bool) or isinstance(target_val, bool):
+            return type(live_val) is type(target_val) and live_val == target_val
+        t_num = finite_float(target_val)
+        l_num = finite_float(live_val)
+        if t_num is not None or l_num is not None:
+            return t_num is not None and l_num is not None and t_num == l_num
+        return live_val == target_val
+
+    def _targets_cover(card_targets: List[tuple], req_targets: List[tuple]) -> bool:
+        for req_field, req_val, req_scope in req_targets:
+            if not any(
+                c_field == req_field and c_scope == req_scope and _values_match(c_val, req_val)
+                for c_field, c_val, c_scope in card_targets
+            ):
+                return False
+        return True
 
     def _targets_match_live_inputs(targets: List[tuple]) -> bool:
         limits_map = inputs.get('limits') if isinstance(inputs.get('limits'), dict) else {}
-        for field_name, target_val in targets:
-            if field_name in inputs:
-                live_val = inputs[field_name]
-            elif field_name in limits_map:
-                live_val = limits_map[field_name]
-            elif field_name in known_o9_policy_fields:
-                return False
-            else:
-                continue
-            t_num = finite_float(target_val)
-            l_num = finite_float(live_val)
-            if t_num is not None or l_num is not None:
-                if t_num is None or l_num is None or t_num != l_num:
+        funds_map = inputs.get('funds') if isinstance(inputs.get('funds'), dict) else {}
+        for field_name, target_val, target_scope in targets:
+            if target_scope is not None:
+                if field_name in account_only_fields:
                     return False
-            elif live_val != target_val:
-                return False
+                if funds_map and target_scope not in funds_map:
+                    return False
+                fund_dict = funds_map.get(target_scope)
+                if isinstance(fund_dict, dict) and field_name in fund_dict:
+                    live_val = fund_dict[field_name]
+                elif field_name in inputs:
+                    live_val = inputs[field_name]
+                elif field_name in limits_map:
+                    live_val = limits_map[field_name]
+                elif field_name in known_o9_policy_fields:
+                    return False
+                else:
+                    continue
+                if not _values_match(live_val, target_val):
+                    return False
+            else:
+                if field_name in inputs:
+                    live_val = inputs[field_name]
+                    if not _values_match(live_val, target_val):
+                        return False
+                elif field_name in limits_map:
+                    live_val = limits_map[field_name]
+                    if not _values_match(live_val, target_val):
+                        return False
+                elif field_name in overridable_policy_fields:
+                    found_any_override = False
+                    for f_data in funds_map.values():
+                        if isinstance(f_data, dict) and field_name in f_data:
+                            found_any_override = True
+                            if not _values_match(f_data[field_name], target_val):
+                                return False
+                    if not found_any_override:
+                        return False
+                elif field_name in known_o9_policy_fields:
+                    return False
+
+                if field_name in overridable_policy_fields:
+                    for f_data in funds_map.values():
+                        if isinstance(f_data, dict) and field_name in f_data:
+                            if not _values_match(f_data[field_name], target_val):
+                                return False
         return True
 
     params_authorized = True
     if change_descriptors:
-        # Require ONE single Q4-validated parameter_change_card covering all descriptors AND matching live inputs
-        param_cards = [
-            event.get('change_descriptors')
-            for event in events_list
-            if _card_scope_date_ok(event) and event.get('type') == 'parameter_change_card'
-        ]
-        desc_targets = _extract_descriptor_targets(change_descriptors)
-        params_authorized = any(
-            _single_card_covers_descriptors(card, change_descriptors) and
-            _targets_match_live_inputs(desc_targets + _extract_descriptor_targets(card))
-            for card in param_cards
-        )
+        # Require explicit target value on every descriptor AND one Q4-validated card matching effective runtime values
+        desc_targets = _extract_descriptor_targets_strict(change_descriptors)
+        if not desc_targets:
+            params_authorized = False
+        else:
+            params_authorized = False
+            for event in events_list:
+                card_ok, card_scope = _param_card_scope_date_ok(event)
+                if not card_ok or event.get('type') != 'parameter_change_card':
+                    continue
+                card_desc = event.get('change_descriptors')
+                card_targets = _extract_descriptor_targets_strict(card_desc, default_scope=card_scope)
+                if not card_targets:
+                    continue
+                if (
+                    _single_card_covers_descriptors(card_desc, change_descriptors) and
+                    _targets_cover(card_targets, desc_targets) and
+                    _targets_match_live_inputs(desc_targets) and
+                    _targets_match_live_inputs(card_targets)
+                ):
+                    params_authorized = True
+                    break
 
     if not (tier_authorized and params_authorized):
         # Unauthorized parameter change (Fix 4: reason='unauthorized_change')
