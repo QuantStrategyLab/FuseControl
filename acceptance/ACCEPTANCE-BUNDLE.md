@@ -3,13 +3,13 @@
 - **Branch:** `demo/fuse1-sonnet`
 - **Spec version:** `fuse-eval-spec/v1`
 - **Golden freeze version:** `fuse-eval-spec/v2` (`1da74ca5...`, owner-approved v2 refreeze `2026-11-24`, 0 bytes changed vs `710758c`)
-- **Code / fixture / tool / test head:** `de50e4fbdea5f7fe8e610923c3461a5e3a660c6d` (R8 P1 remediation at `de50e4f` on top of `5ad8072`/`440373c`/`3a14e18`/`f9b6b3a`/`841b7cb`/`e3a7aba`/`18f8cdd`/`3277881`/`ef79aee`/`b1e2ec6`/`9335f26`/`710758c`/`d27f51a`/`b3084d7`; this bundle/docs commit follows)
+- **Code / fixture / tool / test head:** `d816ccaf151fdde0b5d18efca5e936bcf127184e` (R9 P1 remediation at `d816cca` on top of `72d5020`/`de50e4f`/`5ad8072`/`440373c`/`3a14e18`/`f9b6b3a`/`841b7cb`/`e3a7aba`/`18f8cdd`/`3277881`/`ef79aee`/`b1e2ec6`/`9335f26`/`710758c`/`d27f51a`/`b3084d7`; this bundle/docs commit follows)
 
 ## Artifact Hashes
 
 ### Engine Hash (§5.3)
 ```
-2237ea7492e0ce5b3203af524e2aa322c1addb41b263bfa2a4acf7e3e530d4e3
+7105ad09e26d0903ffa86f48df336cafd30612da1361287d8ddff02b84054f91
 ```
 
 Computed from canonical bundle (8 sorted Python files):
@@ -55,11 +55,11 @@ src/fuse_engine/state.py
 ### Result Bundle Hash
 
 ```
-43e708c0864e2eb6967033c8c7d6b1382f5e8c2045ba476b2b3c0d65650756f4
+4ca56cfe25feab9dbd31fb6c4e5e8bf1c1948d0771d6ea8ed775db7a235e9b0c
 ```
-File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `3c0ea7c49e9ecf11395c9860a426ae2d6b53690ad559e830794f2cf4fe350c8b`.
+File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `065a587f8ec579c0d00cbcded1e4a5cec1c79847859649297b1f4acc07a161d5`.
 
-## Matrix Results (Head `440373c`, R7 P1 Remediation Applied; Option A v2 `goldens/` Freeze Unchanged)
+## Matrix Results (Head `d816cca`, R9 P1 Remediation Applied; Option A v2 `goldens/` Freeze Unchanged)
 
 | Section | Passed | Failed | Total | % |
 |---------|--------|--------|-------|---|
@@ -82,19 +82,19 @@ File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `3c0ea7c49e
 | F1-A03 | Matrix exact agreement | ✓ PASS (`264/264` strict type/raw dict + formal runner `264/264` §4.1 scope maps; `13/13` successor incl. `SUC-08` 70 continuous calls, `SUC-11`, `SUC-06/5`, `SUC-07/3`; `FREEZE.json` SHA-256 verified from disk) |
 | F1-A04 | Tier repetitions | ✓ EXECUTED (`132/132` formal runner full-key strict equality w/ real `0.4/0.6/0.8 × bankroll` caps, `tier_change` balanced+aggressive coverage, frozen priors, and `-1` cap mutation detection `110/22`) |
 | F1-A05 | Determinism | ✓ PASS (independent runs, `PYTHONHASHSEED=1,2,3`, `canonical_json` round-trip, zero file I/O in `evaluate()`, and swapped-order multi-fund V5/V6 produce identical outputs) |
-| F1-A06 | Fail-closed battery | ✓ PASS (Option A / frozen v2 bounds preserved at 0 diff bytes: `L0`/`L1`/`L2` `NaN`/`bool`; `L6` `{}` & `< 2` indices; `O1` blocks open-market `index_one_session_returns=None`/empty/non-finite even with contradictory `market_closed=True` alongside open calendar/exchange statuses, preserving `missing.L6 == NORMAL` and genuine `holiday`/`closed` `O1 == NORMAL`; `SUC-05` minimal `['source_records','tier']` Step 7; `O3` empty `funds`; `O5` conflicting qty aliases, unbounded buys, empty `account_whitelist=[]` & null `account`/`account_whitelist`/notional/`settled_cash`/long-only sells; `O6` blank hashes; `V5` `excess_shortfall=None`; `V7` non-bool `trading_pause`; `evaluate()` null guards) |
-| F1-A07 | Persistence battery | ✓ PASS (O8 kill-switch latch & Q4 clear; V2 enqueues distinct CA incl. same-type different-details during active mismatch latch & retains pending items across mismatch rearm until reconciled, strict non-maskable `bool` `hwm_adjusted` across top/fund/CA incl. rejecting explicit `null`, finite mismatch state; V1 `five_session_history=[]` & holiday preservation; V4 holiday freeze before `triggered` & 2nd-fund/omitted-fund `V4.outputs`; V5 omitted & missing-shortfall/tolerance escalated funds keep `NO-NEW-RISK` & count=40; L3/L4 canonical `session > as_of[:10]`, L3 dynamic day-10 counter, L4 holiday rearm refusal; L5/O1 canonical session intra-day retention; O4 `BIL` malformed/unidentified lock survival) |
-| F1-A08 | Precedence & authorization | ✓ PASS (account `HALT` dominates `joint`; O7 `NO-NEW-RISK` priority; omitted active `V4`/escalated `V5` kept in scopes; Q4 rejects `row != row_id` across re-arms and O9 tier/parameter cards, requires date on account + V1/V2/V3 fund re-arms & O9 cards, requires explicit non-empty tier targets & param targets, enforces consumer-row scope matching on `reconciliation_tolerance` and full-fund binding on account-level overridable policy cards) |
+| F1-A06 | Fail-closed battery | ✓ PASS (Option A / frozen v2 bounds preserved at 0 diff bytes: `L0`/`L1`/`L2` `NaN`/`bool`; `L6` `{}` & `< 2` indices; `O1` blocks open-market `index_one_session_returns=None`/empty/non-finite even with contradictory `market_closed=True` alongside open calendar/exchange statuses, preserving `missing.L6 == NORMAL` and genuine `holiday`/`closed` `O1 == NORMAL`; `SUC-05` minimal `['source_records','tier']` Step 7; `O3` empty `funds`; `O5` conflicting symbol/whitelist/account/qty/side/order_value/price aliases, `order_size <= 0`, exact `Decimal` notional/collar bounds (`3 * 33.20 == 99.60`), unbounded buys, empty `account_whitelist=[]` & null `account`/`account_whitelist`/notional/`settled_cash`/long-only sells; `O6` blank hashes; `O9` rejecting `"param": "limits"`/`"funds"`; `V5` `excess_shortfall=None`; `V7` non-bool `trading_pause`; `evaluate()` null guards) |
+| F1-A07 | Persistence battery | ✓ PASS (O8 kill-switch latch & Q4 clear; V2 carries forward `pending_action_identities` & `latched_mismatch_actions` on omitted funds, enqueues distinct CA incl. same-type different-details during active mismatch latch & retains pending items across mismatch rearm until reconciled, exact string `action_id` (`"001" != "1"`) & date identity matching, strict non-maskable `bool` `hwm_adjusted` across top/fund/CA incl. rejecting explicit `null`, finite mismatch state; V1 `five_session_history=[]` & holiday preservation; V4 holiday freeze before `triggered` & 2nd-fund/omitted-fund `V4.outputs`; V5 omitted & missing-shortfall/tolerance escalated funds keep `NO-NEW-RISK` & count=40; L3/L4 canonical `session > as_of[:10]`, L3 dynamic day-10 counter, L4 holiday rearm refusal; L5/O1 canonical session intra-day retention; O4 `BIL` malformed/unidentified lock survival) |
+| F1-A08 | Precedence & authorization | ✓ PASS (account `HALT` dominates `joint`; O7 `NO-NEW-RISK` priority; omitted active `V4`/escalated `V5` kept in scopes; Q4 rejects `row != row_id` across re-arms and O9 tier/parameter cards, runs same-session validation after `O5`/`O9` Q4 re-arm including rejecting `"param": "limits"`/`"funds"`, requires date on account + V1/V2/V3 fund re-arms & O9 cards, requires explicit non-empty tier targets & param targets, enforces consumer-row scope matching on `reconciliation_tolerance` and full-fund binding on account-level overridable policy cards) |
 | F1-A09 | No-exposure-increase invariant | ✓ PASS (`tools/check_exposure_invariants.py`: `168/168` bundles, includes `symbol` target, per-symbol V7 scoping without falsely clamping `SOXL`, `0.0` headroom on negative `joint_exposure`, pre-call immutability snapshots) |
 | F1-A10 | Interface conformance | ✓ PASS (enforces `spec_version == 'fuse-eval-spec/v1'` & `mode == 'shadow'`, zero file I/O with precomputed `engine_hash`, aligned `stub_adapter.py` single-fund `fund` & single-symbol `symbol` keys) |
 | F1-A11 | Disposition register complete | ✓ PASS (`NaN`/inf/bool/neg tolerances fail closed; worst-case multi-fund V5 `disposition`; `disposition-register.json` synced to 5-session implementation) |
-| F1-A12 | V2 branches | ✓ PASS (enqueues new/distinct CA incl. same-type differing details even while mismatch is latched, keeps unrelated `split` pending across mismatch re-arm until all actions reconcile; strict non-maskable `bool` completion & `hwm_adjusted` across top/fund/CA incl. rejecting explicit `null`; known ratio match; finite mismatch storage; `{}` pending retention) |
+| F1-A12 | V2 branches | ✓ PASS (carries forward `pending_action_identities` & `latched_mismatch_actions` on omitted funds, enqueues new/distinct CA incl. same-type differing details even while mismatch is latched, keeps unrelated `split` pending across mismatch re-arm until all actions match exact `canonical_ca_identity()` incl. string `action_id` (`"001" != "1"`) & dates; strict non-maskable `bool` completion & `hwm_adjusted` across top/fund/CA incl. rejecting explicit `null`; known ratio match; finite mismatch storage; `{}` pending retention) |
 | F1-A13 | Offline proof | ✓ PASS (pure function, zero file I/O in `evaluate()`, synthetic inputs only, zero network/broker endpoints) |
 | F1-A14 | Gates (CI, bot, review) | **PENDING** — local commits on `demo/fuse1-sonnet` await push; exact-head CI, `ai-review`, and R2 clearing label on PR #3 will execute upon push (remote PR head is `ad404ad`). |
 
 ## PR #3 Gate Snapshot (Historical Remote Read-Only State)
 
-PR #3 (`QuantStrategyLab/FuseControl#3`) remains a draft PR whose remote `headRefOid` (`ad404ad915e101aa0ec007be3ca3ba078116d26b`) predates all local remediation commits (`31500c9..440373c` + this bundle/doc commit):
+PR #3 (`QuantStrategyLab/FuseControl#3`) remains a draft PR whose remote `headRefOid` (`ad404ad915e101aa0ec007be3ca3ba078116d26b`) predates all local remediation commits (`31500c9..d816cca` + this bundle/doc commit):
 - On remote `ad404ad` (`gh pr view 3` at `2026-11-24T08:55:52Z`): `labels: []`, `ai-review: PENDING`, `Evaluate PR governance: FAILURE`, `risk-gate: FAILURE`, `Record the head a clearing label was added to: SKIPPED`, docs/Gitleaks/GitGuardian/`pr-template: SUCCESS`.
 - No remote CI run or `ai-review` exists for current local HEAD yet because pushing and PR edits are withheld pending owner push authorization.
 
@@ -120,6 +120,6 @@ acceptance/
 
 ## Notes
 
-- Full unit test suite: `Ran 139 tests` OK (`pytest`: `139 passed, 18 subtests passed`), plus `check_id_set.py` PASS, `lint_spec.py` PASS, `check_exposure_invariants.py` (`168/168` bundles) PASS, and `generate_golden_table.py` (`0` golden diff bytes).
+- Full unit test suite: `Ran 146 tests` OK (`pytest`: `146 passed, 18 subtests passed`), plus `check_id_set.py` PASS, `lint_spec.py` PASS, `check_exposure_invariants.py` (`168/168` bundles) PASS, and `generate_golden_table.py` (`0` golden diff bytes).
 - Option A / frozen v2 bounds (`missing.L6` `NORMAL` guarded by `O1` `NO-NEW-RISK`, and `SUC-05` minimal Step 7) are documented while preserving 0-byte `goldens/` diff from `710758c`. Nothing pushed and PR #3 untouched per local remediation protocol.
 - Owner-approved v2 refreeze (`d27f51a`) updated only `goldens/golden-table.json`, `goldens/DERIVATION.md`, and `goldens/FREEZE.json` for R1/R4/R5; all files under `goldens/` remain 0 bytes modified relative to `710758c`.
