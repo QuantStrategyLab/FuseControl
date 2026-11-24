@@ -1,204 +1,58 @@
-# FUSE-1 Demonstration Report — Phase 2F Complete
+# FUSE-1 Demonstration & Remediation Report
 
-**Branch:** `demo/fuse1-sonnet`  
-**Spec version:** `fuse-eval-spec/v1`  
-**Writer:** Sonnet (sole writer, 6 resume sessions)  
-**Demonstration epoch:** FUSE-DESIGN-2026-11-21-v1
-**Final code/test head:** `b59533b` (G7 acceptance docs & bundle regeneration follows)
+- **Branch:** `demo/fuse1-sonnet`
+- **Spec version:** `fuse-eval-spec/v1`
+- **Golden freeze version:** `fuse-eval-spec/v2` (`1da74ca5...`, owner-approved v2 refreeze `2026-11-24`)
+- **Writer:** Sonnet
+- **Demonstration epoch:** `FUSE-DESIGN-2026-11-21-v1`
+- **Verified code / test / refreeze / bundle head:** `d27f51a4f7d0c5f441503ddd28b9b239638c8e65` (preceded by `b3084d7`; followed by this docs commit)
 
 ## Status
 
-**TARGET ACHIEVED: Remediation G1–G7 complete (all code, harness, test, and doc updates verified) ✓**
+**LOCAL REMEDIATION R1–R7 COMPLETE & VERIFIED ON `d27f51a` — REMOTE EXACT-HEAD CI / PR #3 GATES PENDING PUSH (`F1-A14` PENDING; NOT READY FOR MERGE)**
 
-- Base: **264/264** ✓ (O5-reconciled; `253/264` raw dict equality, `264/264` §4.1 scope maps)
-- Tier (frozen harness w/ priors): **132/132 EXECUTED** ✓ (discriminating `40k/60k/80k` oracle `132/132` in `tests/test_tier_oracles.py`; frozen `golden-table.json` tier goldens differ on `42/132`)
-- Successor: **13/13** ✓ (SUC-11 executes real `evaluate()` calls; `SUC-06/5` & `SUC-07/3` execute real session chains)
-- Unit tests: **75 passed, 6 subtests passed** ✓ (`pytest` / `unittest`)
-- ID-set gate: **PASS** ✓
-- Exposure/policy invariant gate: **PASS** ✓ (`tools/check_exposure_invariants.py`: 83/83 bundles)
-- Deterministic: **YES** ✓ (fresh processes byte-identical; `PYTHONHASHSEED=1,2,3` identical)
-- Tree / `git diff --check`: **clean** ✓
+- Base: **264/264** ✓ strict raw dict equality + **264/264** §4.1 scope maps (R4 `O5.rejection_count_this_session` projection removed; R1 `missing.V1` fails closed)
+- Tier (formal runner): **132/132 EXECUTED** ✓ (R5 real tier caps `0.40/0.60/0.80 × bankroll` = `40k/60k/80k` on 100k baseline, `tier_change` covers `balanced`+`aggressive`, frozen priors honoured, `-1` J1-cap mutation `110 pass / 22 fail` detected)
+- Successor: **13/13** ✓ (R6 `SUC-08` executes all `70` sequential sessions via live state with zero frozen-prior skips; `SUC-11` executes `2` real calls; `SUC-06/5` executes `12` calls; `SUC-07/3` executes `7` calls)
+- Unit tests: **81 tests OK** (`pytest`: **81 passed, 9 subtests passed**) ✓
+- ID-set gate (`tools/check_id_set.py`): **PASS** (`spec=24, engine=24, expected=24`) ✓
+- Spec lint (`tools/lint_spec.py`): **PASS** ✓
+- Exposure/policy invariant gate (`tools/check_exposure_invariants.py`): **168/168 bundles PASS** ✓ (R7 pre-call snapshots detect in-place caller/policy tampering such as `o5_collar=0.99`, plus continuous multi-step successor chains & `fc.v1_missing_index_return` / `fc.o1_nan_age` / `fc.o6_missing_policy_hash` / `fc.o3_missing_broker_cash` / `fc.v2_tolerance_bypass`)
+- Deterministic: **YES** ✓ (2 independent strict runs + `PYTHONHASHSEED=1,2,3` produce byte-identical `acceptance/result-bundle.json`)
+- Remote CI / PR #3 (`F1-A14`): **PENDING** (local branch unpushed; exact-head CI, `ai-review`, and R2 governance labels have not run on `d27f51a` / this head)
 
-## Artifact Hashes
+## Artifact Hashes (Head `d27f51a` + v2 Refreeze)
 
-- **Engine hash (`b59533b`, 8 sorted files incl. `canonical.py`):** `a807507985234662fbd1696fd06ea5040a0d5cc3a8bcfb2f36e0ae80e8df7e95`
-- **Bundle hash:** `d96a6b752a4e65d7ca066df4efe56c3d44cbb3b7250a6ad6ebda790bbd7a84cf`
-- **`acceptance/result-bundle.json` SHA-256:** `52807bf69926632ab1fc9ed5b52b4a0dbea1ef4326536ffbf1d13cf480b0f72c`
+- **Engine hash (8 sorted files incl. `canonical.py`):** `96b0ebc4869225577e23358b530a5428b0d0d9b53d75c536f4abd84063185fa9`
+- **Bundle hash:** `5244c3a365c5eaf7b19f04ab592fd506c2fd7d7b1e4119f908bde4e02561c746`
+- **`acceptance/result-bundle.json` SHA-256 (trailing LF):** `a40a0c309aabda9f2d923774ea3fdf6284da962ee8b36dadcde3735a61e21515`
 - **Original freeze (`f60986a`):** `efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50`
-- **New freeze (`86be6d7`, 30 golden corrections):** `499641a2185131bccc49f93c1784eab3fd226336d6ac0edc66a1d983df1d89f1`
+- **Adjudication freeze v1 (`86be6d7`):** `499641a2185131bccc49f93c1784eab3fd226336d6ac0edc66a1d983df1d89f1`
+- **Owner-approved v2 refreeze (`d27f51a`):**
+  - `goldens/FREEZE.json` (`fuse-eval-spec/v2`): `2262eabd746d2c6ff9e0e5f49853244d638b550330db049d2af9c41c659dd89d`
+  - `goldens/scenarios.json` (unchanged): `37d4f48210368cbe981a780aed4c10434bbdfb1a328c4bb1c3f196371ac26a3b`
+  - `goldens/golden-table.json` (R1/R4/R5): `a9750d390fe194e947e9593dee53f3a0dbbba9e465a6dad374f449d24c265e8d`
+  - `goldens/successor-cases.json` (unchanged): `19fbb0d1ecc023740ab81d3bb5035a2fae96c8889b7b11e7099e270a20d8d12d`
+  - `goldens/DERIVATION.md` (v2 addendum): `eaa8034df0271cbeca9297a77c76ca3c6b4bd0968dd433ed7082af28c80a4682`
+  - **Combined v2 freeze:** `1da74ca508161ba6d9a424101321381a9f5156d8cb2c84c03be2fd2fe3f22a74`
 
-**Golden Preservation:** All files under `goldens/` (`FREEZE.json`, `scenarios.json`, `golden-table.json`, `successor-cases.json`, `DERIVATION.md`) remain 100% unmodified byte-for-byte since `86be6d7` (`git diff ad404ad -- goldens/` empty; `FREEZE.json` SHA-256 `fa066df3a1fef50032b98c61eb08df70dcd1e5461a2e549bcebb58d5ba9c9ec0`). Only non-golden outputs (e.g. `acceptance/result-bundle.json`) receive a trailing LF.
+## R2 Codex Review Remediation Summary (`b3084d7` & `d27f51a`)
 
-## Work Completed
+1. **R1 — V1 missing `index_return` fail-closed + v2 golden update (`d27f51a`):** Removed the `missing.V1` exemption in `src/fuse_engine/rows_vehicle.py` so missing `index_return` on an open window fails closed (`NO-NEW-RISK / would_have_tripped=True / reason='missing_input'`); updated `goldens/golden-table.json['base_cells']['missing.V1']` under owner-approved v2 refreeze; added regression test in `tests/test_slice3_controls.py`.
+2. **R2 — V1 5-session history preserved across `market_closed`/holiday calls (`b3084d7`):** Updated `src/fuse_engine/rows_vehicle.py` and `src/fuse_engine/evaluator.py` so closed/holiday and missing-input non-observation calls retain existing `prior_row_state['V1'][fund]['session_returns']`. Verified via Jan 13–20 holiday test (`tests/test_slice3_controls.py`): 4 prior sessions survive Jan 19 holiday/closed evaluation and trip/latch V1 (`2.5251253 pp`) on Jan 20, remaining latched across subsequent zero-return sessions.
+3. **R3 — V2 strict exact reconciliation without tolerance bypass (`b3084d7`):** Removed `reconciliation_tolerance` auto-clear tolerance in `src/fuse_engine/rows_vehicle.py::evaluate_V2`, enforcing `ledger_val == broker_val`. Added regression test in `tests/test_replay_proof.py` confirming `25,000` vs `24,900` with `reconciliation_tolerance=100` latches `HALT / reconciliation_mismatch`.
+4. **R4 — Strict 264/264 base comparison without `O5` field stripping (`d27f51a`):** Removed the `O5.rejection_count_this_session` projection in `tools/run_matrix.py::compare_base_outcome_exact` and updated all 11 base `O5` cells in `goldens/golden-table.json` to emit `rejection_count_this_session: 1` (matching `SUC-03`/`SUC-04`). Verified `264/264` strict raw dict equality in `tests/test_full_comparator.py`.
+5. **R5 — Formal tier runner using real `40k/60k/80k` caps & `balanced` `tier_change` (`d27f51a`):** Updated `tools/run_matrix.py::run_tier_repetitions` to apply `0.40/0.60/0.80 × bankroll` caps, updated `goldens/golden-table.json['tier_repetitions']` (including replacing duplicate `tier_change.*.conservative` cells with `tier_change.*.balanced`), and verified `132/132` formal pass plus `-1` J1-cap mutation detection (`110 pass / 22 fail`) in `tests/test_tier_oracles.py`.
+6. **R6 — Continuous live stepping for all 70 `SUC-08` sessions (`b3084d7`):** Removed frozen `prior_row_state` injection (`is_jump_checkpoint`) on `SUC-08` steps 2 and 4 in `tools/run_matrix.py`, executing intermediate sessions `2..38` and `41..69` via continuous live state (`70` `evaluate()` calls verified in `tests/test_full_comparator.py`).
+7. **R7 — Pre-call baseline snapshots & full successor chains in `check_exposure_invariants.py` (`b3084d7`, expanded `d27f51a`):** Added `_evaluate_checked` snapshotting `validated_inputs`, `prior_row_state`, and `authorized_events` before every `evaluate()` call across all batteries (including real continuous successor chains, `SUC-08` 70 sessions, `SUC-11`, and expanded fail-closed controls -> `168/168` bundles); verified in `tests/test_exposure_invariants.py` that wrapping `evaluate()` to mutate `o5_collar=0.99` or `max_loss_cap` fails immediately on every tampered call.
+8. **R8 — Documentation alignment & remote gate transparency (this commit):** Recorded exact verified hashes/counts for `d27f51a`, removed premature `PASS` / `READY` claims for unpushed remote gate (`F1-A14`), and explicitly noted exact-head CI is pending push/CI run.
 
-### Phase 2F — Adjudication-Ordered Successor Completion
+## Prior History (Phase 2F & Remediation #1/#2)
 
-**Session sequence:**
-1. Resume #2 (commit `c7a2f6f`): Slice 2 complete
-2. Resume #3 (commit `c7a2f6f`→`4a24750`): Slice 3 + partial Slice 4
-3. Resume #4 (commit `4a24750`→`4a24750`): Slice 3 complete, Slice 4(a,e) complete
-4. Resume #5 (commit `4a24750`→`bbca26d`): Slice 4(b,d) complete, 4(c) partial
-5. Resume #6 (commit `e38c036`→`39f85f9`): Slice 4(c) complete, 4(f) complete (this session)
+- **Slice 1 (`86be6d7`):** Applied 30 adjudication golden corrections to `goldens/successor-cases.json` (`efb8737a... -> 499641a2...`).
+- **Slices 2–4 (`f60986a -> ad404ad`) & Remediation G1–G7 (`31500c9 -> fbed307`):** Migrated state schema to canonical Q6 nested objects, implemented O4/V1/V2/V4/V5/L3/L4 mechanics, wired account `HALT` dominance over `joint`, fixed 9 fail-closed probes and V1 5-session branch, executed `SUC-11` / `SUC-06/5` / `SUC-07/3`, bound metadata fields (`spec_version`, `engine_hash`, `enforcement_mode`, `loss_breakers_armed`), and resolved `PYTHONHASHSEED` determinism.
 
-### Slice 1 — Golden Corrections and Re-Freeze (Session #2)
+## Pending Before Merge
 
-Applied all 30 ordered golden corrections from REVIEW-RECEIPT.md:
-- SUC-07: 2 V4 rows (counter-only → full row objects)
-- SUC-08: 2 V5 state strings (`"none"` → `"NORMAL"`)
-- SUC-13: 1 fund_return correction (0.030 → 0.040) + 5 deviation corrections (0.0098 → 0.0102)
-- SUC-10: 1 O4 row completion (add missing standard fields)
-- 12 sparse effective-state assertions (account HALT dominance)
-- 7 V4 timeline corrections (SUC-06/07 compressed session dates)
-
-**Re-freeze:** `499641a2...` (new combined freeze hash)
-
-### Slice 2 — Canonical State Migration (Session #2)
-
-Migrated ALL row state reads/writes to canonical nested format per Q6:
-- V2: `pending_adjustments[fund]`, `latched_mismatches[fund]`
-- V4: `V4[fund].clearing_counter`, `last_session_below_threshold`
-- V5: `V5[fund].consecutive_beyond_tolerance`, `escalated`
-- O4: `O4[symbol].original_order_id`, `status`
-- O5: `O5.rejection_count`, `last_rejection_session`, `latched`
-- L2/V1: `L2.latched/trip_session`, `V1[fund].latched/trip_session/deviation`
-
-Fixed defects:
-- V2 branch order (repeated announcement → carried, exact reconciliation → cleared)
-- V4 active-zero handling, session deduplication, clearing transition, row output
-- V5 distinct session counting, escalation at 40 (not 39)
-- Q4 re-arm short-circuit (eligible re-arm wins, clears latch immediately)
-- Outputs hidden by projections (V1 deviation, V4 counter, O5 rejection_count_this_session)
-
-Removed all private aliases from contract on both read and write sides.
-
-### Slice 3 — Verification Controls (Session #4)
-
-Implemented 10 executable verification controls:
-1. **Complete-input D4 control** (3 tests): O4 symbol transition with complete account inputs, account HALT dominance
-2. **Tier change dominance control** (2 tests): O9 account HALT on tier change without authorized card
-3. **Fail-closed negative controls** (5 tests): V4/O3/O6 missing inputs → specified refusals, O1 fresh→missing control
-
-All controls demonstrate detection of their guarded defects.
-
-### Slice 4(a) — Real Tier Runner (Session #4)
-
-Replaced stub `run_tier_repetitions` with real parameterized runner:
-- Loads base scenario inputs
-- Applies tier-specific parameters (tier, tier_loss_budget_D)
-- Executes engine with tier-modified inputs
-- Compares actual outputs against expected golden outcomes
-
-**Result:** 132/132 tier repetitions EXECUTED and passing (establishes F1-A04).
-
-### Slice 4(b) — Comparator Enhancements (Session #5)
-
-Enhanced three comparison functions:
-1. **compare_outcome**: Added SUC-06 `clearing_counter` field mapping
-2. **compare_next_row_state** (new): Compares successor state including empty row maps, fund-keyed state, symbol-keyed state
-3. **validate_row_shape** (new): Enforces exactly 24 named IDs, five standard fields per row
-
-Fixed two engine bugs:
-- V4 outputs unwrapping (single-fund counter at `outputs.clearing_counter`, not wrapped)
-- V4 `last_session_below_threshold` initialization (trip → `None`, clearing → current session)
-
-### Slice 4(c) — Replay Proof Tests (Session #6, this session)
-
-Fixed all 6 non-passing replay proof tests:
-1. `test_deposit_preserves_latch`: Added `flow_event` input for L2 deposit reason
-2. `test_authorized_rearm_clears_latch`: Fixed events format (`{'account': [...]}`) and rearm type
-3. `test_o4_outstanding_order_across_restart`: Fixed `pending_orders` dict format, added timeout flag, reconciliation data
-4. `test_v5_escalation_across_boundary`: Changed `tolerance` to `v5_tolerance`, used `shortfall_observed`/`shortfall_predicted`
-5. `test_repeated_session_deduplication`: Added `v5_tolerance` field
-6. `test_second_unaffected_scope`: Fixed expectation (SOXL advances 5→6, not unchanged)
-
-**Result:** All 7 replay proof tests passing (demonstrates Q6 proof paragraph):
-- Serialize-restore-replay equality
-- Canonical JSON state persistence
-- Absence of private aliases
-- V4 9→10 clearing chain
-- V5 39→40 escalation and session deduplication
-- L2 latch survival across deposit and authorized rearm
-- O4 outstanding order across restart
-- Second unaffected scope preservation
-
-### Slice 4(d) — SUC-11 Deep-Shape Fixture (Session #5)
-
-Created `tests/test_deep_shape.py` with 5 executable tests (all passing):
-1. `test_v4_outputs_shape`: V4 `clearing_counter` in outputs, single-fund unwrapped
-2. `test_v5_outputs_shape`: V5 diagnostic outputs structure
-3. `test_v6_outputs_shape`: V6 carrying cost diagnostic outputs
-4. `test_reject_nested_state_mutation`: Negative control detects state mutations
-5. `test_reject_outputs_structure_mutation`: Detects outputs structure changes
-
-**Result:** SUC-11 credit bound to executable evidence (5/5 passing), not flag. Establishes F1-A07 deep-shape compliance.
-
-### Slice 4(e) — Summary Counting Paths (Session #4)
-
-Added 3 verification tests for SUC-06 step 5 and SUC-07 step 3 summary timelines:
-- Verified counts 3-9 on January 8, 9, 12, 13, 14, 15, 16 of 2026 (SUC-06)
-- Verified counts 6-10 on January 13, 14, 15, 16, 20 of 2026 (SUC-07)
-- Both timelines correctly skip non-trading days (weekends + Jan 19 holiday)
-
-### Slice 4(f) — Full Regeneration (Session #6, this session)
-
-- Full frozen matrix re-run: 264/264 base + 132/132 tier EXECUTED + 13/13 successor
-- Unit tests: 46/46 passing
-- `python3 tools/check_id_set.py`: PASS
-- `git diff --check`: clean
-- Determinism: 6 fresh processes, byte-identical bundles (SHA256 `b6c204673d6c70be3baeb5f1a4086401e30ce941981c3288f1bda24a76fe3c4a`)
-- Regenerated `acceptance/result-bundle.json`, `DEMO-REPORT.md`, `ACCEPTANCE-BUNDLE.md` with TRUE hashes and counts
-
-## Corrected P2D-Claim Account
-
-Per REVIEW-REPORT.md binding adjudication, the original P2D claim ("all 11 failures are engine/harness bugs") is **refuted**. The corrected account:
-
-At head `f60986a` (pre-adjudication archive), the harness credited **4 of 13** successor cases (SUC-02, SUC-03, SUC-05, SUC-11). The nine failing cases combined:
-- **State-format and transition bugs** (A): V2 branch order, V4 active-zero handling and row outputs, V5 session counting and escalation, O5 canonical reads, O4 missing wiring
-- **Missing O4 evaluation** (A): symbol enumeration from pending orders and durable state, restart marker forwarding
-- **Incomplete precedence** (A): account HALT dominance not resolved downward over narrower scopes
-- **Invalid frozen row/fixture expectations** (B): SUC-07 V4 malformed rows, SUC-08 V5 invalid state strings, SUC-13 V1 trigger fixture below threshold, SUC-10 O4 incomplete row, 12 sparse effective-state assertions understating account HALT
-- **Previously undecided re-arm order** (C, adjudicated as Q4): eligible scoped re-arm on existing latch wins for that evaluation
-
-The three originally challenged goldens (SUC-06, SUC-07, SUC-13) all required cited corrections, as did SUC-10/1 and the additional assertions recorded in the adjudication. The historical freeze was intact on this head. Corrections are recorded as applied only after the new freeze (head `86be6d7`). Historical checkpoint counts are preserved with their dates/heads. The historical number 11 describes an earlier claim, not eleven independently reproduced failures in this export.
-
-**Classification:**
-- **A** (engine/harness defects): 7 cases required A fixes (SUC-01, 04, 06, 07, 08, 09, 10)
-- **B** (frozen golden defects per §6.2 rule 4): 6 cases required B fixes (SUC-01, 06, 07, 08, 09, 10, 12, 13)
-- **C** (design choices resolved by adjudication): 3 cases affected by C rulings (SUC-12, 13, plus Q5 fail-closed rejections)
-
-Pre-adjudication ceiling: **6/13** (SUC-02, 03, 04, 05, 06, 11), not 9/13.
-
-## Remediation #2 Summary & PR Gate Status (G1–G7, `31500c9` → `b59533b` + G7)
-
-- **G1 (`31500c9`):** Wired executable `SUC-11` deep-shape calls (`0 -> 2`), executed `SUC-06/5` (7 sessions) & `SUC-07/3` (5 sessions), fixed `O4.symbol` / `V5.fund` / clearing `fund` / strict `{}` checks, reconciled `V7`/`V2` (`253/264` raw, `264/264` O5-reconciled), and added independent §4.1 effective-map comparator (`tests/test_full_comparator.py`, `264/264`).
-- **G2 (`60f05a3`):** Honoured frozen `restart`/`tier_change` priors in `run_tier_repetitions` (`132/132`), added discriminating `40k/60k/80k` oracle + `-1` J1-cap mutation tests (`tests/test_tier_oracles.py`), and documented the `42/132` disagreement with frozen `golden-table.json` tier goldens without altering `goldens/`.
-- **G3 (`5f06fd3`):** Fixed all 9 fail-closed silent passes (V1 `fund_return`, V4 `NaN`, 6 O1 `age_sessions=NaN`, O1 4-field bypass) and implemented the §6 V1 five-session branch (Jan 5–9 control -> `2.5251253 pp`, latched `NO-NEW-RISK`).
-- **G4 (`cab4a52`):** Preserved V4 counter on missing forecast, absent-fund V1/V2/V3/V4/V5 state, L3 `loss_record`/day-30 lock clear, L4 `trip_session`, sorted O4 symbols (`PYTHONHASHSEED=1,2,3` identical), account `HALT` dominance over `joint`, and V2 amount-based exact reconciliation (`25,000` vs `24,900` negative control -> latched `HALT`).
-- **G5 (`9513265`):** Added `tools/check_exposure_invariants.py` and `tests/test_exposure_invariants.py` (83/83 bundles + mutated baseline/policy negative controls).
-- **G6 (`b59533b`):** Bound `spec_version`, `engine_hash`, `enforcement_mode`, and `loss_breakers_armed` into evaluator `next_row_state` and `result_bundle` (with hash-change probe).
-- **G7 (F1-A14 + hygiene):** Live `gh pr view 3 --repo QuantStrategyLab/FuseControl` at `2026-11-24T16:55:52+08:00` (`08:55:52Z`, remote head `ad404ad`): draft PR, `labels: []`, `ai-review` `PENDING`, `Evaluate PR governance` `FAILURE`, `risk-gate` `FAILURE` (R2 requires `owner-approved` or `agent-approved`), `Record the head a clearing label was added to` `SKIPPED`, docs/Gitleaks/GitGuardian/`pr-template` `SUCCESS`. Fixed `DEMO-REPORT.md:168` single trailing space and regenerated `acceptance/result-bundle.json` with trailing LF.
-
-## Coverage Notes
-
-**V1 five-session branch:** Implemented in `src/fuse_engine/rows_vehicle.py`, `canonical_state.py`, and `evaluator.py`, and verified in `tests/test_slice3_controls.py` (Jan 5–9 control -> `2.5251253 pp`, latched `NO-NEW-RISK`). (`SUC-13` in frozen `goldens/successor-cases.json` remains a 1-session fixture.)
-
-## Session Discipline
-
-All work completed in one Sonnet writer across 6 resume sessions. Checkpoint commit per mechanism/slice as required. No stop conditions hit. Clean stop per instructions. Session limit discipline observed (prior sessions ended cleanly at token budget; this session completes all remaining work).
-
-## Exit Criteria Satisfied
-
-✓ Base 264/264  
-✓ Tier 132/132 EXECUTED (real runner, Slice 4a)  
-✓ Successor 13/13  
-✓ Unit tests 46/46 passing  
-✓ ID-set gate PASS  
-✓ `git diff --check` clean  
-✓ Tree clean  
-✓ Slices 1-2 DONE (frozen, no additional golden edits per §6.2 rule 4)  
-✓ Slices 3, 4(a-f) DONE  
-
-**All successor counts verified from live matrix runs.**  
-**No golden edits beyond Slice 1's 30 corrections (§6.2 rule 4 satisfied).**  
-**Tree clean, `git diff --check` clean, deterministic.**  
-**Demonstration ready for independent review.**
+1. Push `demo/fuse1-sonnet` to origin (withheld per local-only protocol).
+2. Trigger and verify passing remote exact-head GitHub CI, `ai-review`, and R2 clearing label (`agent-approved` or `owner-approved`) on PR #3 (`QuantStrategyLab/FuseControl#3`).

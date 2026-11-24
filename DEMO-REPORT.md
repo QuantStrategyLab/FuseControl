@@ -1,5 +1,7 @@
 # FUSE-1 Sonnet Demonstration Report
 
+> **Historical Archive Note:** This root report captures early Phase 1–3 progress (`4/13` successor baseline before Phase 2F adjudication and remediation). For current `demo/fuse1-sonnet` status (`d27f51a`, `R1–R7` fixed with owner-approved v2 golden refreeze, `R8` docs updated, remote exact-head CI pending push), see `acceptance/DEMO-REPORT.md` and `acceptance/ACCEPTANCE-BUNDLE.md`.
+
 **Branch:** `demo/fuse1-sonnet`  
 **Writer:** Sonnet 4.5  
 **Epoch:** `FUSE-DESIGN-2026-11-21-v1`
