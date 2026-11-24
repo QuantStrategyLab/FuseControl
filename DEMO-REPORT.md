@@ -1,6 +1,6 @@
 # FUSE-1 Sonnet Demonstration Report
 
-> **Historical Archive Note:** This root report captures early Phase 1–3 progress (`4/13` successor baseline before Phase 2F adjudication and remediation). For current verified `demo/fuse1-sonnet` status (`2f23e71` + accompanying acceptance docs commit, `goldens/` Option A v2 freeze preserved at 0 diff bytes relative to `710758c`, remote exact-head CI pending push under `F1-A14`), see `acceptance/DEMO-REPORT.md` and `acceptance/ACCEPTANCE-BUNDLE.md`.
+> **Historical Archive Note:** This root report captures early Phase 1–3 progress (`4/13` successor baseline before Phase 2F adjudication and remediation). For current verified `demo/fuse1-sonnet` status (`b4dc687` + accompanying acceptance docs commit, `goldens/` Option A v2 freeze preserved at 0 diff bytes relative to `710758c`, remote exact-head CI pending push under `F1-A14`), see `acceptance/DEMO-REPORT.md` and `acceptance/ACCEPTANCE-BUNDLE.md`.
 
 **Branch:** `demo/fuse1-sonnet`  
 **Writer:** Sonnet 4.5  
