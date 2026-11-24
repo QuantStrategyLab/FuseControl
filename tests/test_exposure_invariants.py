@@ -118,6 +118,32 @@ class TestExposureInvariants(unittest.TestCase):
         errors = inv.check_bundle_against_baseline('neg.joint_unhalted', vi, rows, mutated_eff)
         self.assertTrue(any('account HALT did not dominate joint' in e for e in errors))
 
+    def test_negative_control_detects_j1_headroom_inflation(self):
+        """A09: Inflating J1.outputs.headroom must fail invariant checks even when caps match."""
+        vi = copy.deepcopy(self.normal_vi)
+        rows, eff, _ = evaluate(
+            'fuse-eval-spec/v1', 'h', 'registered_policy_hash_v1',
+            '2026-01-05', '2026-01-05T16:00:00Z', 'shadow', vi, {}, []
+        )
+        mutated_rows = copy.deepcopy(rows)
+        mutated_rows['J1']['outputs']['headroom'] += 1_000_000.0
+        errors = inv.check_bundle_against_baseline('neg.headroom_inflated', vi, mutated_rows, eff)
+        self.assertTrue(any('headroom' in e for e in errors))
+
+    def test_sole_fund_no_new_risk_blocks_exposure_increase(self):
+        """A09: Sole-fund NO-NEW-RISK blocks raising exposure from 45,000 to 50,000."""
+        vi = copy.deepcopy(self.normal_vi)
+        vi['joint_exposure'] = 45000.0
+        vi['proposed_exposure'] = 50000.0
+        vi['tier_joint_cap'] = 60000.0
+        rows, _, _ = evaluate(
+            'fuse-eval-spec/v1', 'h', 'registered_policy_hash_v1',
+            '2026-01-05', '2026-01-05T16:00:00Z', 'shadow', vi, {}, []
+        )
+        eff = {'account': 'NORMAL', 'fund:TQQQ': 'NO-NEW-RISK', 'symbol:TQQQ': 'NORMAL', 'joint': 'NORMAL'}
+        permitted = inv.compute_permitted_exposure(vi, rows, eff)
+        self.assertEqual(permitted, 45000.0)
+
 
 if __name__ == '__main__':
     unittest.main()

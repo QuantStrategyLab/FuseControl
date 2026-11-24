@@ -5,7 +5,21 @@ canonical JSON serialization (sorted keys, compact separators, no trailing white
 """
 
 import json
-from typing import Any
+import math
+from typing import Any, Optional
+
+
+def finite_float(value: Any) -> Optional[float]:
+    """Convert non-bool numeric value to finite float, else return None."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        num = float(value)
+    except (TypeError, ValueError):
+        return None
+    if math.isnan(num) or math.isinf(num):
+        return None
+    return num
 
 
 def canonical_json(obj: Any) -> str:

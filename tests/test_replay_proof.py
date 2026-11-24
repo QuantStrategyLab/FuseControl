@@ -664,6 +664,62 @@ class TestG4StateContinuityAndDominance(unittest.TestCase):
         self.assertEqual(eff['fund:TQQQ'], 'HALT')
         self.assertEqual(st3['V2']['latched_mismatches']['TQQQ']['mismatch'], 100.0)
 
+    def test_v2_missing_share_count_does_not_auto_clear(self):
+        """A12: Exact reconciliation without share_count & broker_position must latch HALT."""
+        import copy
+        s1_in = self.suc_cases['SUC-01']['steps'][0]['inputs']['validated_inputs']
+        s2_in = self.suc_cases['SUC-01']['steps'][1]['inputs']['validated_inputs']
+        s3_in = copy.deepcopy(self.suc_cases['SUC-01']['steps'][2]['inputs']['validated_inputs'])
+        _, _, st1 = self._ev(s1_in, '2026-01-05')
+        _, _, st2 = self._ev(s2_in, '2026-01-06', st1)
+        s3_in['funds']['TQQQ'].pop('share_count', None)
+        s3_in['funds']['TQQQ'].pop('broker_position', None)
+        rows, _, st3 = self._ev(s3_in, '2026-01-07', st2)
+        self.assertEqual(rows['V2']['state'], 'HALT')
+        self.assertTrue(rows['V2']['latched'])
+        self.assertEqual(rows['V2']['reason'], 'reconciliation_mismatch')
+        self.assertIn('TQQQ', st3['V2']['latched_mismatches'])
+
+    def test_v2_mismatched_action_type_distribution_cannot_clear_split(self):
+        """A12: Distribution completion must NOT clear a pending split."""
+        import copy
+        s1_in = self.suc_cases['SUC-01']['steps'][0]['inputs']['validated_inputs']
+        s2_in = self.suc_cases['SUC-01']['steps'][1]['inputs']['validated_inputs']
+        s3_in = copy.deepcopy(self.suc_cases['SUC-01']['steps'][2]['inputs']['validated_inputs'])
+        _, _, st1 = self._ev(s1_in, '2026-01-05')
+        _, _, st2 = self._ev(s2_in, '2026-01-06', st1)
+        s3_in['funds']['TQQQ']['corporate_action']['type'] = 'distribution'
+        rows, _, _ = self._ev(s3_in, '2026-01-07', st2)
+        self.assertEqual(rows['V2']['state'], 'HALT')
+        self.assertTrue(rows['V2']['latched'])
+        self.assertEqual(rows['V2']['reason'], 'reconciliation_mismatch')
+
+    def test_v2_unadjusted_hwm_flag_blocks_auto_clear(self):
+        """A12: hwm_adjusted=False must block exact_reconciliation auto-clear and latch HALT."""
+        import copy
+        s1_in = self.suc_cases['SUC-01']['steps'][0]['inputs']['validated_inputs']
+        s2_in = self.suc_cases['SUC-01']['steps'][1]['inputs']['validated_inputs']
+        s3_in = copy.deepcopy(self.suc_cases['SUC-01']['steps'][2]['inputs']['validated_inputs'])
+        _, _, st1 = self._ev(s1_in, '2026-01-05')
+        _, _, st2 = self._ev(s2_in, '2026-01-06', st1)
+        s3_in['funds']['TQQQ']['corporate_action']['hwm_adjusted'] = False
+        rows, _, _ = self._ev(s3_in, '2026-01-07', st2)
+        self.assertEqual(rows['V2']['state'], 'HALT')
+        self.assertTrue(rows['V2']['latched'])
+        self.assertEqual(rows['V2']['reason'], 'reconciliation_mismatch')
+
+    def test_v2_empty_corporate_action_preserves_pending_state(self):
+        """A12: Subsequent call with empty corporate_action={} keeps pending adjustment active."""
+        import copy
+        s1_in = self.suc_cases['SUC-01']['steps'][0]['inputs']['validated_inputs']
+        s2_in = copy.deepcopy(self.suc_cases['SUC-01']['steps'][1]['inputs']['validated_inputs'])
+        _, _, st1 = self._ev(s1_in, '2026-01-05')
+        s2_in['funds']['TQQQ']['corporate_action'] = {}
+        rows, _, st2 = self._ev(s2_in, '2026-01-06', st1)
+        self.assertEqual(rows['V2']['state'], 'HALT')
+        self.assertEqual(rows['V2']['reason'], 'pending_corporate_action_carried')
+        self.assertEqual(st2['V2']['pending_adjustments']['TQQQ']['type'], 'split')
+
 
 if __name__ == '__main__':
     unittest.main()

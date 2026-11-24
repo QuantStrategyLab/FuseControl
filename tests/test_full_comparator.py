@@ -19,77 +19,7 @@ sys.path.insert(0, str(REPO_ROOT / 'tools'))
 
 import run_matrix
 from fuse_engine import evaluate
-
-
-PRECEDENCE = ['HALT', 'ORDER-UNKNOWN', 'DE-RISK', 'NO-NEW-RISK', 'NORMAL']
-
-
-def _more_restrictive(a: str, b: str) -> str:
-    return a if PRECEDENCE.index(a) < PRECEDENCE.index(b) else b
-
-
-def derive_expected_effective_map(
-    scenario_name: str,
-    scenario_data: Dict[str, Any],
-    base_cells: Dict[str, Any],
-    spec_data: Dict[str, Any],
-) -> Dict[str, str]:
-    """Independently derive expected effective_state_by_scope from frozen artifacts + §4.1."""
-    vi = scenario_data['inputs']['validated_inputs']
-    funds = vi.get('funds', {})
-    fund_symbols = list(funds.keys())
-    pending_orders = vi.get('pending_orders', {})
-    prior = scenario_data['inputs'].get('prior_row_state') or {}
-    symbol_universe = sorted(set(fund_symbols) | set(pending_orders.keys()) | set(prior.get('O4', {}).keys()))
-
-    expected_map: Dict[str, str] = {'account': 'NORMAL'}
-    for sym in fund_symbols:
-        expected_map[f'fund:{sym}'] = 'NORMAL'
-    for sym in symbol_universe:
-        expected_map[f'symbol:{sym}'] = 'NORMAL'
-    expected_map['joint'] = 'NORMAL'
-
-    row_scopes = {row['id']: row['scope'] for row in spec_data['rows']}
-
-    for row_id, scope_kind in row_scopes.items():
-        outcome = base_cells[f'{scenario_name}.{row_id}']['outcome']
-        state = outcome['state']
-        if state == 'NORMAL':
-            continue
-
-        if scope_kind == 'account' or (row_id == 'O5' and outcome.get('latched')):
-            expected_map['account'] = _more_restrictive(expected_map['account'], state)
-        elif scope_kind == 'fund':
-            reason = outcome.get('reason', '')
-            matched_fund = None
-            for sym in fund_symbols:
-                if reason.endswith(f'_{sym}') or outcome.get('fund') == sym:
-                    matched_fund = sym
-                    break
-            if matched_fund is not None:
-                expected_map[f'fund:{matched_fund}'] = _more_restrictive(
-                    expected_map[f'fund:{matched_fund}'], state
-                )
-            else:
-                for sym in fund_symbols:
-                    expected_map[f'fund:{sym}'] = _more_restrictive(
-                        expected_map[f'fund:{sym}'], state
-                    )
-        elif scope_kind == 'symbol':
-            sym = outcome.get('symbol')
-            if sym and f'symbol:{sym}' in expected_map:
-                expected_map[f'symbol:{sym}'] = _more_restrictive(
-                    expected_map[f'symbol:{sym}'], state
-                )
-        elif scope_kind == 'joint':
-            expected_map['joint'] = _more_restrictive(expected_map['joint'], state)
-
-    # Spec §4.1: Account HALT dominates every narrower scope including joint.
-    if expected_map['account'] == 'HALT':
-        for scope in list(expected_map.keys()):
-            expected_map[scope] = 'HALT'
-
-    return expected_map
+from run_matrix import PRECEDENCE, _more_restrictive, derive_expected_effective_map
 
 
 class TestFullComparator(unittest.TestCase):
@@ -229,6 +159,49 @@ class TestFullComparator(unittest.TestCase):
             v5_prior = seen_priors[idx].get('V5', {}).get('TQQQ', {})
             self.assertEqual(v5_prior.get('consecutive_beyond_tolerance'), idx)
             self.assertIsNotNone(v5_prior.get('last_session'))
+
+    def test_strict_value_equal_rejects_bool_int_mismatch(self):
+        """R4: strict comparator rejects bool vs int (True != 1, False != 0)."""
+        self.assertFalse(run_matrix.strict_value_equal(True, 1))
+        self.assertFalse(run_matrix.strict_value_equal(False, 0))
+        o5_exp = {
+            'state': 'NORMAL', 'would_have_tripped': True, 'kind': 'breaker',
+            'latched': False, 'reason': 'unresolved_fail_closed', 'rejection_count_this_session': 1,
+        }
+        o5_mut = {**o5_exp, 'rejection_count_this_session': True}
+        ok_base, diffs_base = run_matrix.compare_base_outcome_exact(o5_mut, o5_exp, 'O5')
+        self.assertFalse(ok_base)
+        self.assertTrue(any('rejection_count_this_session' in d for d in diffs_base))
+        ok_out, diffs_out = run_matrix.compare_outcome(o5_mut, o5_exp)
+        self.assertFalse(ok_out)
+        self.assertTrue(any('rejection_count_this_session' in d for d in diffs_out))
+
+    def test_formal_run_base_cells_detects_tier_change_joint_scope_mutation(self):
+        """A03: Mutating tier_change.joint -> NORMAL fails formal run_matrix.run_base_cells."""
+        orig_execute = run_matrix.execute_cell
+
+        def spoof_execute(scenario, row_id, engine_hash):
+            out, eff = orig_execute(scenario, row_id, engine_hash)
+            if scenario is self.scenarios['scenarios']['tier_change'] and 'joint' in eff:
+                eff = dict(eff)
+                eff['joint'] = 'NORMAL'
+            return out, eff
+
+        run_matrix.execute_cell = spoof_execute
+        try:
+            res = run_matrix.run_base_cells(self.scenarios, self.golden_table, self.engine_hash, self.spec)
+        finally:
+            run_matrix.execute_cell = orig_execute
+        self.assertEqual(res['passed'], 240)
+        self.assertEqual(res['failed'], 24)
+
+    def test_generate_golden_table_matches_v2_golden_table(self):
+        """Generator in tools/generate_golden_table.py stays synced with v2 goldens/golden-table.json."""
+        import generate_golden_table as ggt
+        generated = ggt.generate_golden_table(REPO_ROOT / 'goldens' / 'scenarios.json')
+        self.assertEqual(generated['base_cells'], self.golden_table['base_cells'])
+        self.assertEqual(generated['tier_repetitions'], self.golden_table['tier_repetitions'])
+        self.assertEqual(generated, self.golden_table)
 
 
 if __name__ == '__main__':

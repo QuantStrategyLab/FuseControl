@@ -20,9 +20,9 @@ ALL_ROW_IDS = [
 
 # Tier constants per §4, Brief §0.4
 TIER_CONSTANTS = {
-    "conservative": {"D": 0.15},
-    "balanced": {"D": 0.30},
-    "aggressive": {"D": 0.50}
+    "conservative": {"D": 0.15, "cap_ratio": 0.4},
+    "balanced": {"D": 0.30, "cap_ratio": 0.6},
+    "aggressive": {"D": 0.50, "cap_ratio": 0.8}
 }
 
 # Rows that are tier-parameterized
@@ -55,12 +55,17 @@ def derive_row_outcome(row_id: str, scenario_name: str, inputs: Dict[str, Any],
         joint_exp = vi.get("joint_exposure", 0)
         max_cap = vi.get("max_loss_cap", 0)
         proposed = vi.get("proposed_exposure", 0)
+        cap_breached = joint_exp > max_cap
+        increases_blocked = proposed > max_cap
+        tripped = False if vi.get("tier_change_event") else (cap_breached or increases_blocked)
         outcome.update({
+            "would_have_tripped": tripped,
             "kind": "limit",
+            "reason": "breached" if tripped else "none",
             "outputs": {
                 "cap": max_cap,
-                "cap_breached": joint_exp > max_cap,
-                "increases_blocked": proposed > joint_exp or joint_exp > max_cap
+                "cap_breached": cap_breached,
+                "increases_blocked": increases_blocked
             }
         })
 
@@ -155,8 +160,29 @@ def derive_row_outcome(row_id: str, scenario_name: str, inputs: Dict[str, Any],
     # V1: Tracking deviation (NO-NEW-RISK, breaker, §4.3 + §4.5)
     elif row_id == "V1":
         outcome.update({"kind": "breaker"})
-        # In normal scenarios, tracking is within tolerance (see scenarios.json derivation)
-        # Would need fund-level checking here for full implementation
+        market_closed = (
+            vi.get("session_calendar_status") in ("holiday", "closed", "market_closed") or
+            vi.get("exchange_status") in ("holiday", "closed")
+        )
+        funds = vi.get("funds", {})
+        if not market_closed and isinstance(funds, dict) and funds:
+            missing_funds = []
+            for fname, fdata in funds.items():
+                if not isinstance(fdata, dict) or any(
+                    fdata.get(k) is None
+                    for k in ("fund_return", "index_return", "modelled_fee", "modelled_financing")
+                ):
+                    missing_funds.append(fname)
+            if missing_funds:
+                outcome.update({
+                    "state": "NO-NEW-RISK",
+                    "would_have_tripped": True,
+                    "reason": "missing_input"
+                })
+                if len(missing_funds) == 1:
+                    outcome["fund"] = missing_funds[0]
+                else:
+                    outcome["funds"] = missing_funds
 
     # V2: Corporate action (HALT until adjusted, interlock_or_breaker, §4.3)
     elif row_id == "V2":
@@ -256,7 +282,8 @@ def derive_row_outcome(row_id: str, scenario_name: str, inputs: Dict[str, Any],
         outcome.update({
             "would_have_tripped": True,
             "kind": "breaker",
-            "reason": "unresolved_fail_closed"
+            "reason": "unresolved_fail_closed",
+            "rejection_count_this_session": 1
         })
 
     # O6: Policy hash mismatch (HALT, breaker, §4.3)
@@ -286,13 +313,25 @@ def derive_row_outcome(row_id: str, scenario_name: str, inputs: Dict[str, Any],
     elif row_id == "J1":
         joint_exp = vi.get("joint_exposure", 0)
         joint_cap = vi.get("tier_joint_cap", 60000)
+        above_cap = joint_exp > joint_cap
+        above_trim = joint_exp > joint_cap * 1.1
+        if vi.get("tier_change_event") and (above_cap or above_trim):
+            headroom = max(0, joint_cap - joint_exp)
+            tripped = False
+            reason = "none"
+        else:
+            headroom = joint_cap - joint_exp
+            tripped = above_cap or above_trim
+            reason = "joint_cap_exceeded" if above_cap else "none"
         outcome.update({
+            "would_have_tripped": tripped,
             "kind": "limit",
+            "reason": reason,
             "outputs": {
-                "headroom": max(0, joint_cap - joint_exp),
+                "headroom": headroom,
                 "cap": joint_cap,
-                "above_cap": joint_exp > joint_cap,
-                "above_trim_threshold": joint_exp > joint_cap * 1.1
+                "above_cap": above_cap,
+                "above_trim_threshold": above_trim
             }
         })
 
@@ -373,16 +412,22 @@ def generate_golden_table(scenarios_path: Path) -> Dict[str, Any]:
                 "outcome": outcome
             }
 
-    # Generate tier repetitions for L0-L4 and J1
+    # Generate tier repetitions for L0-L4 and J1 across the two non-base tiers per scenario
     for scenario_name, scenario in scenarios_data["scenarios"].items():
+        base_tier = scenario["inputs"]["validated_inputs"].get("tier", "balanced")
+        alt_tiers = [t for t in ("conservative", "balanced", "aggressive") if t != base_tier]
         for row_id in TIER_PARAM_ROWS:
-            for tier in ["conservative", "aggressive"]:  # Balanced already in base
+            for tier in alt_tiers:
                 cell_key = f"{scenario_name}.{row_id}.{tier}"
 
                 # Create modified inputs with new tier
                 modified_inputs = json.loads(json.dumps(scenario["inputs"]))
-                modified_inputs["validated_inputs"]["tier"] = tier
-                modified_inputs["validated_inputs"]["tier_loss_budget_D"] = get_tier_D(tier)
+                vi_mod = modified_inputs["validated_inputs"]
+                vi_mod["tier"] = tier
+                vi_mod["tier_loss_budget_D"] = get_tier_D(tier)
+                cap = round(vi_mod["bankroll"] * TIER_CONSTANTS[tier]["cap_ratio"], 2)
+                vi_mod["max_loss_cap"] = cap
+                vi_mod["tier_joint_cap"] = cap
 
                 # Derive outcome
                 outcome = derive_row_outcome(

@@ -1,22 +1,30 @@
 """Data and operations rows O1-O9, J1 per BRIEF-FUSE-1 §4.3 Table C."""
 
 import math
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional, List
 from . import state as st
 from . import canonical_state as cst
+from .canonical import finite_float
+
+
+def _parse_iso_ts(value: Any) -> Optional[datetime]:
+    """Parse ISO-8601 timestamp normalized to UTC, or return None."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        dt = datetime.fromisoformat(value.strip())
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 def _is_valid_age(age: Any) -> bool:
     """Return True iff age_sessions is a finite non-bool number in [0, 1]."""
-    if age is None or isinstance(age, bool):
-        return False
-    try:
-        val = float(age)
-    except (TypeError, ValueError):
-        return False
-    if math.isnan(val) or math.isinf(val):
-        return False
-    return 0.0 <= val <= 1.0
+    val = finite_float(age)
+    return val is not None and 0.0 <= val <= 1.0
 
 
 def evaluate_O1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
@@ -190,15 +198,17 @@ def evaluate_O3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             }
 
     # Evaluate trigger using positions and broker reconciliation
-    positions_cash = inputs.get('positions_cash')
-    broker_cash = inputs.get('broker_cash')
-    reconciliation_tolerance = inputs.get('reconciliation_tolerance', 1.0)
+    positions_cash = finite_float(inputs.get('positions_cash'))
+    broker_cash = finite_float(inputs.get('broker_cash'))
+    raw_tol = inputs.get('reconciliation_tolerance', 1.0)
+    reconciliation_tolerance = finite_float(raw_tol)
 
     # Also check fund-level positions
     funds = inputs.get('funds', {})
 
-    # Fail closed only if reconciliation data completely missing
-    if positions_cash is None or broker_cash is None:
+    # Fail closed if reconciliation data or tolerance is missing/non-finite/negative
+    if (positions_cash is None or broker_cash is None or
+            reconciliation_tolerance is None or reconciliation_tolerance < 0.0):
         return {
             'state': 'HALT',
             'would_have_tripped': True,
@@ -213,9 +223,19 @@ def evaluate_O3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # Check fund position reconciliation
     position_mismatch = False
     for symbol, fund_data in funds.items():
-        ledger_value = fund_data.get('ledger_value')
-        broker_value = fund_data.get('broker_value')
-        if ledger_value is not None and broker_value is not None:
+        raw_lv = fund_data.get('ledger_value')
+        raw_bv = fund_data.get('broker_value')
+        if raw_lv is not None or raw_bv is not None:
+            ledger_value = finite_float(raw_lv)
+            broker_value = finite_float(raw_bv)
+            if ledger_value is None or broker_value is None:
+                return {
+                    'state': 'HALT',
+                    'would_have_tripped': True,
+                    'kind': 'breaker',
+                    'latched': True,
+                    'reason': 'missing_input'
+                }
             if abs(ledger_value - broker_value) > reconciliation_tolerance:
                 position_mismatch = True
                 break
@@ -414,37 +434,63 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'rejection_count_this_session': prior_count  # Emit per Q6
             }
 
+        # Q4: authorized re-arm clears O5 latch and session counter
+        return {
+            'state': 'NORMAL',
+            'would_have_tripped': False,
+            'kind': 'breaker',
+            'latched': False,
+            'reason': 'authorized_rearm',
+            'rejection_count_this_session': 0
+        }
+
     # B2: New session resets a free counter; latch survives
     if last_rejection_session != session:
         rejection_count = 0
     else:
         rejection_count = prior_count
 
-    # Evaluate trigger - fail closed if collar unresolved per §4.5
+    # Evaluate trigger - fail closed if collar unresolved or invalid (NaN/inf/bool/negative) per §4.5 / A11
     o5_collar = inputs.get('o5_collar')
-    if o5_collar is None:
-        # Unresolved collar - fail closed, counts as one rejection
+    if o5_collar is None or o5_collar == 'unresolved':
         new_count = rejection_count + 1
-
         if new_count >= 3:
-            # Third rejection - latch HALT (SUC-04 step 3)
             return {
                 'state': 'HALT',
                 'would_have_tripped': True,
                 'kind': 'breaker',
                 'latched': True,
                 'reason': 'third_rejection_in_session',
-                'rejection_count_this_session': new_count  # Emit per Q6
+                'rejection_count_this_session': new_count
             }
-
-        # First or second rejection
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,
             'kind': 'breaker',
             'latched': False,
             'reason': 'unresolved_fail_closed',
-            'rejection_count_this_session': new_count  # Emit per Q6
+            'rejection_count_this_session': new_count
+        }
+
+    collar_pct = finite_float(o5_collar)
+    if collar_pct is None or collar_pct < 0.0:
+        new_count = rejection_count + 1
+        if new_count >= 3:
+            return {
+                'state': 'HALT',
+                'would_have_tripped': True,
+                'kind': 'breaker',
+                'latched': True,
+                'reason': 'third_rejection_in_session',
+                'rejection_count_this_session': new_count
+            }
+        return {
+            'state': 'NORMAL',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': False,
+            'reason': 'invalid_input',
+            'rejection_count_this_session': new_count
         }
 
     # Check other pre-trade limits
@@ -453,60 +499,72 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # Symbol whitelist
     symbol = inputs.get('o5_symbol')
     whitelist = inputs.get('o5_symbol_whitelist', ['TQQQ', 'SOXL'])
-    if symbol and symbol not in whitelist:
+    if symbol is not None and symbol not in whitelist:
         violations.append('symbol_not_whitelisted')
 
     # Account whitelist
     account = inputs.get('o5_account')
     account_whitelist = inputs.get('o5_account_whitelist')
-    if account and account_whitelist and account not in account_whitelist:
+    if account is not None and account_whitelist is not None and account not in account_whitelist:
         violations.append('account_not_whitelisted')
 
     # Long only
     side = inputs.get('o5_side')
-    if side and side != 'buy':
+    if side is not None and side != 'buy':
         violations.append('not_long_only')
 
-    # Within settled cash
+    # Within settled cash (explicit None check so settled_cash=0 still enforces!)
     order_value = inputs.get('o5_order_value')
-    settled_cash = inputs.get('o5_settled_cash')
-    if order_value and settled_cash and order_value > settled_cash:
-        violations.append('exceeds_settled_cash')
+    settled_cash = inputs['o5_settled_cash'] if 'o5_settled_cash' in inputs else inputs.get('settled_cash')
+    if order_value is not None:
+        ov = finite_float(order_value)
+        sc = finite_float(settled_cash)
+        if ov is None or sc is None or ov < 0.0 or sc < 0.0 or ov > sc:
+            violations.append('exceeds_settled_cash')
 
     # Maximum order size
     order_size = inputs.get('o5_order_size')
     max_order_size = inputs.get('o5_max_order_size')
-    if order_size and max_order_size and order_size > max_order_size:
-        violations.append('exceeds_max_order_size')
+    if order_size is not None and max_order_size is not None:
+        osize = finite_float(order_size)
+        msize = finite_float(max_order_size)
+        if osize is None or msize is None or osize < 0.0 or msize < 0.0 or osize > msize:
+            violations.append('exceeds_max_order_size')
 
     # Maximum orders per session
     orders_today = inputs.get('o5_orders_today', 0)
     max_orders = inputs.get('o5_max_orders_per_session')
-    if max_orders and orders_today >= max_orders:
-        violations.append('exceeds_max_orders')
+    if max_orders is not None:
+        ot = finite_float(orders_today)
+        mo = finite_float(max_orders)
+        if ot is None or mo is None or ot >= mo:
+            violations.append('exceeds_max_orders')
 
     # Turnover limit
     turnover_today = inputs.get('o5_turnover_today', 0)
     max_turnover = inputs.get('o5_max_turnover_per_session')
-    if max_turnover and turnover_today > max_turnover:
-        violations.append('exceeds_max_turnover')
+    if max_turnover is not None:
+        tt = finite_float(turnover_today)
+        mt = finite_float(max_turnover)
+        if tt is None or mt is None or tt > mt:
+            violations.append('exceeds_max_turnover')
 
-    # Price collar
+    # Price collar (validates finite positive order_price & reference_price against collar_pct)
     order_price = inputs.get('o5_order_price')
     reference_price = inputs.get('o5_reference_price')
-    if order_price and reference_price and o5_collar:
-        try:
-            collar_pct = float(o5_collar)
-            lower_bound = reference_price * (1 - collar_pct)
-            upper_bound = reference_price * (1 + collar_pct)
-            if order_price < lower_bound or order_price > upper_bound:
+    if order_price is not None or reference_price is not None:
+        op = finite_float(order_price)
+        rp = finite_float(reference_price)
+        if op is None or rp is None or op <= 0.0 or rp <= 0.0:
+            violations.append('invalid_price')
+        else:
+            lower_bound = rp * (1.0 - collar_pct)
+            upper_bound = rp * (1.0 + collar_pct)
+            if op < lower_bound or op > upper_bound:
                 violations.append('outside_price_collar')
-        except (TypeError, ValueError):
-            violations.append('invalid_collar')
 
     # If any violations, count as rejection
     if violations:
-        # B2: rejection already counted in earlier path, use the same logic
         new_count = rejection_count + 1
 
         if new_count >= 3:
@@ -530,13 +588,14 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'rejection_count_this_session': new_count  # Emit per Q6
         }
 
-    # No violations
+    # No violations (preserve session rejection count across intervening passing checks)
     return {
         'state': 'NORMAL',
         'would_have_tripped': False,
         'kind': 'breaker',
         'latched': False,
-        'reason': 'none'
+        'reason': 'none',
+        'rejection_count_this_session': rejection_count
     }
 
 
@@ -605,12 +664,12 @@ def evaluate_O6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
 
 def evaluate_O7(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
-                authorized_events: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    """O7: Dead-man's switch → no increase until re-armed.
+                authorized_events: Optional[Dict[str, Any]], as_of: Optional[str] = None) -> Dict[str, Any]:
+    """O7: Dead-man's switch → NO-NEW-RISK until human re-arm (§4.3 / spec.json:262).
 
     Kind: breaker
     Scope: account
-    State contribution: No exposure increase
+    State contribution: NO-NEW-RISK
     Clearing: Human re-arm
     """
     # Check for prior latch (canonical format per Q6)
@@ -625,24 +684,46 @@ def evaluate_O7(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                     rearm = True
                     break
 
-        if not rearm:
-            # Stay latched
+        if rearm:
             return {
                 'state': 'NORMAL',
-                'would_have_tripped': True,
+                'would_have_tripped': False,
                 'kind': 'breaker',
-                'latched': True,
-                'reason': 'latched_prior_trip'
+                'latched': False,
+                'reason': 'authorized_rearm'
             }
 
-    # Evaluate trigger
-    runtime_silent = inputs.get('o7_runtime_silent', False)
-    monitor_silent = inputs.get('o7_monitor_silent', False)
+        # Stay latched at account-level NO-NEW-RISK
+        return {
+            'state': 'NO-NEW-RISK',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': True,
+            'reason': 'latched_prior_trip'
+        }
+
+    # Evaluate trigger: explicit silence flags OR heartbeat silent > 1 scheduled_interval
+    runtime_silent = bool(inputs.get('o7_runtime_silent', False))
+    monitor_silent = bool(inputs.get('o7_monitor_silent', False))
+
+    heartbeat_stale = False
+    raw_hb = inputs.get('last_heartbeat')
+    raw_interval = inputs.get('scheduled_interval')
+    if raw_hb is not None or raw_interval is not None:
+        hb_dt = _parse_iso_ts(raw_hb)
+        as_of_dt = _parse_iso_ts(as_of)
+        interval = finite_float(raw_interval)
+        if hb_dt is None or as_of_dt is None or interval is None or interval <= 0.0:
+            heartbeat_stale = True
+        else:
+            elapsed = (as_of_dt - hb_dt).total_seconds()
+            if elapsed < 0.0 or elapsed > interval:
+                heartbeat_stale = True
 
     # Check trigger
-    if runtime_silent or monitor_silent:
+    if runtime_silent or monitor_silent or heartbeat_stale:
         return {
-            'state': 'NORMAL',
+            'state': 'NO-NEW-RISK',
             'would_have_tripped': True,
             'kind': 'breaker',
             'latched': True,
@@ -715,22 +796,30 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                     rearm = True
                     break
 
-        if not rearm:
-            # Stay latched
+        if rearm:
             return {
-                'state': 'HALT',
-                'would_have_tripped': True,
+                'state': 'NORMAL',
+                'would_have_tripped': False,
                 'kind': 'breaker',
-                'latched': True,
-                'reason': 'latched_prior_trip'
+                'latched': False,
+                'reason': 'authorized_rearm'
             }
+
+        # Stay latched
+        return {
+            'state': 'HALT',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': True,
+            'reason': 'latched_prior_trip'
+        }
 
     # Check for parameter changes (Fix 4: tier_change detection)
     change_descriptors = inputs.get('o9_change_descriptors')
     tier_change_event = inputs.get('tier_change_event')
 
     # Check for any change signal
-    has_change = change_descriptors or tier_change_event
+    has_change = bool(change_descriptors) or bool(tier_change_event)
 
     if not has_change:
         return {
@@ -741,25 +830,50 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': 'none'
         }
 
-    # Check if changes are authorized (Fix 4: §5.1 recognition flows through authorized_events)
-    authorized_changes = False
+    # Validate each privileged change kind independently against authorized_events
+    events_list = []
     if authorized_events:
-        # authorized_events is a list, not dict-by-scope in the golden
         events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
-        for event in events_list:
-            # Check for parameter change card
-            if event.get('type') == 'parameter_change_card':
-                if event.get('change_descriptors') == change_descriptors:
-                    authorized_changes = True
-                    break
-            # Check for tier change card (Fix 4)
-            if event.get('type') == 'tier_change_card' and tier_change_event:
-                if (event.get('from') == tier_change_event.get('from') and
-                    event.get('to') == tier_change_event.get('to')):
-                    authorized_changes = True
-                    break
 
-    if not authorized_changes:
+    tier_authorized = True
+    if tier_change_event:
+        tier_authorized = any(
+            event.get('type') == 'tier_change_card' and
+            event.get('from') == tier_change_event.get('from') and
+            event.get('to') == tier_change_event.get('to')
+            for event in events_list
+        )
+
+    params_authorized = True
+    if change_descriptors:
+        param_cards = [
+            event.get('change_descriptors')
+            for event in events_list
+            if event.get('type') == 'parameter_change_card'
+        ]
+        if isinstance(change_descriptors, dict):
+            if any(card == change_descriptors for card in param_cards):
+                params_authorized = True
+            else:
+                params_authorized = all(
+                    any(
+                        isinstance(card, dict) and (card == {k: v} or (k in card and card[k] == v))
+                        for card in param_cards
+                    )
+                    for k, v in change_descriptors.items()
+                )
+        elif isinstance(change_descriptors, list):
+            params_authorized = all(
+                any(
+                    card == desc or (isinstance(card, list) and desc in card)
+                    for card in param_cards
+                )
+                for desc in change_descriptors
+            )
+        else:
+            params_authorized = any(card == change_descriptors for card in param_cards)
+
+    if not (tier_authorized and params_authorized):
         # Unauthorized parameter change (Fix 4: reason='unauthorized_change')
         return {
             'state': 'HALT',

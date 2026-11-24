@@ -13,7 +13,7 @@ import re
 import sys
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # Add src and repo root to path
 _REPO_ROOT = Path(__file__).parent.parent
@@ -35,44 +35,129 @@ def canonical_json(obj: Any) -> str:
     return json.dumps(obj, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
 
 
+PRECEDENCE = ['HALT', 'ORDER-UNKNOWN', 'DE-RISK', 'NO-NEW-RISK', 'NORMAL']
+
+
+def _more_restrictive(a: str, b: str) -> str:
+    return a if PRECEDENCE.index(a) < PRECEDENCE.index(b) else b
+
+
+def strict_value_equal(actual: Any, expected: Any) -> bool:
+    """Compare nested JSON values with exact Python type checking (rejects True == 1, False == 0)."""
+    if type(actual) is not type(expected):
+        return False
+    if isinstance(actual, dict):
+        if actual.keys() != expected.keys():
+            return False
+        return all(strict_value_equal(actual[k], expected[k]) for k in expected)
+    if isinstance(actual, list):
+        if len(actual) != len(expected):
+            return False
+        return all(strict_value_equal(a, e) for a, e in zip(actual, expected))
+    return actual == expected
+
+
+def derive_expected_effective_map(
+    scenario_name: str,
+    scenario_data: Dict[str, Any],
+    base_cells: Dict[str, Any],
+    spec_data: Dict[str, Any],
+) -> Dict[str, str]:
+    """Independently derive expected effective_state_by_scope from frozen artifacts + §4.1."""
+    vi = scenario_data['inputs']['validated_inputs']
+    funds = vi.get('funds', {})
+    fund_symbols = list(funds.keys())
+    pending_orders = vi.get('pending_orders', {})
+    prior = scenario_data['inputs'].get('prior_row_state') or {}
+    symbol_universe = sorted(set(fund_symbols) | set(pending_orders.keys()) | set(prior.get('O4', {}).keys()))
+
+    expected_map: Dict[str, str] = {'account': 'NORMAL'}
+    for sym in fund_symbols:
+        expected_map[f'fund:{sym}'] = 'NORMAL'
+    for sym in symbol_universe:
+        expected_map[f'symbol:{sym}'] = 'NORMAL'
+    expected_map['joint'] = 'NORMAL'
+
+    row_scopes = {row['id']: row['scope'] for row in spec_data['rows']}
+
+    for row_id, scope_kind in row_scopes.items():
+        outcome = base_cells[f'{scenario_name}.{row_id}']['outcome']
+        state = outcome['state']
+        if state == 'NORMAL':
+            continue
+
+        if scope_kind == 'account' or (row_id == 'O5' and outcome.get('latched')):
+            expected_map['account'] = _more_restrictive(expected_map['account'], state)
+        elif scope_kind == 'fund':
+            reason = outcome.get('reason', '')
+            matched_fund = None
+            for sym in fund_symbols:
+                if reason.endswith(f'_{sym}') or outcome.get('fund') == sym:
+                    matched_fund = sym
+                    break
+            if matched_fund is not None:
+                expected_map[f'fund:{matched_fund}'] = _more_restrictive(
+                    expected_map[f'fund:{matched_fund}'], state
+                )
+            else:
+                for sym in fund_symbols:
+                    expected_map[f'fund:{sym}'] = _more_restrictive(
+                        expected_map[f'fund:{sym}'], state
+                    )
+        elif scope_kind == 'symbol':
+            sym = outcome.get('symbol')
+            if sym and f'symbol:{sym}' in expected_map:
+                expected_map[f'symbol:{sym}'] = _more_restrictive(
+                    expected_map[f'symbol:{sym}'], state
+                )
+        elif scope_kind == 'joint':
+            expected_map['joint'] = _more_restrictive(expected_map['joint'], state)
+
+    # Spec §4.1: Account HALT dominates every narrower scope including joint.
+    if expected_map['account'] == 'HALT':
+        for scope in list(expected_map.keys()):
+            expected_map[scope] = 'HALT'
+
+    return expected_map
+
+
 def compare_outcome(actual: Dict[str, Any], expected: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """Compare actual row outcome against expected golden outcome.
 
     Returns (matches, diff_messages).
     Strips free-text 'reason' field for comparison per §6.1.
     Per Slice 4(b): compares ALL declared fields including top-level fund, symbol,
-    original_order_id, deviation, counters.
+    original_order_id, deviation, counters with strict type equality.
     """
     diffs = []
 
     # Required fields
     for field in ['state', 'would_have_tripped', 'kind', 'latched']:
-        if actual.get(field) != expected.get(field):
-            diffs.append(f"  {field}: actual={actual.get(field)} != expected={expected.get(field)}")
+        if not strict_value_equal(actual.get(field), expected.get(field)):
+            diffs.append(f"  {field}: actual={actual.get(field)!r} != expected={expected.get(field)!r}")
 
     # Reason class comparison (not free text)
     actual_reason = actual.get('reason', 'none')
     expected_reason = expected.get('reason', 'none')
-    if actual_reason != expected_reason:
-        diffs.append(f"  reason: actual={actual_reason} != expected={expected_reason}")
+    if not strict_value_equal(actual_reason, expected_reason):
+        diffs.append(f"  reason: actual={actual_reason!r} != expected={expected_reason!r}")
 
     # Special mapping for SUC-06 clearing_counter (Slice 4b):
-    # Top-level expected.clearing_counter maps to actual.outputs.clearing_counter.
-    # The golden includes 'clearing_counter' at top level as a convenience field,
-    # but the actual engine emits it under outputs per Q1.
     if 'clearing_counter' in expected:
         actual_counter = actual.get('outputs', {}).get('clearing_counter')
         expected_counter = expected.get('clearing_counter')
-        if actual_counter != expected_counter:
-            diffs.append(f"  clearing_counter: actual={actual_counter} (from outputs) != expected={expected_counter} (top-level)")
+        if not strict_value_equal(actual_counter, expected_counter):
+            diffs.append(
+                f"  clearing_counter: actual={actual_counter!r} (from outputs) != expected={expected_counter!r} (top-level)"
+            )
 
     # G1.3: Enforce declared top-level successor evidence fields
     for field in ['fund', 'symbol', 'original_order_id', 'deviation', 'rejection_count_this_session']:
         if field in expected:
             if field not in actual:
-                diffs.append(f"  {field}: missing in actual (expected={expected[field]})")
-            elif actual[field] != expected[field]:
-                diffs.append(f"  {field}: actual={actual[field]} != expected={expected[field]}")
+                diffs.append(f"  {field}: missing in actual (expected={expected[field]!r})")
+            elif not strict_value_equal(actual[field], expected[field]):
+                diffs.append(f"  {field}: actual={actual[field]!r} != expected={expected[field]!r}")
 
     # Outputs if present (excluding clearing_counter which is mapped above)
     if 'outputs' in expected:
@@ -81,15 +166,17 @@ def compare_outcome(actual: Dict[str, Any], expected: Dict[str, Any]) -> Tuple[b
         for key in expected_outputs:
             if key not in actual_outputs:
                 diffs.append(f"  outputs.{key}: missing in actual")
-            elif actual_outputs[key] != expected_outputs[key]:
-                diffs.append(f"  outputs.{key}: actual={actual_outputs[key]} != expected={expected_outputs[key]}")
+            elif not strict_value_equal(actual_outputs[key], expected_outputs[key]):
+                diffs.append(
+                    f"  outputs.{key}: actual={actual_outputs[key]!r} != expected={expected_outputs[key]!r}"
+                )
 
     return (len(diffs) == 0, diffs)
 
 
 def compare_base_outcome_exact(actual: Dict[str, Any], expected: Dict[str, Any], row_id: str) -> Tuple[bool, List[str]]:
-    """Compare base cell outcome with strict full dictionary equality (R4)."""
-    if actual == expected:
+    """Compare base cell outcome with strict full dictionary equality + exact value types (R4)."""
+    if strict_value_equal(actual, expected):
         return (True, [])
 
     diffs = []
@@ -100,24 +187,32 @@ def compare_base_outcome_exact(actual: Dict[str, Any], expected: Dict[str, Any],
     if extra_keys:
         diffs.append(f"  extra keys: {extra_keys}")
     for key in sorted(set(actual.keys()) & set(expected.keys())):
-        if actual[key] != expected[key]:
-            diffs.append(f"  {key}: actual={actual[key]} != expected={expected[key]}")
+        if not strict_value_equal(actual[key], expected[key]):
+            diffs.append(
+                f"  {key}: actual={actual[key]!r} ({type(actual[key]).__name__}) != "
+                f"expected={expected[key]!r} ({type(expected[key]).__name__})"
+            )
     return (False, diffs)
 
 
-def compare_effective_state(actual: Dict[str, str], expected: Dict[str, str]) -> Tuple[bool, List[str]]:
-    """Compare effective state by scope.
-
-    Only checks scopes present in expected (successor cases may specify subset).
-    """
+def compare_effective_state(
+    actual: Dict[str, str],
+    expected: Dict[str, str],
+    full_keys: bool = False,
+) -> Tuple[bool, List[str]]:
+    """Compare effective state by scope (subset or exact full key set)."""
     diffs = []
 
-    # Only check scopes that are expected (Fix 1: successor cases may specify subset)
+    if full_keys:
+        extra = sorted(set(actual.keys()) - set(expected.keys()))
+        if extra:
+            diffs.append(f"  extra scopes in actual: {extra}")
+
     for scope in sorted(expected.keys()):
         if scope not in actual:
             diffs.append(f"  {scope}: missing in actual")
-        elif actual[scope] != expected[scope]:
-            diffs.append(f"  {scope}: actual={actual[scope]} != expected={expected[scope]}")
+        elif not strict_value_equal(actual[scope], expected[scope]):
+            diffs.append(f"  {scope}: actual={actual[scope]!r} != expected={expected[scope]!r}")
 
     return (len(diffs) == 0, diffs)
 
@@ -251,12 +346,25 @@ def execute_cell(scenario: Dict[str, Any], row_id: str, engine_hash: str) -> Tup
     return (row_outcome, effective_state_by_scope)
 
 
-def run_base_cells(scenarios: Dict[str, Any], golden_table: Dict[str, Any], engine_hash: str) -> Dict[str, Any]:
+def run_base_cells(
+    scenarios: Dict[str, Any],
+    golden_table: Dict[str, Any],
+    engine_hash: str,
+    spec_data: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     """Run all 264 base matrix cells (24 rows × 11 scenarios).
 
-    Returns results dict with counts and failures.
+    Checks both strict row outcome dicts and independent §4.1 effective_state_by_scope
+    across all 264 cells (A03). Returns results dict with counts and failures.
     """
     base_cells = golden_table['base_cells']
+    if spec_data is None:
+        spec_data = load_json(_REPO_ROOT / 'spec' / 'spec.json')
+
+    expected_full_maps = {
+        sc_name: derive_expected_effective_map(sc_name, sc_data, base_cells, spec_data)
+        for sc_name, sc_data in scenarios['scenarios'].items()
+    }
 
     results = {
         'total': 0,
@@ -278,14 +386,20 @@ def run_base_cells(scenarios: Dict[str, Any], golden_table: Dict[str, Any], engi
         # Compare outcome (R4: strict full dict equality across all 264 base cells)
         outcome_match, outcome_diffs = compare_base_outcome_exact(actual_outcome, golden_cell['outcome'], row_id)
 
-        # Compare effective state (only if present in golden)
-        state_match = True
-        state_diffs = []
+        # Compare effective state against independent §4.1 derivation across ALL 264 cells
+        state_match, state_diffs = compare_effective_state(
+            actual_effective_state,
+            expected_full_maps[scenario_name],
+            full_keys=True,
+        )
         if 'effective_state_by_scope' in golden_cell:
-            state_match, state_diffs = compare_effective_state(
+            subset_match, subset_diffs = compare_effective_state(
                 actual_effective_state,
                 golden_cell['effective_state_by_scope']
             )
+            if not subset_match:
+                state_match = False
+                state_diffs.extend(subset_diffs)
 
         if outcome_match and state_match:
             results['passed'] += 1

@@ -9,6 +9,7 @@ Each control must FAIL on pre-fix behavior and PASS on current engine.
 Controls prove by execution that the engine can detect the defects they guard.
 """
 
+import copy
 import unittest
 from pathlib import Path
 import sys
@@ -817,6 +818,147 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
                     self.assertEqual(r_z['V1']['state'], 'NO-NEW-RISK')
                     self.assertTrue(r_z['V1']['latched'])
                     self.assertEqual(r_z['V1']['reason'], 'latched_prior_trip')
+
+    def test_v1_five_session_rolling_history_accumulates_without_sessions_window(self):
+        """A06: 5 consecutive +0.5% deviation days trip V1 even when sessions_window is omitted."""
+        prior = {}
+        for idx, day in enumerate(('2026-01-13', '2026-01-14', '2026-01-15', '2026-01-16', '2026-01-19'), start=1):
+            vi = copy.deepcopy(self.normal_vi)
+            vi['funds'] = {'TQQQ': copy.deepcopy(self.normal_vi['funds']['TQQQ'])}
+            vi['funds']['TQQQ'].pop('sessions_window', None)
+            vi['funds']['TQQQ'].update({
+                'fund_return': 0.005,
+                'index_return': 0.0,
+                'modelled_fee': 0.0,
+                'modelled_financing': 0.0,
+            })
+            rows, eff, prior = self._eval(vi, session=day, prior=prior)
+            if idx < 5:
+                self.assertEqual(rows['V1']['state'], 'NORMAL')
+            else:
+                self.assertEqual(rows['V1']['state'], 'NO-NEW-RISK')
+                self.assertTrue(rows['V1']['would_have_tripped'])
+                self.assertTrue(rows['V1']['latched'])
+                self.assertEqual(eff['fund:TQQQ'], 'NO-NEW-RISK')
+
+    def test_o3_non_finite_balances_fail_closed(self):
+        """A06: NaN/inf/bool cash or fund balances fail closed to HALT in O3."""
+        for bad_val in (float('nan'), float('inf'), -1.0, True):
+            with self.subTest(bad_val=bad_val):
+                vi = copy.deepcopy(self.normal_vi)
+                vi['broker_cash'] = bad_val
+                rows, eff, _ = self._eval(vi)
+                self.assertEqual(rows['O3']['state'], 'HALT')
+                self.assertEqual(eff['account'], 'HALT')
+
+    def test_v6_exact_carrying_cost_formula_and_nan_fail_closed(self):
+        """A06: V6 uses carrying_cost_measured > (excess_return_shrunk / 4) and fails closed on NaN."""
+        vi = copy.deepcopy(self.normal_vi)
+        vi['funds'] = {'TQQQ': copy.deepcopy(self.normal_vi['funds']['TQQQ'])}
+        vi['funds']['TQQQ'].update({'carrying_cost_measured': 0.10, 'excess_return_shrunk': 0.04})
+        rows, _, _ = self._eval(vi)
+        self.assertTrue(rows['V6']['would_have_tripped'])
+        self.assertEqual(rows['V6']['reason'], 'carrying_cost_exceeded')
+        self.assertAlmostEqual(rows['V6']['outputs']['threshold'], 0.01)
+
+        vi_nan = copy.deepcopy(vi)
+        vi_nan['funds']['TQQQ']['carrying_cost_measured'] = float('nan')
+        rows_nan, _, _ = self._eval(vi_nan)
+        self.assertTrue(rows_nan['V6']['would_have_tripped'])
+        self.assertEqual(rows_nan['V6']['reason'], 'missing_input')
+
+    def test_a11_non_finite_and_negative_thresholds_fail_closed(self):
+        """A11: NaN/inf/negative/bool tolerances on V5, V7, O5 fail closed; O5 price collar enforces bounds."""
+        vi = copy.deepcopy(self.normal_vi)
+        vi.update({'v5_tolerance': float('nan'), 'v7_spread_width': float('nan'), 'o5_collar': float('nan')})
+        rows, _, _ = self._eval(vi)
+        self.assertTrue(rows['V5']['would_have_tripped'])
+        self.assertEqual(rows['V5']['reason'], 'invalid_input')
+        self.assertTrue(rows['V7']['would_have_tripped'])
+        self.assertEqual(rows['V7']['reason'], 'invalid_input')
+        self.assertTrue(rows['O5']['would_have_tripped'])
+        self.assertEqual(rows['O5']['reason'], 'invalid_input')
+
+        vi_neg = copy.deepcopy(self.normal_vi)
+        vi_neg.update({'v5_tolerance': -0.01, 'v7_spread_width': -0.02, 'o5_collar': -0.05})
+        rows_neg, _, _ = self._eval(vi_neg)
+        self.assertTrue(rows_neg['V5']['would_have_tripped'])
+        self.assertEqual(rows_neg['V5']['reason'], 'invalid_input')
+        self.assertTrue(rows_neg['V7']['would_have_tripped'])
+        self.assertEqual(rows_neg['V7']['reason'], 'invalid_input')
+        self.assertTrue(rows_neg['O5']['would_have_tripped'])
+        self.assertEqual(rows_neg['O5']['reason'], 'invalid_input')
+
+        vi_collar = copy.deepcopy(self.normal_vi)
+        vi_collar.update({'o5_collar': 0.05, 'o5_reference_price': 100.0, 'o5_order_price': 120.0})
+        rows_col, _, _ = self._eval(vi_collar)
+        self.assertTrue(rows_col['O5']['would_have_tripped'])
+        self.assertEqual(rows_col['O5']['reason'], 'pre_trade_limit_violation')
+
+    def test_o5_mixed_reject_pass_reject_preserves_session_count_and_halts_on_third(self):
+        """A07: Mixed Reject-Reject-Pass-Reject in one session counts 1, 2, 2, 3 and latches HALT."""
+        prior = {}
+        seq = []
+        for bad in (True, True, False, True):
+            vi = copy.deepcopy(self.normal_vi)
+            vi['o5_collar'] = 0.05
+            if bad:
+                vi['o5_side'] = 'sell'
+            rows, eff, prior = self._eval(vi, session='2026-01-05', prior=prior)
+            seq.append((rows['O5']['state'], rows['O5']['rejection_count_this_session'], eff['account']))
+        self.assertEqual(
+            seq,
+            [('NORMAL', 1, 'NORMAL'), ('NORMAL', 2, 'NORMAL'), ('NORMAL', 2, 'NORMAL'), ('HALT', 3, 'HALT')]
+        )
+
+    def test_o5_settled_cash_zero_blocks_positive_order(self):
+        """F1-O5: Explicit None check rejects buy when settled_cash=0 and o5_order_value=100."""
+        vi = copy.deepcopy(self.normal_vi)
+        vi.update({'o5_collar': 0.05, 'o5_side': 'buy', 'o5_order_value': 100.0, 'settled_cash': 0.0})
+        rows, _, _ = self._eval(vi)
+        self.assertTrue(rows['O5']['would_have_tripped'])
+        self.assertEqual(rows['O5']['reason'], 'pre_trade_limit_violation')
+
+    def test_o7_heartbeat_gap_and_v1_joint_priority(self):
+        """A08: 7h heartbeat gap (>3600s) trips O7 NO-NEW-RISK, survives across sessions + V1, clears on rearm."""
+        vi = copy.deepcopy(self.normal_vi)
+        vi.update({'last_heartbeat': '2026-01-13T09:00:00Z', 'scheduled_interval': 3600})
+        rows1, eff1, st1 = self._eval(vi, session='2026-01-13')
+        self.assertEqual(rows1['O7']['state'], 'NO-NEW-RISK')
+        self.assertTrue(rows1['O7']['latched'])
+        self.assertEqual(eff1['account'], 'NO-NEW-RISK')
+
+        # Consecutive session with fresh heartbeat + TQQQ V1 1-day trip keeps O7 latched NO-NEW-RISK
+        vi2 = copy.deepcopy(self.normal_vi)
+        vi2.update({'last_heartbeat': '2026-01-14T15:59:30Z', 'scheduled_interval': 3600})
+        vi2['funds']['TQQQ']['fund_return'] = 0.05
+        rows2, eff2, st2 = self._eval(vi2, session='2026-01-14', prior=st1)
+        self.assertEqual(rows2['O7']['state'], 'NO-NEW-RISK')
+        self.assertEqual(rows2['O7']['reason'], 'latched_prior_trip')
+        self.assertEqual(eff2['account'], 'NO-NEW-RISK')
+        self.assertEqual(eff2['fund:TQQQ'], 'NO-NEW-RISK')
+
+        # Authorized re-arm clears O7 latch cleanly
+        vi3 = copy.deepcopy(self.normal_vi)
+        vi3.update({'last_heartbeat': '2026-01-15T15:59:30Z', 'scheduled_interval': 3600})
+        rows3, eff3, st3 = self._eval(vi3, session='2026-01-15', prior=st2, events=[{'type': 'rearm', 'row_id': 'O7'}])
+        self.assertEqual(rows3['O7']['state'], 'NORMAL')
+        self.assertEqual(rows3['O7']['reason'], 'authorized_rearm')
+        self.assertEqual(st3['O7'], {})
+        self.assertEqual(eff3['account'], 'NORMAL')
+
+    def test_o9_tier_change_card_does_not_authorize_o9_change_descriptors(self):
+        """F1-O9: tier_change_card alone must NOT clear unauthorized o9_change_descriptors."""
+        vi = copy.deepcopy(self.normal_vi)
+        vi.update({
+            'tier_change_event': {'from': 'balanced', 'to': 'aggressive'},
+            'o9_change_descriptors': [{'param': 'max_loss_cap', 'from': 60000, 'to': 80000}],
+        })
+        rows, eff, _ = self._eval(vi, events=[{'type': 'tier_change_card'}])
+        self.assertEqual(rows['O9']['state'], 'HALT')
+        self.assertTrue(rows['O9']['latched'])
+        self.assertEqual(rows['O9']['reason'], 'unauthorized_change')
+        self.assertEqual(eff['account'], 'HALT')
 
 
 if __name__ == '__main__':

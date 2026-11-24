@@ -90,14 +90,28 @@ def compute_permitted_exposure(
 
     effective_cap = l0_cap if j1_cap is None else min(l0_cap, j1_cap)
 
-    # Account DE-RISK forces defensive reduction
+    # Account or all-fund DE-RISK/HALT forces defensive reduction / stop
+    fund_scopes = [k for k in effective_state_by_scope if k.startswith('fund:')]
+    symbol_scopes = [k for k in effective_state_by_scope if k.startswith('symbol:')]
     if effective_state_by_scope.get('account') == 'DE-RISK':
         return 0.0
+    if fund_scopes and all(effective_state_by_scope[k] in ('HALT', 'DE-RISK') for k in fund_scopes):
+        return 0.0
 
-    # Any NO-NEW-RISK, limit block, or order suppression forbids raising exposure above current
+    # Any NO-NEW-RISK, all-fund/symbol restriction, limit block, or order suppression forbids raising exposure
+    all_funds_restricted = bool(fund_scopes) and all(
+        effective_state_by_scope[k] in ('NO-NEW-RISK', 'DE-RISK', 'HALT', 'ORDER-UNKNOWN')
+        for k in fund_scopes
+    )
+    all_symbols_restricted = bool(symbol_scopes) and all(
+        effective_state_by_scope[k] in ('NO-NEW-RISK', 'DE-RISK', 'HALT', 'ORDER-UNKNOWN')
+        for k in symbol_scopes
+    )
     increases_blocked = (
         effective_state_by_scope.get('account') == 'NO-NEW-RISK'
         or effective_state_by_scope.get('joint') in ('NO-NEW-RISK', 'DE-RISK', 'HALT')
+        or all_funds_restricted
+        or all_symbols_restricted
         or bool(l0.get('outputs', {}).get('increases_blocked'))
         or bool(j1.get('outputs', {}).get('above_cap'))
         or bool(rows_by_ID['O2'].get('would_have_tripped'))
@@ -116,18 +130,42 @@ def check_bundle_against_baseline(
     rows_by_ID: Dict[str, Any],
     effective_state_by_scope: Dict[str, str],
 ) -> List[str]:
-    """Verify permitted exposure and caps never exceed the no-trip baseline (§4.4 rule 1)."""
+    """Verify permitted exposure, caps, and J1 headroom never exceed policy/arithmetic invariants (§4.4 rule 1)."""
     errors: List[str] = []
     baseline = compute_no_trip_baseline_exposure(validated_inputs)
     permitted = compute_permitted_exposure(validated_inputs, rows_by_ID, effective_state_by_scope)
 
     l0_cap = _finite_or_none(rows_by_ID['L0'].get('outputs', {}).get('cap'))
-    j1_cap = _finite_or_none(rows_by_ID['J1'].get('outputs', {}).get('cap'))
+    j1_outputs = rows_by_ID['J1'].get('outputs', {})
+    j1_cap = _finite_or_none(j1_outputs.get('cap'))
+    j1_headroom = _finite_or_none(j1_outputs.get('headroom'))
 
     if baseline['max_loss_cap'] is not None and l0_cap is not None and l0_cap > baseline['max_loss_cap']:
         errors.append(f"{label}: L0 cap {l0_cap} exceeds policy max_loss_cap {baseline['max_loss_cap']}")
     if baseline['tier_joint_cap'] is not None and j1_cap is not None and j1_cap > baseline['tier_joint_cap']:
         errors.append(f"{label}: J1 cap {j1_cap} exceeds policy tier_joint_cap {baseline['tier_joint_cap']}")
+
+    # Exact J1.outputs.headroom arithmetic check (A09)
+    if j1_headroom is None:
+        errors.append(f"{label}: J1.outputs.headroom missing or non-finite")
+    elif baseline['tier_joint_cap'] is None or baseline['joint_exposure'] is None:
+        if abs(j1_headroom - 0.0) > 1e-9:
+            errors.append(f"{label}: J1 headroom {j1_headroom} != 0.0 on missing inputs")
+    else:
+        raw_headroom = baseline['tier_joint_cap'] - baseline['joint_exposure']
+        if validated_inputs.get('tier_change_event') and baseline['joint_exposure'] > baseline['tier_joint_cap']:
+            expected_headroom = max(0.0, raw_headroom)
+        else:
+            expected_headroom = raw_headroom
+        if abs(j1_headroom - expected_headroom) > 1e-9:
+            errors.append(
+                f"{label}: J1 headroom {j1_headroom} != expected {expected_headroom} "
+                f"(cap={baseline['tier_joint_cap']}, exp={baseline['joint_exposure']})"
+            )
+        if j1_headroom > max(0.0, raw_headroom) + 1e-9:
+            errors.append(
+                f"{label}: J1 headroom {j1_headroom} exceeds max allowed {max(0.0, raw_headroom)}"
+            )
 
     if baseline['baseline_permitted'] is not None and permitted > baseline['baseline_permitted']:
         errors.append(

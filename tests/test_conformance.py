@@ -236,6 +236,27 @@ class TestBoundOutputBundle(unittest.TestCase):
         )
         self.assertEqual(r13["V1"]["deviation"], 0.0102)
 
+    def test_non_shadow_mode_rejected(self):
+        """A10: FUSE-1 shadow-only engine must raise ValueError for any non-'shadow' mode."""
+        scenario = {
+            "bankroll": 100000.0,
+            "high_water_mark": 100000.0,
+            "tier": "balanced",
+            "tier_loss_budget_D": 0.30,
+            "max_loss_cap": 60000.0,
+            "tier_joint_cap": 60000.0,
+            "joint_exposure": 45000.0,
+            "proposed_exposure": 45000.0,
+        }
+        for bad_mode in ("live", "enforce", "production", "", None):
+            with self.subTest(mode=bad_mode):
+                with self.assertRaises(ValueError):
+                    engine.evaluate(
+                        "fuse-eval-spec/v1", "test-hash", "test-policy",
+                        "2026-01-05", "2026-01-05T16:00:00Z", bad_mode,
+                        scenario, {}, []
+                    )
+
 
 if __name__ == "__main__":
     unittest.main()

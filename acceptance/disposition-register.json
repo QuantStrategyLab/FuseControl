@@ -18,8 +18,8 @@
       "proposal_value": "0.75pp (1 session), 2.0pp (5 sessions)",
       "source_reference": "BRIEF-FUSE-1 §4.5, REPORT.md §4.4 Table B",
       "disposition": "CONFIRMED-AS-SPEC",
-      "rationale": "Tracking deviation after modelled fee/financing; 5-session not yet implemented (requires history)",
-      "implementation_note": "One-session threshold = 0.0075 (0.75pp); five-session threshold deferred"
+      "rationale": "Tracking deviation after modelled fee/financing; both 1-session (0.75pp) and 5-session rolling history (2.0pp) thresholds implemented and tested",
+      "implementation_note": "One-session threshold = 0.0075 (0.75pp); five-session rolling threshold = 0.020 (2.0pp)"
     },
     {
       "parameter": "V4 volatility multiple",

@@ -52,6 +52,10 @@ def evaluate(
         - effective_state_by_scope: precedence-resolved state per scope
         - next_row_state: complete successor state for next evaluation
     """
+    # A10 / Brief §0.4: FUSE-1 operates exclusively in read-only shadow mode
+    if mode != 'shadow':
+        raise ValueError(f"FUSE-1 operates in shadow mode only; forbidden mode={mode!r}")
+
     # Initialize outputs
     if prior_row_state is None:
         prior_row_state = {}
@@ -274,7 +278,7 @@ def evaluate(
         # Update pending state (B1 canonical format per Q6)
         if v2_result['reason'] in ['pending_corporate_action', 'pending_corporate_action_carried']:
             corporate_action = fund_inputs.get('corporate_action')
-            if isinstance(corporate_action, dict):
+            if isinstance(corporate_action, dict) and corporate_action.get('type'):
                 pending = {
                     'type': corporate_action.get('type'),
                     'ratio': corporate_action.get('ratio'),
@@ -282,13 +286,17 @@ def evaluate(
                 }
                 cst.set_v2_pending_adjustment(next_row_state, symbol, pending)
             else:
-                # Carry forward from prior (B1 continuity)
+                # Carry forward from prior (B1 continuity; preserves state on {} or absent dict)
                 prior_pending = cst.get_v2_pending_adjustment(prior_row_state, symbol)
                 if prior_pending:
                     cst.set_v2_pending_adjustment(next_row_state, symbol, prior_pending)
-        elif v2_result['reason'] == 'exact_reconciliation_auto_clear':
-            # Clear pending on exact reconciliation (Q4)
+        elif v2_result['reason'] in ('exact_reconciliation_auto_clear', 'authorized_rearm'):
+            # Clear pending on exact reconciliation or authorized re-arm (Q4)
             cst.clear_v2_pending_adjustment(next_row_state, symbol)
+        elif v2_result['reason'] != 'reconciliation_mismatch':
+            prior_pending = cst.get_v2_pending_adjustment(prior_row_state, symbol)
+            if prior_pending:
+                cst.set_v2_pending_adjustment(next_row_state, symbol, prior_pending)
 
         # V3 - fund event (canonical format per Q6)
         v3_result = rows_vehicle.evaluate_V3(fund_inputs, prior_row_state, authorized_events, symbol)
@@ -328,8 +336,9 @@ def evaluate(
                     prior_v4['last_session_below_threshold']
                 )
 
-        # V5 - decay monitor (B5 canonical format per Q6)
-        v5_result = rows_vehicle.evaluate_V5(fund_inputs, prior_row_state, authorized_events, symbol, session)
+        # V5 - decay monitor (B5 canonical format per Q6; fallback to top-level policy v5_tolerance)
+        v5_inputs = fund_inputs if 'v5_tolerance' in fund_inputs else {**fund_inputs, 'v5_tolerance': validated_inputs.get('v5_tolerance')}
+        v5_result = rows_vehicle.evaluate_V5(v5_inputs, prior_row_state, authorized_events, symbol, session)
         v5_outputs[symbol] = v5_result
         # Update V5 state - session identity per flag 4
         new_count = v5_result['outputs']['consecutive_sessions_beyond_tolerance']
@@ -340,8 +349,9 @@ def evaluate(
         v6_result = rows_vehicle.evaluate_V6(fund_inputs, prior_row_state, authorized_events, symbol)
         v6_outputs[symbol] = v6_result
 
-        # V7 - quote/liquidity
-        v7_result = rows_vehicle.evaluate_V7(fund_inputs, prior_row_state, authorized_events, symbol)
+        # V7 - quote/liquidity (fallback to top-level policy v7_spread_width)
+        v7_inputs = fund_inputs if 'v7_spread_width' in fund_inputs else {**fund_inputs, 'v7_spread_width': validated_inputs.get('v7_spread_width')}
+        v7_result = rows_vehicle.evaluate_V7(v7_inputs, prior_row_state, authorized_events, symbol)
         v7_outputs[symbol] = v7_result
 
     # Aggregate vehicle rows into single row outputs
@@ -420,11 +430,17 @@ def evaluate(
     # O5 - pre-trade limits (B2 canonical format per Q6)
     o5_result = rows_ops.evaluate_O5(validated_inputs, prior_row_state, authorized_events, session)
     rows_by_ID['O5'] = o5_result
-    # O5 state: row emits rejection_count_this_session, we store it with session and latch
-    if o5_result['would_have_tripped']:
+    # O5 state: preserve session rejection count & latch across mixed PASS/REJECT checks in same session
+    if o5_result['reason'] == 'authorized_rearm':
+        next_row_state['O5'] = {}
+    elif o5_result['would_have_tripped']:
         count = o5_result.get('rejection_count_this_session', 1)
         latched = o5_result['latched']
         cst.set_o5_state(next_row_state, count, session, latched)
+    else:
+        prior_o5 = cst.get_o5_state(prior_row_state)
+        if prior_o5['last_rejection_session'] == session and (prior_o5['rejection_count'] > 0 or prior_o5['latched']):
+            cst.set_o5_state(next_row_state, prior_o5['rejection_count'], session, prior_o5['latched'])
 
     # O6 - policy hash mismatch (canonical format per Q6)
     o6_result = rows_ops.evaluate_O6(validated_inputs, prior_row_state, authorized_events)
@@ -434,15 +450,19 @@ def evaluate(
         prior_latch = cst.get_account_latch(prior_row_state, 'O6')
         trip_session = prior_latch['trip_session'] if prior_latch else session
         cst.set_account_latch(next_row_state, 'O6', trip_session)
+    elif o6_result['reason'] == 'authorized_rearm':
+        next_row_state['O6'] = {}
 
     # O7 - dead man's switch (canonical format per Q6)
-    o7_result = rows_ops.evaluate_O7(validated_inputs, prior_row_state, authorized_events)
+    o7_result = rows_ops.evaluate_O7(validated_inputs, prior_row_state, authorized_events, as_of=as_of)
     rows_by_ID['O7'] = o7_result
     if o7_result['latched']:
         # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
         prior_latch = cst.get_account_latch(prior_row_state, 'O7')
         trip_session = prior_latch['trip_session'] if prior_latch else session
         cst.set_account_latch(next_row_state, 'O7', trip_session)
+    elif o7_result['reason'] == 'authorized_rearm':
+        next_row_state['O7'] = {}
 
     # O8 - kill switch
     o8_result = rows_ops.evaluate_O8(validated_inputs, prior_row_state, authorized_events)
@@ -456,6 +476,8 @@ def evaluate(
         prior_latch = cst.get_account_latch(prior_row_state, 'O9')
         trip_session = prior_latch['trip_session'] if prior_latch else session
         cst.set_account_latch(next_row_state, 'O9', trip_session)
+    elif o9_result['reason'] == 'authorized_rearm':
+        next_row_state['O9'] = {}
 
     # J1 - joint exposure limit
     j1_result = rows_ops.evaluate_J1(validated_inputs, prior_row_state, authorized_events)
@@ -623,7 +645,7 @@ def evaluate(
     # G6 (F1-A10): Bind spec_version, engine_hash, and shadow safety assertions to output bundle
     next_row_state['spec_version'] = spec_version
     next_row_state['engine_hash'] = engine_hash
-    next_row_state['enforcement_mode'] = 'shadow_would_have_tripped' if mode == 'shadow' else mode
+    next_row_state['enforcement_mode'] = 'shadow_would_have_tripped'
     next_row_state['loss_breakers_armed'] = False
 
     return (rows_by_ID, effective_state_by_scope, next_row_state)

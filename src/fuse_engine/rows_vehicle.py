@@ -8,19 +8,7 @@ import math
 from typing import Any, Dict, Optional
 from . import state as st
 from . import canonical_state as cst
-
-
-def _is_valid_finite_number(value: Any) -> Optional[float]:
-    """Convert non-bool value to finite float, else return None."""
-    if value is None or isinstance(value, bool):
-        return None
-    try:
-        num = float(value)
-    except (TypeError, ValueError):
-        return None
-    if math.isnan(num) or math.isinf(num):
-        return None
-    return num
+from .canonical import finite_float as _is_valid_finite_number
 
 
 def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
@@ -117,13 +105,28 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             res['_session_returns'] = [dict(item) for item in prior_history]
         return res
 
+    if sessions_window is not None and (
+            isinstance(sessions_window, bool) or
+            not isinstance(sessions_window, int) or
+            sessions_window not in (1, 5)):
+        res = {
+            'state': 'NO-NEW-RISK',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': False,
+            'reason': 'missing_input',
+            'fund': fund
+        }
+        if prior_history:
+            res['_session_returns'] = [dict(item) for item in prior_history]
+        return res
+
     # Calculate one-session deviation: actual - (3× index - fee - financing)
     expected_return = 3.0 * index_return - modelled_fee - modelled_financing
     one_session_dev = fund_return - expected_return
 
-    # Maintain rolling 5-session history when sessions_window == 5 or history already active
+    # Always maintain rolling 5-session history across valid observations (§4.3 / A06)
     explicit_history = inputs.get('five_session_history')
-    updated_history = None
     if isinstance(explicit_history, list):
         parsed = []
         for entry in explicit_history:
@@ -139,7 +142,7 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                         'expected_return': 3.0 * ir - mf - mfin
                     })
         updated_history = parsed[-5:]
-    elif sessions_window == 5 or prior_history:
+    else:
         updated_history = [dict(item) for item in prior_history]
         curr_entry = {
             'session': session,
@@ -158,44 +161,27 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
     # One-session trigger check
     if abs(one_session_dev) > one_session_threshold:
-        res = {
+        return {
             'state': 'NO-NEW-RISK',
             'would_have_tripped': True,
             'kind': 'breaker',
             'latched': True,
             'reason': 'tracking_deviation_exceeds_0_75pp',
             'deviation': abs(one_session_dev),
-            'fund': fund
+            'fund': fund,
+            '_session_returns': updated_history,
         }
-        if updated_history is not None:
-            res['_session_returns'] = updated_history
-        return res
 
     # Five-session branch per §4.3 / §4.5 / §6
-    if updated_history is not None:
-        if len(updated_history) < 5:
-            # Insufficient 5-session history: fail-closed unlatched refusal while retaining history
+    if len(updated_history) < 5:
+        if sessions_window == 5:
+            # Caller requested explicit 5-session evaluation before 5 sessions accumulated
             return {
                 'state': 'NO-NEW-RISK',
                 'would_have_tripped': True,
                 'kind': 'breaker',
                 'latched': False,
                 'reason': 'missing_input',
-                'fund': fund,
-                '_session_returns': updated_history,
-            }
-
-        comp_fund = math.prod(1.0 + item['fund_return'] for item in updated_history) - 1.0
-        comp_expected = math.prod(1.0 + item['expected_return'] for item in updated_history) - 1.0
-        five_session_dev = comp_fund - comp_expected
-        if abs(five_session_dev) > five_session_threshold:
-            return {
-                'state': 'NO-NEW-RISK',
-                'would_have_tripped': True,
-                'kind': 'breaker',
-                'latched': True,
-                'reason': 'tracking_deviation_exceeds_2_0pp',
-                'deviation': round(abs(five_session_dev), 12),
                 'fund': fund,
                 '_session_returns': updated_history,
             }
@@ -209,13 +195,28 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             '_session_returns': updated_history,
         }
 
+    comp_fund = math.prod(1.0 + item['fund_return'] for item in updated_history) - 1.0
+    comp_expected = math.prod(1.0 + item['expected_return'] for item in updated_history) - 1.0
+    five_session_dev = comp_fund - comp_expected
+    if abs(five_session_dev) > five_session_threshold:
+        return {
+            'state': 'NO-NEW-RISK',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': True,
+            'reason': 'tracking_deviation_exceeds_2_0pp',
+            'deviation': round(abs(five_session_dev), 12),
+            'fund': fund,
+            '_session_returns': updated_history,
+        }
     return {
         'state': 'NORMAL',
         'would_have_tripped': False,
         'kind': 'breaker',
         'latched': False,
         'reason': 'none',
-        'fund': fund
+        'fund': fund,
+        '_session_returns': updated_history,
     }
 
 
@@ -289,6 +290,17 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
     # If action is dict, validate required fields
     if isinstance(corporate_action, dict):
+        # Empty {} while pending stays carried HALT without dropping pending state (A07/A12)
+        if not corporate_action and prior_pending:
+            return {
+                'state': 'HALT',
+                'would_have_tripped': True,
+                'kind': 'interlock_or_breaker',
+                'latched': False,
+                'reason': 'pending_corporate_action_carried',
+                'fund': fund
+            }
+
         action_type = corporate_action.get('type')
         if action_type is None:
             # Malformed - fail closed with HALT
@@ -304,7 +316,8 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         adjustment_complete = corporate_action.get('adjustment_complete', False)
         exact_reconciliation = corporate_action.get('exact_reconciliation', False)
 
-        # A12 / R3: Recompute exact reconciliation from amounts; flag/tolerance never clear a mismatch
+        # R3 / A12: Exact reconciliation requires matching ledger/broker values, share_count == broker_position,
+        # matching action type/identity against pending event, and no unadjusted HWM flag.
         if adjustment_complete:
             ledger_val = _is_valid_finite_number(inputs.get('ledger_value'))
             broker_val = _is_valid_finite_number(inputs.get('broker_value'))
@@ -314,16 +327,26 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             amounts_match = (
                 ledger_val is not None and
                 broker_val is not None and
-                ledger_val == broker_val
+                ledger_val == broker_val and
+                share_count is not None and
+                broker_pos is not None and
+                share_count == broker_pos
             )
-            if share_count is not None or broker_pos is not None:
-                amounts_match = amounts_match and (
-                    share_count is not None and
-                    broker_pos is not None and
-                    share_count == broker_pos
+            hwm_ok = (
+                corporate_action.get('hwm_adjusted') is not False and
+                inputs.get('hwm_adjusted') is not False
+            )
+            action_matches = True
+            if prior_pending:
+                prior_type = prior_pending.get('type')
+                prior_ratio = prior_pending.get('ratio')
+                curr_ratio = corporate_action.get('ratio')
+                action_matches = (
+                    action_type == prior_type and
+                    (prior_ratio is None or curr_ratio is None or curr_ratio == prior_ratio)
                 )
 
-            if exact_reconciliation and amounts_match:
+            if exact_reconciliation and amounts_match and hwm_ok and action_matches:
                 if prior_pending:
                     return {
                         'state': 'NORMAL',
@@ -342,7 +365,7 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                     'fund': fund
                 }
 
-            # Adjustment complete without exact matching amounts latches HALT
+            # Adjustment complete without complete matching reconciliation latches HALT
             return {
                 'state': 'HALT',
                 'would_have_tripped': True,
@@ -600,7 +623,7 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     v5_tolerance = inputs.get('v5_tolerance')  # From validated_inputs if supplied
 
     # If tolerance unresolved, treat as unresolved (not missing data)
-    if v5_tolerance is None:
+    if v5_tolerance is None or v5_tolerance == 'unresolved':
         # Unresolved tolerance - diagnostic only, no escalation (Fix 2)
         return {
             'state': 'NORMAL',
@@ -617,28 +640,27 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             }
         }
 
-    # Calculate excess shortfall
-    if shortfall_observed is None or shortfall_predicted is None:
+    # A11: Fail closed on NaN/inf/bool/negative v5_tolerance
+    tol_val = _is_valid_finite_number(v5_tolerance)
+    if tol_val is None or tol_val < 0.0:
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,
             'kind': 'diagnostic',
             'latched': False,
-            'reason': 'missing_input',
+            'reason': 'invalid_input',
             'fund': fund,
             'outputs': {
-                'excess_shortfall': 0.0,
+                'excess_shortfall': None,
                 'consecutive_sessions_beyond_tolerance': 0,
                 'escalated_to_v1': False,
-                'disposition': 'missing_data'
+                'disposition': 'UNRESOLVED-FAIL-CLOSED'
             }
         }
 
-    try:
-        v5_tolerance = float(v5_tolerance)
-        shortfall_observed = float(shortfall_observed)
-        shortfall_predicted = float(shortfall_predicted)
-    except (TypeError, ValueError):
+    obs_val = _is_valid_finite_number(shortfall_observed)
+    pred_val = _is_valid_finite_number(shortfall_predicted)
+    if obs_val is None or pred_val is None:
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,
@@ -650,9 +672,13 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'excess_shortfall': 0.0,
                 'consecutive_sessions_beyond_tolerance': 0,
                 'escalated_to_v1': False,
-                'disposition': 'invalid_data'
+                'disposition': 'missing_data' if (shortfall_observed is None or shortfall_predicted is None) else 'invalid_data'
             }
         }
+
+    v5_tolerance = tol_val
+    shortfall_observed = obs_val
+    shortfall_predicted = pred_val
 
     # Calculate excess shortfall
     excess_shortfall = shortfall_observed - shortfall_predicted
@@ -709,16 +735,53 @@ def evaluate_V6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 authorized_events: Optional[Dict[str, Any]], fund: str) -> Dict[str, Any]:
     """V6: Carrying cost exceeds threshold → notify.
 
+    Spec §4.3 / DERIVATION.md: carrying_cost_measured > (excess_return_shrunk / 4).
     Kind: diagnostic
     Scope: fund
     State contribution: Diagnostic only (notify)
     """
-    # Evaluate trigger
-    cost_per_unit = inputs.get('v6_cost_per_unit_exposure')
-    threshold = inputs.get('v6_threshold')
+    raw_spec_cost = inputs.get('carrying_cost_measured', inputs.get('carrying_cost_per_unit_exposure'))
+    raw_spec_excess = inputs.get('excess_return_shrunk', inputs.get('shrunk_excess_return'))
+    raw_v6_cost = inputs.get('v6_cost_per_unit_exposure')
+    raw_v6_threshold = inputs.get('v6_threshold')
 
-    # V6 is diagnostic only - with missing inputs, return benign (Fix 2: V6 does NOT trip)
-    if cost_per_unit is None or threshold is None:
+    # Synthetic direct threshold mode (e.g., SUC-11 fixture)
+    if raw_v6_cost is not None or raw_v6_threshold is not None:
+        cost_val = _is_valid_finite_number(raw_v6_cost)
+        thresh_val = _is_valid_finite_number(raw_v6_threshold)
+        if cost_val is None or thresh_val is None:
+            return {
+                'state': 'NORMAL',
+                'would_have_tripped': True,
+                'kind': 'diagnostic',
+                'latched': False,
+                'reason': 'missing_input',
+                'fund': fund,
+                'outputs': {
+                    'cost_per_unit_exposure': 0.0,
+                    'threshold': 0.0,
+                    'exceeded': True,
+                    'notify': True
+                }
+            }
+        exceeded = cost_val > thresh_val
+        return {
+            'state': 'NORMAL',
+            'would_have_tripped': exceeded,
+            'kind': 'diagnostic',
+            'latched': False,
+            'reason': 'carrying_cost_exceeded' if exceeded else 'none',
+            'fund': fund,
+            'outputs': {
+                'cost_per_unit_exposure': cost_val,
+                'threshold': thresh_val,
+                'exceeded': exceeded,
+                'notify': exceeded
+            }
+        }
+
+    # Spec field mode: carrying_cost_measured > (excess_return_shrunk / 4)
+    if raw_spec_cost is None and raw_spec_excess is None:
         return {
             'state': 'NORMAL',
             'would_have_tripped': False,
@@ -734,10 +797,9 @@ def evaluate_V6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             }
         }
 
-    try:
-        cost_per_unit = float(cost_per_unit)
-        threshold = float(threshold)
-    except (TypeError, ValueError):
+    cost_val = _is_valid_finite_number(raw_spec_cost)
+    excess_val = _is_valid_finite_number(raw_spec_excess)
+    if cost_val is None or excess_val is None:
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,
@@ -753,21 +815,36 @@ def evaluate_V6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             }
         }
 
-    # Check trigger
-    exceeded = cost_per_unit > threshold
+    threshold = excess_val / 4.0
+    exceeded = cost_val > threshold
+    if exceeded:
+        return {
+            'state': 'NORMAL',
+            'would_have_tripped': True,
+            'kind': 'diagnostic',
+            'latched': False,
+            'reason': 'carrying_cost_exceeded',
+            'fund': fund,
+            'outputs': {
+                'cost_per_unit_exposure': cost_val,
+                'threshold': threshold,
+                'exceeded': True,
+                'notify': True
+            }
+        }
 
     return {
         'state': 'NORMAL',
-        'would_have_tripped': exceeded,
+        'would_have_tripped': False,
         'kind': 'diagnostic',
         'latched': False,
-        'reason': 'carrying_cost_exceeded' if exceeded else 'none',
+        'reason': 'none',
         'fund': fund,
         'outputs': {
-            'cost_per_unit_exposure': cost_per_unit,
-            'threshold': threshold,
-            'exceeded': exceeded,
-            'notify': exceeded
+            'cost_per_unit_exposure': None,
+            'threshold': None,
+            'exceeded': False,
+            'notify': False
         }
     }
 
@@ -792,7 +869,7 @@ def evaluate_V7(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     v7_spread_width_threshold = inputs.get('v7_spread_width')
 
     # Fail closed on unresolved spread width threshold
-    if v7_spread_width_threshold is None:
+    if v7_spread_width_threshold is None or v7_spread_width_threshold == 'unresolved':
         return {
             'state': 'NORMAL',
             'would_have_tripped': True,
@@ -802,15 +879,31 @@ def evaluate_V7(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'fund': fund
         }
 
-    # Check staleness (staleness > 1.0 means stale)
-    quote_stale = quote_staleness is not None and quote_staleness > 1.0
+    # A11: Fail closed on NaN/inf/bool/negative v7_spread_width threshold
+    thresh_val = _is_valid_finite_number(v7_spread_width_threshold)
+    if thresh_val is None or thresh_val < 0.0:
+        return {
+            'state': 'NORMAL',
+            'would_have_tripped': True,
+            'kind': 'interlock',
+            'latched': False,
+            'reason': 'invalid_input',
+            'fund': fund
+        }
 
-    # Check spread width
-    try:
-        v7_spread_width_threshold = float(v7_spread_width_threshold)
-        spread_too_wide = spread_width is not None and float(spread_width) > v7_spread_width_threshold
-    except (TypeError, ValueError):
-        spread_too_wide = True  # Fail closed on invalid
+    # Check staleness (staleness > 1.0 or invalid/non-finite/negative fails closed)
+    if quote_staleness is not None:
+        qs_val = _is_valid_finite_number(quote_staleness)
+        quote_stale = (qs_val is None or qs_val < 0.0 or qs_val > 1.0)
+    else:
+        quote_stale = False
+
+    # Check spread width (invalid/non-finite/negative fails closed)
+    if spread_width is not None:
+        sw_val = _is_valid_finite_number(spread_width)
+        spread_too_wide = (sw_val is None or sw_val < 0.0 or sw_val > thresh_val)
+    else:
+        spread_too_wide = False
 
     # Check if outside regular session
     outside_regular_session = session_time != 'regular'
