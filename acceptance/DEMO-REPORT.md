@@ -5,16 +5,16 @@
 - **Golden freeze version:** `fuse-eval-spec/v2` (`1da74ca5...`, owner-approved v2 refreeze `2026-11-24`, unchanged relative to `710758c`)
 - **Writer:** Sonnet
 - **Demonstration epoch:** `FUSE-DESIGN-2026-11-21-v1`
-- **Verified code / fixture / tool / test head:** `57c813b8d521b8227e5ea4d0c1f2c759e1e78e9d` (`57c813b`, preceded by `882df2a`, `c39f4d0`, `0c9eb43`, `d816cca`, `72d5020`, `de50e4f`, `5ad8072`, `440373c`, `3a14e18`, `f9b6b3a`, `841b7cb`, `e3a7aba`, `18f8cdd`, `3277881`, `ef79aee`, `b1e2ec6`, `9335f26`, `710758c`, `d27f51a`, `b3084d7`; followed by this bundle/docs commit)
+- **Verified code / fixture / tool / test head:** `4f8f4827ed511e83f63aaf1ed1b8d7aaa7dc04df` (`4f8f482`, preceded by `e9639f5`, `57c813b`, `882df2a`, `c39f4d0`, `0c9eb43`, `d816cca`, `72d5020`, `de50e4f`, `5ad8072`, `440373c`, `3a14e18`, `f9b6b3a`, `841b7cb`, `e3a7aba`, `18f8cdd`, `3277881`, `ef79aee`, `b1e2ec6`, `9335f26`, `710758c`, `d27f51a`, `b3084d7`; followed by this bundle/docs commit)
 
 ## Status
 
-**LOCAL PR #3 CODEX REVIEW REMEDIATION (F1–F5) VERIFIED ON `57c813b` (v2 `goldens/` FREEZE PRESERVED AT 0 DIFF BYTES; REMOTE CI / PR #3 `F1-A14` PENDING PUSH)**
+**LOCAL PR #3 CODEX INLINE P1 REMEDIATION (V1 & O4) VERIFIED ON `4f8f482` (v2 `goldens/` FREEZE PRESERVED AT 0 DIFF BYTES; REMOTE CI / PR #3 `F1-A14` PENDING PUSH)**
 
 - Base: **264/264** ✓ strict raw dict equality + type equality (`True != 1`) AND **264/264** full independent §4.1 scope maps inside formal `run_matrix.run_base_cells`
 - Tier (formal runner): **132/132 EXECUTED** ✓ full-key strict dict + type equality (`compare_base_outcome_exact` catches extra keys & `bool`/`int` mismatches; R5 real tier caps `0.40/0.60/0.80 × bankroll`, `tier_change` covers `balanced`+`aggressive`, `-1` J1-cap mutation `110 pass / 22 fail` detected)
 - Successor: **13/13** ✓ (every declared key in `expected` enforced; canonical-extra-only output/state enforcement rejects spoofed keys; summary integer vs float `6 != 6.0` enforced; `SUC-08` runs all `70` sequential sessions via live state; `SUC-11` runs `2` real calls; `SUC-06/5` runs `12` calls; `SUC-07/3` runs `7` calls)
-- Unit tests: **152 tests OK** (`unittest`: `Ran 152 tests` OK; `pytest`: **152 passed, 18 subtests passed**) ✓
+- Unit tests: **154 tests OK** (`unittest`: `Ran 154 tests` OK; `pytest`: **154 passed, 18 subtests passed**) ✓
 - ID-set gate (`tools/check_id_set.py`): **PASS** (`spec=24, engine=24, expected=24`) ✓
 - Spec lint (`tools/lint_spec.py`): **PASS** ✓
 - Exposure/policy invariant gate (`tools/check_exposure_invariants.py`): **168/168 bundles PASS** ✓ (`symbol` field included in target scope, per-symbol V7 scoping avoids clamping unrestricted `SOXL`, negative `joint_exposure` fail-closed headroom `0.0` handled cleanly)
@@ -26,14 +26,14 @@
   2. `O1` `missing_required_source_*` intra-session clearing vs frozen `SUC-05` Step 7 (`goldens/successor-cases.json` chains Steps 1–7 on single session `2026-01-05` with minimal `['source_records', 'tier']` inputs expecting `NORMAL` at Step 7): all real operational calls (`stale_or_missing_input`) retain same-session `clearing_period` (`NO-NEW-RISK`); only non-operational minimal `SUC-05` `missing_required_source_*` preserves Step 7 parity.
 - Remote CI / PR #3 (`F1-A14`): **PENDING** (local branch unpushed; exact-head CI, `ai-review`, and R2 governance labels pending push)
 
-## Artifact Hashes (Head `57c813b` + Unchanged v2 Refreeze)
+## Artifact Hashes (Head `4f8f482` + Unchanged v2 Refreeze)
 
-- **Engine hash (8 sorted files incl. `canonical.py`):** `511cee54222e9e789cb9b8bec215fa23e22f32da275a73b0d00104070e934964`
-- **Bundle hash:** `c395f3b51ef624e42658ba53419bdc21650edaf3959707920c9d6544373ba54c`
-- **`acceptance/result-bundle.json` SHA-256 (973 bytes, trailing LF):** `5bdbba06fc6144865a453982c187c6c9dae32156bafb934cd16095cf07ba66cd`
+- **Engine hash (8 sorted files incl. `canonical.py`):** `f772711e3b6ba9d8c3b087646fe573a84a5aba4859d4630f4c9cd107639f37fd`
+- **Bundle hash:** `632945cdee1dd60b575387d86e2cee543497b2e9517ecb3b3787917e3fd82fda`
+- **`acceptance/result-bundle.json` SHA-256 (973 bytes, trailing LF):** `3901622641a0249543de999bde8d9688e9a5c6134fbf3277930321ee96925a5d`
 - **Original freeze (`f60986a`):** `efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50`
 - **Adjudication freeze v1 (`86be6d7`):** `499641a2185131bccc49f93c1784eab3fd226336d6ac0edc66a1d983df1d89f1`
-- **Owner-approved v2 refreeze (at `d27f51a` / `710758c`, 0 bytes modified in R3–R11 remediation):**
+- **Owner-approved v2 refreeze (at `d27f51a` / `710758c`, 0 bytes modified in R3–R12 remediation):**
   - `goldens/FREEZE.json` (`fuse-eval-spec/v2`): `2262eabd746d2c6ff9e0e5f49853244d638b550330db049d2af9c41c659dd89d`
   - `goldens/scenarios.json` (unchanged): `37d4f48210368cbe981a780aed4c10434bbdfb1a328c4bb1c3f196371ac26a3b`
   - `goldens/golden-table.json` (R1/R4/R5): `a9750d390fe194e947e9593dee53f3a0dbbba9e465a6dad374f449d24c265e8d`
@@ -41,7 +41,12 @@
   - `goldens/DERIVATION.md` (v2 addendum): `eaa8034df0271cbeca9297a77c76ca3c6b4bd0968dd433ed7082af28c80a4682`
   - **Combined v2 freeze:** `1da74ca508161ba6d9a424101321381a9f5156d8cb2c84c03be2fd2fe3f22a74`
 
-## Remote PR #3 Codex Review Fixes (`57c813b` & this docs/bundle commit)
+## Remote PR #3 Codex Inline P1 Fixes (`4f8f482` & this docs/bundle commit)
+
+1. **`V1` 5-session history bootstrap current-session inclusion (`rows_vehicle.py`):** Removes the 5-item `five_session_history` skip condition in `evaluate_V1` so bootstrapping with 5 prior sessions always appends the current open session (when its `session` is not already present) and slices `[-5:]` before checking 5-session deviation.
+2. **`O4` malformed `pending_order` persistence & Q4 symbol re-arm (`canonical_state.py`, `rows_ops.py`, `evaluator.py`):** Assigns `'original_order_id': f'unidentified_order_{symbol}'` when a malformed non-dict `pending_order` arrives with empty `prior_pending` so `O4` locks durably across subsequent `pending_orders={}` calls; adds `cst.matches_symbol_rearm()` so owner dated symbol-scoped Q4 `rearm` (`row='O4', symbol=<sym>`) clears the lock when `pending_orders` is resolved.
+
+## Prior Remote PR #3 Codex Review Fixes (`57c813b` / `e9639f5`, retained in `4f8f482`)
 
 1. **`V5` Q4 re-arm & persistent 40-session escalation (`F1`, `canonical_state.py`, `rows_vehicle.py`, `evaluator.py`):** Once escalated (`>= 40`), `V5` remains `NO-NEW-RISK` (`escalated_to_v1=True`, `latched=False` per `SUC-08`, counter preserved `>= 40` on benign sessions and incremented on new open excess sessions) until cleared by a dated fund-scoped Q4 `rearm` card (including omitted funds via `evaluator.py`).
 2. **`V5` closed-market exclusion (`F5`, `rows_vehicle.py`, `evaluator.py`):** Validates `v5_tolerance` first (preserving `holiday.V5` `UNRESOLVED-FAIL-CLOSED` parity), then excludes `market_closed=True` (`holiday`/`closed`) days from persistence counting and preserves prior `V5[symbol]` / `last_session` without fabricating holiday entries.
