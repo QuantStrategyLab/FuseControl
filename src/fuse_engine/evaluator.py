@@ -665,7 +665,7 @@ def evaluate(
         )
         preserve_v5_session = v5_result.pop('_preserve_prior_v5_session', False)
         v5_outputs[symbol] = v5_result
-        # Update V5 state - preserve open-session identity & prior streaks across omitted/missing/closed/holiday checks
+        # Update V5 state - preserve prior state across omitted/missing/unresolved/invalid/closed checks without inventing last_session
         prior_v5_raw = (prior_row_state.get('V5') or {}).get(symbol) if isinstance(prior_row_state, dict) else None
         if v5_result['reason'] == 'authorized_rearm':
             cst.clear_v5_state(next_row_state, symbol)
@@ -675,7 +675,7 @@ def evaluate(
             or v5_result['reason'] in ('missing_input', 'unresolved_fail_closed', 'invalid_input')
             or (v5_result['outputs']['escalated_to_v1'] and v5_result['outputs']['excess_shortfall'] is None)
         ):
-            if isinstance(prior_v5_raw, dict):
+            if isinstance(prior_v5_raw, dict) and (prior_v5_raw or v5_result['outputs']['escalated_to_v1']):
                 if 'V5' not in next_row_state:
                     next_row_state['V5'] = {}
                 preserved_entry = copy.deepcopy(prior_v5_raw)
@@ -686,10 +686,6 @@ def evaluate(
                     )
                     preserved_entry['escalated'] = True
                 next_row_state['V5'][symbol] = preserved_entry
-            elif not preserve_v5_session and symbol in funds:
-                new_count = v5_result['outputs']['consecutive_sessions_beyond_tolerance']
-                escalated = v5_result['outputs']['escalated_to_v1']
-                cst.set_v5_state(next_row_state, symbol, new_count, escalated, session)
         else:
             new_count = v5_result['outputs']['consecutive_sessions_beyond_tolerance']
             escalated = v5_result['outputs']['escalated_to_v1']

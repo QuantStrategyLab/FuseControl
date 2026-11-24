@@ -2932,6 +2932,63 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         self.assertEqual(eff3_ws['fund:TQQQ'], 'NO-NEW-RISK')
         self.assertEqual(compute_permitted_exposure(vi3_ws, r3_ws, eff3_ws), 45000.0)
 
+    def test_r17_v5_same_day_missing_unresolved_invalid_does_not_poison_last_session(self):
+        """R17 P1: Unevaluated V5 ticks without prior state must not write last_session and block same-session counting."""
+        from datetime import date, timedelta
+
+        for mode_name in ('missing_shortfall', 'unresolved_tol', 'invalid_tol'):
+            v0 = copy.deepcopy(self.normal_vi)
+            v0.update({'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05})
+            v0['funds']['TQQQ']['v5_tolerance'] = 0.01
+            v0['funds']['SOXL']['v5_tolerance'] = 0.01
+            if mode_name == 'missing_shortfall':
+                v0['funds']['TQQQ'].pop('shortfall_observed', None)
+            elif mode_name == 'unresolved_tol':
+                v0['v5_tolerance'] = None
+                v0['funds']['TQQQ']['v5_tolerance'] = None
+            else:
+                v0['v5_tolerance'] = -0.01
+                v0['funds']['TQQQ']['v5_tolerance'] = -0.01
+
+            r0, _, st = self._eval(v0, session='2026-01-05', prior={})
+            self.assertNotIn('TQQQ', st.get('V5', {}), f"{mode_name} must not record last_session without prior state")
+            self.assertEqual(r0['V5']['outputs']['consecutive_sessions_beyond_tolerance'], 0)
+
+            d0 = date(2026, 1, 5)
+            last_r = None
+            for idx in range(40):
+                sess = (d0 + timedelta(days=idx)).isoformat()
+                vx = copy.deepcopy(self.normal_vi)
+                vx.update({'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05})
+                vx['funds']['TQQQ'].update({'v5_tolerance': 0.01, 'shortfall_observed': 0.05, 'shortfall_predicted': 0.01})
+                vx['funds']['SOXL']['v5_tolerance'] = 0.01
+                for sr in vx['source_records'].values():
+                    sr['timestamp'] = f'{sess}T15:59:00Z'
+                last_r, eff_last, st = self._eval(vx, session=sess, prior=st)
+            self.assertEqual(last_r['V5']['state'], 'NO-NEW-RISK', msg=mode_name)
+            self.assertEqual(last_r['V5']['outputs']['consecutive_sessions_beyond_tolerance'], 40, msg=mode_name)
+            self.assertTrue(last_r['V5']['outputs']['escalated_to_v1'], msg=mode_name)
+            self.assertEqual(eff_last['fund:TQQQ'], 'NO-NEW-RISK', msg=mode_name)
+            self.assertEqual(st['V5']['TQQQ']['consecutive_beyond_tolerance'], 40, msg=mode_name)
+
+        # V1-V4 without prior state: missing/invalid tick1 does not block same-session tick2 evaluation
+        vi_m = copy.deepcopy(self.normal_vi)
+        vi_m.update({'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05})
+        vi_m['funds']['TQQQ'].update({'index_return': None, 'forecast_volatility': None, 'corporate_action': 'bad'})
+        vi_m['funds']['SOXL']['v5_tolerance'] = 0.01
+        _, _, st_m = self._eval(vi_m, session='2026-01-05', prior={})
+        self.assertNotIn('TQQQ', st_m.get('V1', {}))
+        self.assertNotIn('TQQQ', st_m.get('V4', {}))
+
+        vi_rec = copy.deepcopy(self.normal_vi)
+        vi_rec.update({'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05})
+        vi_rec['funds']['TQQQ'].update({'forecast_volatility': 0.60, 'fund_event': 'liquidation'})
+        vi_rec['funds']['SOXL']['v5_tolerance'] = 0.01
+        r_rec, _, st_rec = self._eval(vi_rec, session='2026-01-05', prior=st_m)
+        self.assertEqual(r_rec['V4']['state'], 'NO-NEW-RISK')
+        self.assertEqual(st_rec['V4']['TQQQ']['clearing_counter'], 0)
+        self.assertTrue(st_rec['V3']['TQQQ']['latched'])
+
 
 if __name__ == '__main__':
     unittest.main()
