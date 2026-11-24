@@ -1165,7 +1165,11 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         self.assertTrue(self._eval(vi_acct)[0]['O5']['would_have_tripped'])
 
         vi_bil = copy.deepcopy(self.normal_vi)
-        vi_bil.update({'o5_collar': 0.05, 'o5_account': 'synthetic_account_1', 'o5_symbol': 'BIL', 'unit_price': 50.0, 'o5_reference_price': 50.0})
+        vi_bil.update({
+            'o5_collar': 0.05, 'o5_account': 'synthetic_account_1', 'o5_symbol': 'BIL',
+            'o5_side': 'buy', 'o5_order_size': 1, 'o5_order_value': 50.0, 'settled_cash': 200.0,
+            'unit_price': 50.0, 'o5_reference_price': 50.0,
+        })
         self.assertFalse(self._eval(vi_bil)[0]['O5']['would_have_tripped'])
 
     def test_intra_session_l5_o1_and_o2_status_whitelist(self):
@@ -2480,7 +2484,9 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         vi_no_q = copy.deepcopy(self.normal_vi)
         vi_no_q.update({
             'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05,
-            'account': 'synthetic_account_1', 'o5_symbol': 'BIL', 'unit_price': 50.0, 'o5_reference_price': 50.0,
+            'account': 'synthetic_account_1', 'o5_symbol': 'BIL', 'side': 'buy',
+            'order_size': 1, 'order_value': 50.0, 'settled_cash': 200.0,
+            'unit_price': 50.0, 'o5_reference_price': 50.0,
         })
         vi_no_q['funds']['TQQQ']['v5_tolerance'] = 0.01
         vi_no_q['funds']['SOXL']['v5_tolerance'] = 0.01
@@ -2988,6 +2994,82 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         self.assertEqual(r_rec['V4']['state'], 'NO-NEW-RISK')
         self.assertEqual(st_rec['V4']['TQQQ']['clearing_counter'], 0)
         self.assertTrue(st_rec['V3']['TQQQ']['latched'])
+
+    def test_r18_invalid_market_halt_level_and_o5_missing_order_direction_fail_closed(self):
+        """R18 Codex: Invalid market_halt_level fails L5/L6 closed and active O5 orders require explicit buy/sell side."""
+        sys.path.insert(0, str(repo_root / 'tools'))
+        from check_exposure_invariants import compute_permitted_exposure
+
+        # 1. Invalid/malformed market_halt_level fails L5 (NO-NEW-RISK) and L6 (HALT, latched) closed
+        for bad_mhl in ('3', 'unavailable', True, False, -1, 4, 1.5, float('nan'), float('inf'), ['1']):
+            vi_mhl = copy.deepcopy(self.normal_vi)
+            vi_mhl.update({
+                'proposed_exposure': 45500.0, 'v5_tolerance': 0.01,
+                'v7_spread_width': 0.02, 'o5_collar': 0.05, 'market_halt_level': bad_mhl,
+            })
+            vi_mhl['funds']['TQQQ']['v5_tolerance'] = 0.01
+            vi_mhl['funds']['SOXL']['v5_tolerance'] = 0.01
+            r_m, eff_m, st_m = self._eval(vi_mhl, session='2026-01-05')
+            self.assertEqual(r_m['L5']['state'], 'NO-NEW-RISK', msg=repr(bad_mhl))
+            self.assertTrue(r_m['L5']['would_have_tripped'], msg=repr(bad_mhl))
+            self.assertEqual(r_m['L5']['reason'], 'invalid_input', msg=repr(bad_mhl))
+            self.assertEqual(r_m['L6']['state'], 'HALT', msg=repr(bad_mhl))
+            self.assertTrue(r_m['L6']['latched'], msg=repr(bad_mhl))
+            self.assertEqual(r_m['L6']['reason'], 'invalid_input', msg=repr(bad_mhl))
+            self.assertEqual(eff_m['account'], 'HALT', msg=repr(bad_mhl))
+            self.assertEqual(compute_permitted_exposure(vi_mhl, r_m, eff_m), 0.0, msg=repr(bad_mhl))
+            self.assertTrue(st_m['L6']['latched'], msg=repr(bad_mhl))
+
+        # Valid market_halt_level=0 and None stay NORMAL; same-day L5 trip survives an intermediate invalid tick
+        vi_zero = copy.deepcopy(self.normal_vi)
+        vi_zero.update({
+            'proposed_exposure': 45500.0, 'v5_tolerance': 0.01,
+            'v7_spread_width': 0.02, 'o5_collar': 0.05, 'market_halt_level': 0,
+        })
+        vi_zero['funds']['TQQQ']['v5_tolerance'] = 0.01
+        vi_zero['funds']['SOXL']['v5_tolerance'] = 0.01
+        r_z, eff_z, _ = self._eval(vi_zero, session='2026-01-05')
+        self.assertEqual(r_z['L5']['state'], 'NORMAL')
+        self.assertEqual(r_z['L6']['state'], 'NORMAL')
+        self.assertEqual(compute_permitted_exposure(vi_zero, r_z, eff_z), 45500.0)
+
+        vi_l5_1 = copy.deepcopy(vi_zero)
+        vi_l5_1['market_halt_level'] = 1
+        _, _, st_l5 = self._eval(vi_l5_1, session='2026-01-05')
+        vi_l5_bad = copy.deepcopy(vi_zero)
+        vi_l5_bad['market_halt_level'] = 'unavailable'
+        _, _, st_bad = self._eval(vi_l5_bad, session='2026-01-05', prior=st_l5)
+        rearm_l6 = [{'type': 'rearm', 'row': 'L6', 'session': '2026-01-05'}]
+        r_same, _, _ = self._eval(vi_zero, session='2026-01-05', prior=st_bad, events=rearm_l6)
+        self.assertEqual(r_same['L6']['state'], 'NORMAL')
+        self.assertEqual(r_same['L5']['state'], 'NO-NEW-RISK')
+        self.assertEqual(r_same['L5']['reason'], 'clearing_period')
+
+        # 2. Active order omitting direction aliases fails O5 closed -> clamps 45000 & latches HALT on 3rd reject
+        for extra_side in ({}, {'side': None}, {'o5_side': None}):
+            st_dir = {}
+            for i in range(1, 4):
+                vi_dir = copy.deepcopy(self.normal_vi)
+                vi_dir.update({
+                    'proposed_exposure': 45500.0, 'v5_tolerance': 0.01,
+                    'v7_spread_width': 0.02, 'o5_collar': 0.05,
+                    'o5_symbol': 'TQQQ', 'account': 'synthetic_account_1',
+                    'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0,
+                    'order_value': 50.0, 'settled_cash': 200.0,
+                    **extra_side,
+                })
+                vi_dir['funds']['TQQQ']['v5_tolerance'] = 0.01
+                vi_dir['funds']['SOXL']['v5_tolerance'] = 0.01
+                r_d, eff_d, st_dir = self._eval(vi_dir, session='2026-01-05', prior=st_dir)
+                self.assertTrue(r_d['O5']['would_have_tripped'])
+                self.assertEqual(r_d['O5']['rejection_count_this_session'], i)
+                if i < 3:
+                    self.assertEqual(compute_permitted_exposure(vi_dir, r_d, eff_d), 45000.0)
+                else:
+                    self.assertEqual(r_d['O5']['state'], 'HALT')
+                    self.assertTrue(r_d['O5']['latched'])
+                    self.assertEqual(eff_d['account'], 'HALT')
+                    self.assertEqual(compute_permitted_exposure(vi_dir, r_d, eff_d), 0.0)
 
 
 if __name__ == '__main__':

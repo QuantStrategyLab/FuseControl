@@ -332,6 +332,14 @@ def evaluate(
         cst.set_l5_active_trip(next_row_state, l5_cur_date)
     elif l5_result['reason'] == 'clearing_period':
         cst.set_l5_active_trip(next_row_state, prior_l5['trip_session'] or l5_cur_date)
+    elif l5_result['reason'] == 'invalid_input':
+        if prior_l5['active'] and (
+            (prior_l5['trip_session'] is not None and prior_l5['trip_session'] == l5_cur_date)
+            or (prior_l5['trip_session'] is None and prior_l5['fresh_session_count'] < 1)
+        ):
+            cst.set_l5_active_trip(next_row_state, prior_l5['trip_session'] or l5_cur_date)
+        else:
+            cst.set_l5_fresh_count(next_row_state, 0)
     elif prior_l5['active']:
         next_row_state['L5'] = {}
     else:

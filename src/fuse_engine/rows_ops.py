@@ -702,8 +702,8 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     ):
         violations.append('account_not_whitelisted')
 
-    # Long only: allow reducing sells within existing long position; reject shorts, ambiguous sides & oversells
-    if side_conflict:
+    # Long only: require explicit buy/sell direction on active orders; allow reducing sells within existing long position
+    if side_conflict or (order_present and side is None):
         violations.append('not_long_only')
     elif side is not None:
         if side == 'buy':

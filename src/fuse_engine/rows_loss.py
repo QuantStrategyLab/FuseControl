@@ -475,6 +475,15 @@ def evaluate_L4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     }
 
 
+def _parse_market_halt_level(raw: Any) -> tuple:
+    """Validate optional market_halt_level; only None or exact int in {0, 1, 2, 3} is valid."""
+    if raw is None:
+        return None, False
+    if isinstance(raw, bool) or not isinstance(raw, int) or raw not in (0, 1, 2, 3):
+        return None, True
+    return raw, False
+
+
 def evaluate_L5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 authorized_events: Optional[Dict[str, Any]], session: str,
                 as_of: Optional[str] = None) -> Dict[str, Any]:
@@ -488,8 +497,8 @@ def evaluate_L5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     prior_l5 = cst.get_l5_state(prior_state)
     cur_date = cst.canonical_session_date(session, as_of)
 
-    market_halt_level = inputs.get('market_halt_level')
-    triggered = (not isinstance(market_halt_level, bool)) and market_halt_level in (1, 2)
+    halt_level, invalid_halt_level = _parse_market_halt_level(inputs.get('market_halt_level'))
+    triggered = halt_level in (1, 2)
 
     if triggered:
         return {
@@ -498,6 +507,15 @@ def evaluate_L5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'kind': 'interlock',
             'latched': False,
             'reason': 'market_halt_level_1_or_2'
+        }
+
+    if invalid_halt_level:
+        return {
+            'state': 'NO-NEW-RISK',
+            'would_have_tripped': True,
+            'kind': 'interlock',
+            'latched': False,
+            'reason': 'invalid_input'
         }
 
     if prior_l5['active']:
@@ -569,10 +587,10 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         }
 
     # Evaluate trigger
-    market_halt_level = inputs.get('market_halt_level')
+    halt_level, invalid_halt_level = _parse_market_halt_level(inputs.get('market_halt_level'))
     index_returns = inputs.get('index_one_session_returns')
 
-    level_3_halt = (not isinstance(market_halt_level, bool)) and market_halt_level == 3
+    level_3_halt = halt_level == 3
 
     # Check ALL indices in index_one_session_returns; never abort past an invalid earlier entry.
     # Require >= 2 valid benchmark index returns on non-closed sessions when dict is supplied
@@ -610,13 +628,13 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'latched': True,
             'reason': 'index_fall_10pct'
         }
-    if invalid_index_data or missing_index_data:
+    if invalid_halt_level or invalid_index_data or missing_index_data:
         return {
             'state': 'HALT',
             'would_have_tripped': True,
             'kind': 'breaker',
             'latched': True,
-            'reason': 'invalid_input' if invalid_index_data else 'missing_input'
+            'reason': 'invalid_input' if (invalid_halt_level or invalid_index_data) else 'missing_input'
         }
 
     return {
