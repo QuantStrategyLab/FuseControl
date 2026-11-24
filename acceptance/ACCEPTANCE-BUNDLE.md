@@ -3,13 +3,13 @@
 - **Branch:** `demo/fuse1-sonnet`
 - **Spec version:** `fuse-eval-spec/v1`
 - **Golden freeze version:** `fuse-eval-spec/v2` (`1da74ca5...`, owner-approved v2 refreeze `2026-11-24`, 0 bytes changed vs `710758c`)
-- **Code / fixture / tool / test head:** `440373c125b0f620323b60619b7bff9f11db2f8d` (R7 P1 remediation at `440373c` on top of `3a14e18`/`f9b6b3a`/`841b7cb`/`e3a7aba`/`18f8cdd`/`3277881`/`ef79aee`/`b1e2ec6`/`9335f26`/`710758c`/`d27f51a`/`b3084d7`; this bundle/docs commit follows)
+- **Code / fixture / tool / test head:** `de50e4fbdea5f7fe8e610923c3461a5e3a660c6d` (R8 P1 remediation at `de50e4f` on top of `5ad8072`/`440373c`/`3a14e18`/`f9b6b3a`/`841b7cb`/`e3a7aba`/`18f8cdd`/`3277881`/`ef79aee`/`b1e2ec6`/`9335f26`/`710758c`/`d27f51a`/`b3084d7`; this bundle/docs commit follows)
 
 ## Artifact Hashes
 
 ### Engine Hash (§5.3)
 ```
-5bb3a4e448d78d5c5572008a60b8b6a53640b6cfda71f6ba1d96a47e7d5b490c
+2237ea7492e0ce5b3203af524e2aa322c1addb41b263bfa2a4acf7e3e530d4e3
 ```
 
 Computed from canonical bundle (8 sorted Python files):
