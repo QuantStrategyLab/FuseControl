@@ -870,6 +870,7 @@ def main():
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with open(args.output, 'w', encoding='utf-8') as f:
             json.dump(result_bundle, f, indent=2, sort_keys=True)
+            f.write('\n')
         print(f"\nResults written to {args.output}")
 
     print(f"\nBundle hash: {bundle_hash}")

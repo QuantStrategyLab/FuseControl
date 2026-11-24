@@ -165,7 +165,7 @@ Batteries F1-A05 through F1-A13 not implemented:
 
 **Fix 1 - Successor harness**: Implemented real multi-step executor in `tools/run_matrix.py` that threads `next_row_state` through successive steps. SUC-11 marked as definition-only (Phase 3). Comparison logic updated to check only expected scopes.
 
-**Fix 2 - Fund-row output shape (V5, V6, V7)**: 
+**Fix 2 - Fund-row output shape (V5, V6, V7)**:
 - Added `aggregate_diagnostic_row()` for V5/V6 to emit single row-level structured outputs (not per-fund composites)
 - V5 unresolved case: `excess_shortfall: None`, `disposition: 'UNRESOLVED-FAIL-CLOSED'`
 - V6 missing inputs: benign (`would_have_tripped: false`, `reason: 'none'`)
