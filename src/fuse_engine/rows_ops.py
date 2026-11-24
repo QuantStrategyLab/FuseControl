@@ -384,13 +384,14 @@ def evaluate_O3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
 
 def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
-                authorized_events: Optional[Dict[str, Any]], symbol: str) -> Dict[str, Any]:
+                authorized_events: Optional[Dict[str, Any]], symbol: str,
+                session: Optional[str] = None, as_of: Optional[str] = None) -> Dict[str, Any]:
     """O4: Order timeout → ORDER-UNKNOWN for that symbol.
 
     Kind: interlock_or_breaker
     Scope: symbol
     State contribution: ORDER-UNKNOWN
-    Clearing: Clears on definitive terminal status for the ORIGINAL order;
+    Clearing: Clears on definitive status for the ORIGINAL order or owner Q4 re-arm;
              otherwise latches
     Mechanism B6: ORDER-UNKNOWN keyed to original order identity
     """
@@ -407,8 +408,19 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
     # If no pending order input (or empty dict)
     if pending_order is None or (isinstance(pending_order, dict) and not pending_order):
-        # B6: Check if we have a prior pending order
+        # B6: Check if we have a prior pending order (allow dated symbol-scoped Q4 re-arm to clear)
         if prior_pending:
+            if cst.matches_symbol_rearm(
+                authorized_events, 'O4', symbol, session=session, as_of=as_of, require_date=True
+            ) is not None:
+                return {
+                    'state': 'NORMAL',
+                    'would_have_tripped': False,
+                    'kind': 'interlock_or_breaker',
+                    'latched': False,
+                    'reason': 'authorized_rearm',
+                    'symbol': symbol
+                }
             return {
                 'state': 'ORDER-UNKNOWN',
                 'would_have_tripped': True,
@@ -428,19 +440,17 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'symbol': symbol
         }
 
-    # Validate pending_order structure while preserving prior_pending original_order_id
+    # Validate pending_order structure and assign durable unidentified_order_id when absent
     if not isinstance(pending_order, dict):
-        res = {
+        return {
             'state': 'ORDER-UNKNOWN',
             'would_have_tripped': True,
             'kind': 'interlock_or_breaker',
             'latched': True,
             'reason': 'missing_input',
-            'symbol': symbol
+            'symbol': symbol,
+            'original_order_id': prior_pending['original_order_id'] if prior_pending else f'unidentified_order_{symbol}',
         }
-        if prior_pending:
-            res['original_order_id'] = prior_pending['original_order_id']
-        return res
 
     order_id = pending_order.get('order_id')
     status = pending_order.get('status')

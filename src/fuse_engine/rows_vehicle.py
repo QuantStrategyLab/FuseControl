@@ -146,7 +146,7 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
     if session is not None and any(item.get('session') == session for item in updated_history):
         updated_history = [curr_entry if item.get('session') == session else item for item in updated_history]
-    elif not (len(updated_history) == 5 and isinstance(explicit_history, list) and explicit_history and not prior_history):
+    else:
         updated_history.append(curr_entry)
     updated_history = updated_history[-5:]
 

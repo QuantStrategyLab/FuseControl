@@ -2516,6 +2516,85 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         self.assertEqual(r_bs['V7']['reason'], 'invalid_input')
         self.assertEqual(compute_permitted_exposure(vi_bad_sym, r_bs, eff_bs), 45000.0)
 
+    def test_r12_v1_five_session_history_bootstrap_appends_current_session(self):
+        """R12 P1-1: V1 with 5 prior five_session_history items still evaluates and appends the current session."""
+        vi = copy.deepcopy(self.normal_vi)
+        vi.update({'last_heartbeat': '2026-01-10T15:59:30Z'})
+        vi['funds']['TQQQ'].update({
+            'fund_return': -0.0055,
+            'index_return': 0.0,
+            'modelled_fee': 0.0,
+            'modelled_financing': 0.0,
+            'five_session_history': [
+                {'fund_return': 0.0, 'index_return': 0.0, 'modelled_fee': 0.0, 'modelled_financing': 0.0},
+                {'fund_return': 0.0, 'index_return': 0.0, 'modelled_fee': 0.0, 'modelled_financing': 0.0},
+                {'fund_return': -0.0055, 'index_return': 0.0, 'modelled_fee': 0.0, 'modelled_financing': 0.0},
+                {'fund_return': -0.0055, 'index_return': 0.0, 'modelled_fee': 0.0, 'modelled_financing': 0.0},
+                {'fund_return': -0.0055, 'index_return': 0.0, 'modelled_fee': 0.0, 'modelled_financing': 0.0},
+            ],
+        })
+        rows, eff, st = self._eval(vi, session='2026-01-10', prior={})
+        self.assertEqual(rows['V1']['state'], 'NO-NEW-RISK')
+        self.assertTrue(rows['V1']['latched'])
+        self.assertEqual(rows['V1']['reason'], 'tracking_deviation_exceeds_2_0pp')
+        self.assertEqual(eff['fund:TQQQ'], 'NO-NEW-RISK')
+        persisted = st['V1']['TQQQ']['session_returns']
+        self.assertEqual(len(persisted), 5)
+        self.assertEqual(persisted[0]['fund_return'], 0.0)
+        self.assertEqual(persisted[-1]['session'], '2026-01-10')
+        self.assertEqual(persisted[-1]['fund_return'], -0.0055)
+
+    def test_r12_o4_malformed_payload_persists_and_clears_only_via_q4_rearm(self):
+        """R12 P1-2: O4 malformed pending_orders without prior lock persists across empty pending_orders until Q4 re-arm."""
+        vi1 = copy.deepcopy(self.normal_vi)
+        vi1['pending_orders'] = {'TQQQ': 'malformed_payload'}
+        r1, eff1, st1 = self._eval(vi1, session='2026-01-05', prior={})
+        self.assertEqual(r1['O4']['state'], 'ORDER-UNKNOWN')
+        self.assertTrue(r1['O4']['latched'])
+        self.assertEqual(r1['O4']['reason'], 'missing_input')
+        self.assertEqual(eff1['symbol:TQQQ'], 'ORDER-UNKNOWN')
+        self.assertEqual(st1['O4']['TQQQ']['original_order_id'], 'unidentified_order_TQQQ')
+
+        # Subsequent evaluation with empty pending_orders={} MUST remain ORDER-UNKNOWN
+        vi2 = copy.deepcopy(self.normal_vi)
+        vi2['last_heartbeat'] = '2026-01-06T15:59:30Z'
+        vi2['pending_orders'] = {}
+        r2, eff2, st2 = self._eval(vi2, session='2026-01-06', prior=st1)
+        self.assertEqual(r2['O4']['state'], 'ORDER-UNKNOWN')
+        self.assertEqual(r2['O4']['reason'], 'awaiting_original_order_status')
+        self.assertEqual(eff2['symbol:TQQQ'], 'ORDER-UNKNOWN')
+        self.assertEqual(st2['O4']['TQQQ']['original_order_id'], 'unidentified_order_TQQQ')
+
+        # Invalid/undated/fund-scoped/wrong-symbol/stale Q4 rearm cards must NOT clear O4
+        vi3 = copy.deepcopy(self.normal_vi)
+        vi3['last_heartbeat'] = '2026-01-07T15:59:30Z'
+        vi3['pending_orders'] = {}
+        for bad_ev in (
+            {'type': 'rearm', 'row': 'O4', 'symbol': 'TQQQ'},
+            {'type': 'rearm', 'row': 'O4', 'symbol': 'TQQQ', 'session': '2026-01-06'},
+            {'type': 'rearm', 'row': 'O4', 'fund': 'TQQQ', 'session': '2026-01-07'},
+            {'type': 'rearm', 'row': 'O4', 'symbol': 'SOXL', 'session': '2026-01-07'},
+        ):
+            r_no, eff_no, _ = self._eval(vi3, session='2026-01-07', prior=st2, events=[bad_ev])
+            self.assertEqual(eff_no['symbol:TQQQ'], 'ORDER-UNKNOWN', f"Unexpected O4 clear for {bad_ev}")
+            self.assertEqual(r_no['O4']['state'], 'ORDER-UNKNOWN')
+
+        # Valid Q4 rearm does NOT bypass active malformed payload in current session
+        valid_ev = [{'type': 'rearm', 'row': 'O4', 'symbol': 'TQQQ', 'session': '2026-01-07', 'scope': 'symbol:TQQQ'}]
+        vi3_mal = copy.deepcopy(vi3)
+        vi3_mal['pending_orders'] = {'TQQQ': 'still_malformed'}
+        _, eff_mal, st_mal = self._eval(vi3_mal, session='2026-01-07', prior=st2, events=valid_ev)
+        self.assertEqual(eff_mal['symbol:TQQQ'], 'ORDER-UNKNOWN')
+        self.assertEqual(st_mal['O4']['TQQQ']['original_order_id'], 'unidentified_order_TQQQ')
+
+        # Valid dated symbol-scoped Q4 rearm clears lock when pending_orders is clean
+        r_clr, eff_clr, st_clr = self._eval(vi3, session='2026-01-07', prior=st2, events=valid_ev)
+        self.assertEqual(r_clr['O4']['state'], 'NORMAL')
+        self.assertFalse(r_clr['O4']['would_have_tripped'])
+        self.assertEqual(r_clr['O4']['reason'], 'authorized_rearm')
+        self.assertEqual(eff_clr['symbol:TQQQ'], 'NORMAL')
+        self.assertEqual(st_clr['O4'], {})
+
 
 if __name__ == '__main__':
     unittest.main()

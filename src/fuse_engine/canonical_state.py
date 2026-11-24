@@ -601,18 +601,20 @@ def matches_account_rearm(
     return None
 
 
-def matches_fund_rearm(
+def _matches_scoped_rearm(
     authorized_events: Optional[Any],
     row_id: str,
-    fund: str,
+    target_field: str,
+    forbidden_field: str,
+    target_val: str,
     session: Optional[str] = None,
     as_of: Optional[str] = None,
     require_date: bool = True,
 ) -> Optional[Dict[str, Any]]:
-    """Return matching fund-scoped rearm event per Q4 (row, fund, fund scope, date)."""
+    """Return matching scoped (fund/symbol) rearm event per Q4."""
     if not authorized_events:
         return None
-    scope = f'fund:{fund}'
+    scope = f'{target_field}:{target_val}'
     if isinstance(authorized_events, list):
         events_list = authorized_events
     elif isinstance(authorized_events, dict):
@@ -627,9 +629,9 @@ def matches_fund_rearm(
             continue
         if not event_matches_row(event, row_id):
             continue
-        if event.get('symbol'):
+        if event.get(forbidden_field):
             continue
-        if event.get('fund') != fund:
+        if event.get(target_field) != target_val:
             continue
         if 'scope' in event and event.get('scope') != scope:
             continue
@@ -637,6 +639,36 @@ def matches_fund_rearm(
             continue
         return event
     return None
+
+
+def matches_fund_rearm(
+    authorized_events: Optional[Any],
+    row_id: str,
+    fund: str,
+    session: Optional[str] = None,
+    as_of: Optional[str] = None,
+    require_date: bool = True,
+) -> Optional[Dict[str, Any]]:
+    """Return matching fund-scoped rearm event per Q4 (row, fund, fund scope, date)."""
+    return _matches_scoped_rearm(
+        authorized_events, row_id, 'fund', 'symbol', fund,
+        session=session, as_of=as_of, require_date=require_date,
+    )
+
+
+def matches_symbol_rearm(
+    authorized_events: Optional[Any],
+    row_id: str,
+    symbol: str,
+    session: Optional[str] = None,
+    as_of: Optional[str] = None,
+    require_date: bool = True,
+) -> Optional[Dict[str, Any]]:
+    """Return matching symbol-scoped rearm event per Q4 (row, symbol, symbol scope, date)."""
+    return _matches_scoped_rearm(
+        authorized_events, row_id, 'symbol', 'fund', symbol,
+        session=session, as_of=as_of, require_date=require_date,
+    )
 
 
 def matches_o8_clear(

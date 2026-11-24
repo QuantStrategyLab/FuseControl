@@ -727,7 +727,10 @@ def evaluate(
         if restart_marker:
             order_input['restart_marker'] = restart_marker
 
-        o4_result = rows_ops.evaluate_O4(order_input, prior_row_state, authorized_events, symbol)
+        o4_result = rows_ops.evaluate_O4(
+            order_input, prior_row_state, authorized_events, symbol,
+            session=session, as_of=as_of,
+        )
         o4_outputs[symbol] = o4_result
 
         # Store O4 state using canonical accessors (Q6)
@@ -735,7 +738,7 @@ def evaluate(
             order_id = o4_result['original_order_id']
             status = 'unknown'
             cst.set_o4_pending_order(next_row_state, symbol, order_id, status)
-        elif o4_result['reason'] in ('original_order_terminal_status_received', 'order_filled'):
+        elif o4_result['reason'] in ('original_order_terminal_status_received', 'order_filled', 'authorized_rearm'):
             # Clear resolved order
             cst.clear_o4_pending_order(next_row_state, symbol)
 
