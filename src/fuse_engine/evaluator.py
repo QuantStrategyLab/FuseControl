@@ -619,6 +619,12 @@ def evaluate(
 
             effective_state_by_scope[scope] = effective_state
 
+    # G6 (F1-A10): Bind spec_version, engine_hash, and shadow safety assertions to output bundle
+    next_row_state['spec_version'] = spec_version
+    next_row_state['engine_hash'] = engine_hash
+    next_row_state['enforcement_mode'] = 'shadow_would_have_tripped' if mode == 'shadow' else mode
+    next_row_state['loss_breakers_armed'] = False
+
     return (rows_by_ID, effective_state_by_scope, next_row_state)
 
 

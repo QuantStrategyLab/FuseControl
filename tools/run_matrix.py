@@ -839,8 +839,11 @@ def main():
     # Assemble result bundle
     result_bundle = {
         'description': 'FUSE-1 trip matrix execution results',
+        'spec_version': 'fuse-eval-spec/v1',
         'engine_hash': engine_hash,
         'freeze_hash': freeze['combined_freeze_hash'],
+        'enforcement_mode': 'shadow_would_have_tripped',
+        'loss_breakers_armed': False,
         'base_cells': base_results,
         'tier_repetitions': tier_results,
         'successor_cases': successor_results,

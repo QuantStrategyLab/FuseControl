@@ -162,5 +162,80 @@ class TestEngineHash(unittest.TestCase):
         self.assertEqual(len(row_ids), 24, "ROW_IDS must have exactly 24 IDs")
 
 
+class TestBoundOutputBundle(unittest.TestCase):
+    """G6 (F1-A10): Output bundle binds spec_version, engine_hash, and shadow posture."""
+
+    def test_evaluator_output_carries_bound_metadata_and_changes_on_hash_change(self):
+        import json
+        vi = json.loads(
+            (repo_root / "goldens" / "scenarios.json").read_text(encoding="utf-8")
+        )["scenarios"]["normal"]["inputs"]["validated_inputs"]
+
+        res1 = engine.evaluate(
+            "fuse-eval-spec/v1", "hash_alpha_111", "registered_policy_hash_v1",
+            "2026-01-05", "2026-01-05T16:00:00Z", "shadow", vi, {}, []
+        )
+        res2 = engine.evaluate(
+            "fuse-eval-spec/v1", "hash_beta_222", "registered_policy_hash_v1",
+            "2026-01-05", "2026-01-05T16:00:00Z", "shadow", vi, {}, []
+        )
+
+        # Recursive key scan confirms all four required binding fields exist
+        def collect_keys(obj):
+            keys = set()
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    keys.add(k)
+                    keys |= collect_keys(v)
+            elif isinstance(obj, list):
+                for item in obj:
+                    keys |= collect_keys(item)
+            return keys
+
+        keys1 = collect_keys(list(res1))
+        for field in ("spec_version", "engine_hash", "enforcement_mode", "loss_breakers_armed"):
+            self.assertIn(field, keys1, f"Missing bound field {field} in evaluator output")
+
+        self.assertEqual(res1[2]["spec_version"], "fuse-eval-spec/v1")
+        self.assertEqual(res1[2]["engine_hash"], "hash_alpha_111")
+        self.assertEqual(res1[2]["enforcement_mode"], "shadow_would_have_tripped")
+        self.assertIs(res1[2]["loss_breakers_armed"], False)
+
+        # Hash-change probe: changing engine_hash MUST change output triple
+        self.assertNotEqual(res1, res2)
+        self.assertEqual(res2[2]["engine_hash"], "hash_beta_222")
+
+    def test_required_successor_evidence_fields_present(self):
+        import json
+        cases = json.loads(
+            (repo_root / "goldens" / "successor-cases.json").read_text(encoding="utf-8")
+        )["cases"]
+
+        s08 = cases["SUC-08"]["steps"][0]["inputs"]
+        r08, _, _ = engine.evaluate(
+            "fuse-eval-spec/v1", "test-hash", "test-policy",
+            s08["session"], f"{s08['session']}T16:00:00Z", "shadow",
+            s08["validated_inputs"], {}, []
+        )
+        self.assertEqual(r08["V5"]["fund"], "TQQQ")
+
+        s10 = cases["SUC-10"]["steps"][0]["inputs"]
+        r10, _, _ = engine.evaluate(
+            "fuse-eval-spec/v1", "test-hash", "test-policy",
+            s10["session"], f"{s10['session']}T16:00:00Z", "shadow",
+            s10["validated_inputs"], {}, []
+        )
+        self.assertEqual(r10["O4"]["symbol"], "TQQQ")
+        self.assertEqual(r10["O4"]["original_order_id"], "order_X")
+
+        s13 = cases["SUC-13"]["steps"][0]["inputs"]
+        r13, _, _ = engine.evaluate(
+            "fuse-eval-spec/v1", "test-hash", "test-policy",
+            s13["session"], f"{s13['session']}T16:00:00Z", "shadow",
+            s13["validated_inputs"], {}, []
+        )
+        self.assertEqual(r13["V1"]["deviation"], 0.0102)
+
+
 if __name__ == "__main__":
     unittest.main()
