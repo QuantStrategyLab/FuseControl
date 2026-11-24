@@ -5,6 +5,7 @@ Implements the §5.1 signature with all 24 rows fully evaluated.
 
 import copy
 import hashlib
+import re
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -26,21 +27,43 @@ _EXPECTED_ENGINE_FILES = (
     'rows_vehicle.py',
     'state.py',
 )
+_EXPECTED_ENGINE_STEMS = frozenset(Path(name).stem for name in _EXPECTED_ENGINE_FILES)
+_PYCACHE_RE = re.compile(r'^([A-Za-z0-9_]+)\.cpython-\d+(?:t)?(?:\.opt-[12])?\.pyc$')
 
 
 def _compute_canonical_engine_hash_from_dir(engine_dir: Path) -> str:
-    """Compute length-framed canonical SHA-256 over the strict engine file whitelist (§5.3)."""
-    py_files = sorted(
-        engine_dir.rglob('*.py'),
-        key=lambda p: p.relative_to(engine_dir).as_posix(),
-    )
-    rel_paths = [p.relative_to(engine_dir).as_posix() for p in py_files]
-    if rel_paths != list(_EXPECTED_ENGINE_FILES):
+    """Compute length-framed canonical SHA-256 over the strict engine artifact whitelist (§5.3)."""
+    py_files: list[Path] = []
+    rel_py_paths: list[str] = []
+    for entry in sorted(engine_dir.rglob('*'), key=lambda p: p.relative_to(engine_dir).as_posix()):
+        rel = entry.relative_to(engine_dir).as_posix()
+        if entry.is_symlink():
+            raise RuntimeError(f"Unexpected symlink in engine directory: {rel!r}")
+        if entry.is_dir():
+            if rel != '__pycache__':
+                raise RuntimeError(f"Unexpected subdirectory in engine directory: {rel!r}")
+            continue
+        if not entry.is_file():
+            raise RuntimeError(f"Unexpected non-regular file in engine directory: {rel!r}")
+        if entry.parent == engine_dir:
+            if rel not in _EXPECTED_ENGINE_FILES:
+                raise RuntimeError(f"Unexpected artifact in engine directory: {rel!r}")
+            py_files.append(entry)
+            rel_py_paths.append(rel)
+        elif entry.parent == engine_dir / '__pycache__':
+            m = _PYCACHE_RE.match(entry.name)
+            if not m or m.group(1) not in _EXPECTED_ENGINE_STEMS:
+                raise RuntimeError(f"Unexpected __pycache__ artifact in engine directory: {rel!r}")
+        else:
+            raise RuntimeError(f"Unexpected nested artifact in engine directory: {rel!r}")
+
+    if rel_py_paths != list(_EXPECTED_ENGINE_FILES):
         raise RuntimeError(
-            f"Unexpected engine file set: expected={list(_EXPECTED_ENGINE_FILES)!r}, got={rel_paths!r}"
+            f"Unexpected engine file set: expected={list(_EXPECTED_ENGINE_FILES)!r}, got={rel_py_paths!r}"
         )
+
     hasher = hashlib.sha256()
-    for py_file, rel_path in zip(py_files, rel_paths):
+    for py_file, rel_path in zip(py_files, rel_py_paths):
         rel_bytes = rel_path.encode('utf-8')
         data = py_file.read_bytes()
         hasher.update(len(rel_bytes).to_bytes(4, 'big'))
@@ -160,46 +183,62 @@ def evaluate(
                 invalid_order_symbol = True
     order_symbols = sorted(order_symbols_list)
     all_symbols_set.update(order_symbols)
+    _CASH_ETF_SYMBOLS = frozenset({'BIL'})
+    missing_vehicle_order_symbols = [
+        sym for sym in order_symbols
+        if sym not in funds and sym not in _CASH_ETF_SYMBOLS
+    ]
+    eval_fund_symbols = sorted(
+        set(fund_symbols) | set(missing_vehicle_order_symbols),
+        key=_fund_sort_key,
+    )
+
     raw_pending_orders = validated_inputs.get('pending_orders')
+    malformed_pending_orders = (
+        'pending_orders' in validated_inputs and not isinstance(raw_pending_orders, dict)
+    )
     pending_orders = raw_pending_orders if isinstance(raw_pending_orders, dict) else {}
     all_symbols_set.update(pending_orders.keys())
     # Add symbols from durable O4 state
     prior_o4 = prior_row_state.get('O4')
     if isinstance(prior_o4, dict):
         all_symbols_set.update(prior_o4.keys())
+    if malformed_pending_orders and not all_symbols_set:
+        all_symbols_set.add('__pending_orders__')
     all_symbols = sorted(all_symbols_set)
 
     # Also track any prior restricted funds (V1/V2/V3/V4/V5 escalated) omitted from current funds dict
     prior_latched_funds = set()
     if prior_row_state:
         for fn, fstate in (prior_row_state.get('V1') or {}).items():
-            if isinstance(fstate, dict) and fstate.get('latched') and fn not in funds:
+            if isinstance(fstate, dict) and fstate.get('latched') and fn not in eval_fund_symbols:
                 prior_latched_funds.add(fn)
         prior_v2 = prior_row_state.get('V2') or {}
         if isinstance(prior_v2, dict):
             for fn, mstate in (prior_v2.get('latched_mismatches') or {}).items():
-                if mstate and fn not in funds:
+                if mstate and fn not in eval_fund_symbols:
                     prior_latched_funds.add(fn)
             for fn, pstate in (prior_v2.get('pending_adjustments') or {}).items():
-                if pstate and fn not in funds:
+                if pstate and fn not in eval_fund_symbols:
                     prior_latched_funds.add(fn)
         for fn, v3state in (prior_row_state.get('V3') or {}).items():
-            if isinstance(v3state, dict) and v3state.get('latched') and fn not in funds:
+            if isinstance(v3state, dict) and v3state.get('latched') and fn not in eval_fund_symbols:
                 prior_latched_funds.add(fn)
         for fn, v4state in (prior_row_state.get('V4') or {}).items():
-            if isinstance(v4state, dict) and v4state.get('clearing_counter') is not None and fn not in funds:
+            if isinstance(v4state, dict) and v4state.get('clearing_counter') is not None and fn not in eval_fund_symbols:
                 prior_latched_funds.add(fn)
         for fn, v5state in (prior_row_state.get('V5') or {}).items():
-            if isinstance(v5state, dict) and fn not in funds and (
+            if isinstance(v5state, dict) and fn not in eval_fund_symbols and (
                 v5state.get('escalated') or (v5state.get('consecutive_beyond_tolerance') or 0) >= 40
             ):
                 prior_latched_funds.add(fn)
 
     scopes = ['account']
-    for symbol in fund_symbols:
+    for symbol in eval_fund_symbols:
         scopes.append(f'fund:{symbol}')
     for symbol in sorted(prior_latched_funds):
-        scopes.append(f'fund:{symbol}')
+        if symbol not in eval_fund_symbols:
+            scopes.append(f'fund:{symbol}')
     for symbol in all_symbols:
         scopes.append(f'symbol:{symbol}')
     scopes.append('joint')
@@ -326,8 +365,11 @@ def evaluate(
     v6_outputs = {}
     v7_outputs = {}
 
-    for symbol in fund_symbols:
-        fund_inputs = funds[symbol] if isinstance(funds[symbol], dict) else {}
+    raw_quotes = validated_inputs.get('quotes')
+    raw_symbols = validated_inputs.get('symbols')
+
+    for symbol in eval_fund_symbols:
+        fund_inputs = funds[symbol] if (symbol in funds and isinstance(funds[symbol], dict)) else {}
 
         # V1 - tracking deviation (canonical format per Q6; 1-session and 5-session per §4.3/§6)
         v1_result = rows_vehicle.evaluate_V1(
@@ -650,16 +692,22 @@ def evaluate(
         v6_result = rows_vehicle.evaluate_V6(fund_inputs, prior_row_state, authorized_events, symbol)
         v6_outputs[symbol] = v6_result
 
-        # V7 - quote/liquidity (fallback to top-level policy v7_spread_width)
-        v7_inputs = fund_inputs if 'v7_spread_width' in fund_inputs else {**fund_inputs, 'v7_spread_width': validated_inputs.get('v7_spread_width')}
+        # V7 - quote/liquidity (for fund missing from funds, inspect quotes/symbols lookup; inherit v7_spread_width)
+        if symbol in funds:
+            v7_base = fund_inputs
+        elif isinstance(raw_quotes, dict) and isinstance(raw_quotes.get(symbol), dict):
+            v7_base = raw_quotes[symbol]
+        elif isinstance(raw_symbols, dict) and isinstance(raw_symbols.get(symbol), dict):
+            v7_base = raw_symbols[symbol]
+        else:
+            v7_base = {}
+        v7_inputs = v7_base if 'v7_spread_width' in v7_base else {**v7_base, 'v7_spread_width': validated_inputs.get('v7_spread_width')}
         v7_result = rows_vehicle.evaluate_V7(v7_inputs, prior_row_state, authorized_events, symbol)
         v7_outputs[symbol] = v7_result
 
-    # V7 also evaluates proposed order symbols outside funds (lookup quotes/symbols dict or fail closed)
-    raw_quotes = validated_inputs.get('quotes')
-    raw_symbols = validated_inputs.get('symbols')
+    # V7 also evaluates remaining proposed order symbols outside eval_fund_symbols (e.g. cash ETFs like BIL)
     for sym in order_symbols:
-        if sym in fund_symbols:
+        if sym in eval_fund_symbols:
             continue
         sym_quote = {}
         if isinstance(raw_quotes, dict) and isinstance(raw_quotes.get(sym), dict):
@@ -744,6 +792,25 @@ def evaluate(
     restart_marker = validated_inputs.get('restart_marker')
 
     for symbol in all_symbols:
+        if malformed_pending_orders:
+            prior_pending = cst.get_o4_pending_order(prior_row_state, symbol)
+            o4_out = {
+                'state': 'ORDER-UNKNOWN',
+                'would_have_tripped': True,
+                'kind': 'interlock_or_breaker',
+                'latched': bool(prior_pending),
+                'reason': 'malformed_pending_orders',
+                'symbol': symbol,
+            }
+            if prior_pending:
+                o4_out['original_order_id'] = prior_pending['original_order_id']
+                cst.set_o4_pending_order(
+                    next_row_state, symbol,
+                    prior_pending['original_order_id'], prior_pending.get('status', 'unknown'),
+                )
+            o4_outputs[symbol] = o4_out
+            continue
+
         # Build order input for this symbol safely even if funds[symbol] is missing/non-dict
         order_input = {}
         if symbol in funds and isinstance(funds[symbol], dict):
@@ -844,7 +911,7 @@ def evaluate(
         # Preserve V1 state (latches and 5-session history) for absent funds, and reflect active latches
         for fund in sorted(prior_row_state.get('V1', {}).keys()):
             v1_fund_state = prior_row_state['V1'][fund]
-            if fund not in fund_symbols and isinstance(v1_fund_state, dict) and v1_fund_state:
+            if fund not in eval_fund_symbols and isinstance(v1_fund_state, dict) and v1_fund_state:
                 if 'V1' not in next_row_state:
                     next_row_state['V1'] = {}
                 if fund not in next_row_state['V1']:
@@ -866,7 +933,7 @@ def evaluate(
             prior_pend_idents = prior_v2.get('pending_action_identities', {})
             for fund in sorted(prior_v2.get('latched_mismatches', {}).keys()):
                 mismatch = prior_v2['latched_mismatches'][fund]
-                if fund not in fund_symbols and mismatch:
+                if fund not in eval_fund_symbols and mismatch:
                     cst.set_v2_latched_mismatch(next_row_state, fund, mismatch)
                     if isinstance(prior_mism_actions, dict) and isinstance(prior_mism_actions.get(fund), dict):
                         cst.set_v2_latched_mismatch_action(next_row_state, fund, copy.deepcopy(prior_mism_actions[fund]))
@@ -880,7 +947,7 @@ def evaluate(
                     }
             for fund in sorted(prior_v2.get('pending_adjustments', {}).keys()):
                 pending = prior_v2['pending_adjustments'][fund]
-                if fund not in fund_symbols and pending:
+                if fund not in eval_fund_symbols and pending:
                     cst.set_v2_pending_adjustment(next_row_state, fund, pending)
                     if isinstance(prior_pend_idents, dict) and isinstance(prior_pend_idents.get(fund), dict):
                         cst.set_v2_pending_identities(next_row_state, fund, copy.deepcopy(prior_pend_idents[fund]))
@@ -897,7 +964,7 @@ def evaluate(
         # Preserve V3 latches for absent funds
         for fund in sorted(prior_row_state.get('V3', {}).keys()):
             v3_fund_state = prior_row_state['V3'][fund]
-            if fund not in fund_symbols and isinstance(v3_fund_state, dict) and v3_fund_state.get('latched'):
+            if fund not in eval_fund_symbols and isinstance(v3_fund_state, dict) and v3_fund_state.get('latched'):
                 if 'V3' not in next_row_state:
                     next_row_state['V3'] = {}
                 if fund not in next_row_state['V3']:
@@ -917,7 +984,7 @@ def evaluate(
                 next_row_state['V4'] = {}
             for fund in sorted(prior_row_state['V4'].keys()):
                 v4_fund_state = prior_row_state['V4'][fund]
-                if fund not in fund_symbols:
+                if fund not in eval_fund_symbols:
                     if fund not in next_row_state['V4']:
                         next_row_state['V4'][fund] = copy.deepcopy(v4_fund_state)
                     if isinstance(v4_fund_state, dict) and v4_fund_state.get('clearing_counter') is not None:
@@ -936,7 +1003,7 @@ def evaluate(
             if 'V5' not in next_row_state:
                 next_row_state['V5'] = {}
             for fund in sorted(prior_row_state['V5'].keys()):
-                if fund in fund_symbols:
+                if fund in eval_fund_symbols:
                     continue
                 v5_fund_state = prior_row_state['V5'][fund]
                 is_esc_omitted = isinstance(v5_fund_state, dict) and (

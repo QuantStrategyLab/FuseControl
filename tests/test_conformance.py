@@ -203,6 +203,24 @@ class TestEngineHash(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 engine._compute_canonical_engine_hash_from_dir(dir_miss)
 
+            # Binary/extension/non-whitelisted artifacts (.so, .pyd, .dylib, .pth, root .pyc, rogue __pycache__) fail closed
+            for bad_rel in (
+                "rows_ops.cpython-314-darwin.so",
+                "evil.pyd",
+                "evil.dylib",
+                "evil.pth",
+                "canonical.pyc",
+                "__pycache__/evil.cpython-313.pyc",
+                "__pycache__/rows_ops.cpython-314-darwin.so",
+            ):
+                dir_bin = td_path / ("bin_" + bad_rel.replace("/", "_").replace(".", "_"))
+                shutil.copytree(src_dir, dir_bin)
+                bad_path = dir_bin / bad_rel
+                bad_path.parent.mkdir(exist_ok=True)
+                bad_path.write_bytes(b"binary-payload")
+                with self.assertRaises(RuntimeError, msg=f"Expected RuntimeError for {bad_rel}"):
+                    engine._compute_canonical_engine_hash_from_dir(dir_bin)
+
     def test_row_ids_declared(self):
         """Test that ROW_IDS constant is declared in evaluator."""
         self.assertTrue(hasattr(engine, 'ROW_IDS'),

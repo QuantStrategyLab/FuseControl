@@ -630,36 +630,9 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     whitelist, whitelist_present, whitelist_conflict = _resolve_o5_alias(
         inputs, ('symbol_whitelist', 'o5_symbol_whitelist'), 'str_list'
     )
-    explicit_null_symbol_whitelist = (
-        ('symbol_whitelist' in inputs and inputs['symbol_whitelist'] is None) or
-        ('o5_symbol_whitelist' in inputs and inputs['o5_symbol_whitelist'] is None)
-    )
-    if not whitelist_present and not whitelist_conflict and not explicit_null_symbol_whitelist:
-        whitelist = ['TQQQ', 'SOXL']
-    empty_explicit_symbol_whitelist = (
-        (whitelist_present and isinstance(whitelist, list) and len(whitelist) == 0)
-        and any((
-            symbol_present, symbol_conflict,
-            any(k in inputs and inputs[k] is not None for k in ('o5_order_size', 'order_size', 'o5_order_qty', 'order_qty', 'qty', 'o5_side', 'side', 'order_side', 'o5_order_value', 'order_value'))
-        ))
-    )
-    if (
-        symbol_conflict or
-        whitelist_conflict or
-        explicit_null_symbol_whitelist or
-        empty_explicit_symbol_whitelist or
-        (symbol is not None and (not isinstance(whitelist, list) or symbol not in whitelist))
-    ):
-        violations.append('symbol_not_whitelisted')
-
-    # Inspect ALL supplied qty aliases; fail closed on conflicting, non-finite, or <= 0 quantities
     order_size, qty_present, qty_conflict = _resolve_o5_alias(
         inputs, ('o5_order_size', 'order_size', 'o5_order_qty', 'order_qty', 'qty'), 'decimal'
     )
-    if qty_conflict or (qty_present and (order_size is None or order_size <= Decimal('0'))):
-        violations.append('invalid_order_size')
-
-    # Side, order value, and prices (fail closed on ANY conflicting alias within a group)
     side, side_present, side_conflict = _resolve_o5_alias(inputs, ('o5_side', 'side', 'order_side'), 'lower_str')
     ov_dec, ov_present, ov_conflict = _resolve_o5_alias(inputs, ('o5_order_value', 'order_value'), 'decimal')
     unit_price_dec, unit_price_present, unit_price_conflict = _resolve_o5_alias(
@@ -670,8 +643,6 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     ref_price_dec, ref_price_present, ref_price_conflict = _resolve_o5_alias(
         inputs, ('o5_reference_price', 'reference_price'), 'decimal'
     )
-
-    # Account & account whitelist: fail closed on conflicts, explicit nulls, empty whitelist, or unapproved accounts
     account, acct_present, acct_conflict = _resolve_o5_alias(inputs, ('account', 'o5_account'), 'str')
     account_whitelist, acct_wl_present, acct_wl_conflict = _resolve_o5_alias(
         inputs, ('account_whitelist', 'o5_account_whitelist'), 'str_list'
@@ -685,6 +656,30 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         unit_price_present, unit_price_conflict,
         ref_price_present, ref_price_conflict,
     ))
+
+    explicit_null_symbol_whitelist = (
+        ('symbol_whitelist' in inputs and inputs['symbol_whitelist'] is None) or
+        ('o5_symbol_whitelist' in inputs and inputs['o5_symbol_whitelist'] is None)
+    )
+    if not whitelist_present and not whitelist_conflict and not explicit_null_symbol_whitelist:
+        whitelist = ['TQQQ', 'SOXL']
+    empty_explicit_symbol_whitelist = (
+        (whitelist_present and isinstance(whitelist, list) and len(whitelist) == 0)
+        and order_present
+    )
+    if (
+        symbol_conflict or
+        whitelist_conflict or
+        explicit_null_symbol_whitelist or
+        empty_explicit_symbol_whitelist or
+        (order_present and (symbol is None or not symbol.strip())) or
+        (symbol is not None and (not isinstance(whitelist, list) or symbol not in whitelist))
+    ):
+        violations.append('symbol_not_whitelisted')
+
+    # Fail closed on conflicting, non-finite, or <= 0 quantities
+    if qty_conflict or (qty_present and (order_size is None or order_size <= Decimal('0'))):
+        violations.append('invalid_order_size')
     explicit_null_whitelist = (
         ('account_whitelist' in inputs and inputs['account_whitelist'] is None) or
         ('o5_account_whitelist' in inputs and inputs['o5_account_whitelist'] is None)

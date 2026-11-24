@@ -1450,7 +1450,7 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
 
         # Canonical settled_cash=200 wins over alias o5_settled_cash=0
         vi_sc_win = copy.deepcopy(self.normal_vi)
-        vi_sc_win.update({'o5_collar': 0.05, 'o5_side': 'buy', 'settled_cash': 200.0, 'o5_settled_cash': 0.0, 'o5_order_value': 100.0, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'account': 'synthetic_account_1'})
+        vi_sc_win.update({'o5_collar': 0.05, 'o5_side': 'buy', 'o5_symbol': 'TQQQ', 'settled_cash': 200.0, 'o5_settled_cash': 0.0, 'o5_order_value': 100.0, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'account': 'synthetic_account_1'})
         self.assertFalse(self._eval(vi_sc_win)[0]['O5']['would_have_tripped'])
 
         # account_whitelist=None or unapproved account masked by o5_account must both fail
@@ -2714,6 +2714,108 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
                 self.assertEqual(r3['O5']['state'], 'HALT')
                 self.assertTrue(r3['O5']['latched'])
                 self.assertEqual(eff3['account'], 'HALT')
+
+    def test_r15_malformed_pending_orders_missing_fund_vehicle_order_and_missing_order_symbol(self):
+        """R15: malformed pending_orders list/None fails closed; non-BIL order target absent from funds fails V1/V4; O5 rejects active order omitting symbol."""
+        sys.path.insert(0, str(repo_root / 'tools'))
+        from check_exposure_invariants import compute_permitted_exposure
+
+        # 1. Malformed pending_orders collection (list / scalar / explicit None) fails O4 closed & blocks raise
+        for bad_po in (['broker response unavailable'], 'unavailable', 123, None):
+            vi1 = copy.deepcopy(self.normal_vi)
+            vi1.update({'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05})
+            vi1['funds']['TQQQ']['v5_tolerance'] = 0.01
+            vi1['funds']['SOXL']['v5_tolerance'] = 0.01
+            vi1['pending_orders'] = bad_po
+            r1, eff1, _ = self._eval(vi1, session='2026-01-05')
+            self.assertEqual(r1['O4']['state'], 'ORDER-UNKNOWN')
+            self.assertTrue(r1['O4']['would_have_tripped'])
+            self.assertEqual(r1['O4']['reason'], 'malformed_pending_orders')
+            self.assertEqual(eff1['symbol:TQQQ'], 'ORDER-UNKNOWN')
+            self.assertEqual(eff1['symbol:SOXL'], 'ORDER-UNKNOWN')
+            self.assertEqual(compute_permitted_exposure(vi1, r1, eff1), 45000.0)
+
+        # Malformed pending_orders preserves prior O4 order lock & works when funds={}
+        vi1_prior = copy.deepcopy(self.normal_vi)
+        vi1_prior['pending_orders'] = ['broker response unavailable']
+        r1_p, eff1_p, st1_p = self._eval(
+            vi1_prior,
+            session='2026-01-06',
+            prior={'O4': {'TQQQ': {'original_order_id': 'ordA', 'status': 'unknown'}}},
+        )
+        self.assertEqual(r1_p['O4']['state'], 'ORDER-UNKNOWN')
+        self.assertEqual(r1_p['O4']['reason'], 'malformed_pending_orders')
+        self.assertEqual(eff1_p['symbol:TQQQ'], 'ORDER-UNKNOWN')
+        self.assertEqual(st1_p['O4']['TQQQ']['original_order_id'], 'ordA')
+
+        vi1_empty = copy.deepcopy(self.normal_vi)
+        vi1_empty['pending_orders'] = ['broker response unavailable']
+        vi1_empty['funds'] = {}
+        r1_empty, eff1_empty, st1_empty = self._eval(
+            vi1_empty,
+            session='2026-01-06',
+            prior={'O4': {'TQQQ': {'original_order_id': 'ordA', 'status': 'unknown'}}},
+        )
+        self.assertEqual(r1_empty['O4']['state'], 'ORDER-UNKNOWN')
+        self.assertEqual(r1_empty['O4']['reason'], 'malformed_pending_orders')
+        self.assertEqual(eff1_empty['account'], 'HALT')
+        self.assertEqual(st1_empty['O4']['TQQQ']['original_order_id'], 'ordA')
+
+        # 2. Removing leveraged fund TQQQ from funds while keeping quotes['TQQQ'] triggers V1/V4 fail-closed on buy TQQQ
+        vi2 = copy.deepcopy(self.normal_vi)
+        vi2.update({
+            'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05,
+            'account': 'synthetic_account_1', 'side': 'buy', 'symbol': 'TQQQ',
+            'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'order_value': 50.0, 'settled_cash': 200.0,
+            'quotes': {'TQQQ': {'quote_staleness': 0.05, 'spread_width': 0.0001, 'trading_pause': False, 'session_time': 'regular'}},
+        })
+        vi2['funds'].pop('TQQQ')
+        vi2['funds']['SOXL']['v5_tolerance'] = 0.01
+        r2, eff2, _ = self._eval(vi2)
+        self.assertEqual(r2['V1']['state'], 'NO-NEW-RISK')
+        self.assertTrue(r2['V1']['would_have_tripped'])
+        self.assertEqual(r2['V4']['state'], 'NO-NEW-RISK')
+        self.assertTrue(r2['V4']['would_have_tripped'])
+        self.assertEqual(eff2['fund:TQQQ'], 'NO-NEW-RISK')
+        self.assertEqual(compute_permitted_exposure(vi2, r2, eff2), 45000.0)
+
+        # Cash ETF BIL outside funds with valid quotes['BIL'] still passes cleanly
+        vi_bil_ok = copy.deepcopy(self.normal_vi)
+        vi_bil_ok.update({
+            'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05,
+            'account': 'synthetic_account_1', 'side': 'buy', 'o5_symbol': 'BIL',
+            'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'order_value': 50.0, 'settled_cash': 200.0,
+            'quotes': {'BIL': {'quote_staleness': 0.05, 'spread_width': 0.0001, 'trading_pause': False, 'session_time': 'regular'}},
+        })
+        vi_bil_ok['funds']['TQQQ']['v5_tolerance'] = 0.01
+        vi_bil_ok['funds']['SOXL']['v5_tolerance'] = 0.01
+        r_bil, eff_bil, _ = self._eval(vi_bil_ok)
+        self.assertEqual(r_bil['V1']['state'], 'NORMAL')
+        self.assertEqual(r_bil['V7']['state'], 'NORMAL')
+        self.assertFalse(r_bil['O5']['would_have_tripped'])
+        self.assertEqual(compute_permitted_exposure(vi_bil_ok, r_bil, eff_bil), 50000.0)
+
+        # 3. Active order omitting symbol/o5_symbol fails O5 closed -> 3x HALT
+        st3 = {}
+        for i in range(1, 4):
+            vi3 = copy.deepcopy(self.normal_vi)
+            vi3.update({
+                'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05,
+                'account': 'synthetic_account_1', 'side': 'buy',
+                'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'order_value': 50.0, 'settled_cash': 200.0,
+            })
+            vi3['funds']['TQQQ']['v5_tolerance'] = 0.01
+            vi3['funds']['SOXL']['v5_tolerance'] = 0.01
+            r3, eff3, st3 = self._eval(vi3, session='2026-01-05', prior=st3)
+            self.assertTrue(r3['O5']['would_have_tripped'])
+            self.assertEqual(r3['O5']['rejection_count_this_session'], i)
+            if i < 3:
+                self.assertEqual(compute_permitted_exposure(vi3, r3, eff3), 45000.0)
+            else:
+                self.assertEqual(r3['O5']['state'], 'HALT')
+                self.assertTrue(r3['O5']['latched'])
+                self.assertEqual(eff3['account'], 'HALT')
+                self.assertEqual(compute_permitted_exposure(vi3, r3, eff3), 0.0)
 
 
 if __name__ == '__main__':
