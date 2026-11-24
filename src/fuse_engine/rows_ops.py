@@ -733,10 +733,14 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             violations.append('not_long_only')
 
     # Within settled cash (canonical 'settled_cash' wins cleanly over 'o5_settled_cash'; exact Decimal arithmetic)
+    eff_price_dec = (
+        unit_price_dec
+        if (unit_price_present and not unit_price_conflict and unit_price_dec is not None)
+        else ref_price_dec
+    )
     derived_notional = None
     notional_invalid = False
     if (qty_present or qty_conflict) and (unit_price_present or unit_price_conflict or ref_price_present or ref_price_conflict):
-        eff_price_dec = unit_price_dec if not unit_price_conflict and unit_price_dec is not None else ref_price_dec
         if (
             qty_conflict or unit_price_conflict or ref_price_conflict or
             order_size is None or order_size <= Decimal('0') or
@@ -773,17 +777,25 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         elif explicit_buy:
             violations.append('exceeds_settled_cash')
 
-    # Maximum order size
+    # Maximum order size (enforce explicit qty or derive implied_qty = order_value / eff_price for value-only orders)
     max_order_size_val, msize_present, msize_conflict = _resolve_o5_alias(
         inputs, ('o5_max_order_size', 'max_order_size'), 'decimal'
     )
     if msize_conflict or (msize_present and (max_order_size_val is None or max_order_size_val < Decimal('0'))):
         violations.append('exceeds_max_order_size')
-    elif (qty_present or qty_conflict) and max_order_size_val is not None:
-        if qty_conflict or order_size is None or order_size <= Decimal('0') or order_size > max_order_size_val:
+    elif max_order_size_val is not None and (order_present or qty_present or qty_conflict):
+        if qty_present or qty_conflict:
+            if qty_conflict or order_size is None or order_size <= Decimal('0') or order_size > max_order_size_val:
+                violations.append('exceeds_max_order_size')
+        elif (
+            ov_conflict or not ov_present or ov_dec is None or ov_dec <= Decimal('0') or
+            unit_price_conflict or ref_price_conflict or
+            eff_price_dec is None or eff_price_dec <= Decimal('0') or
+            ov_dec > max_order_size_val * eff_price_dec
+        ):
             violations.append('exceeds_max_order_size')
 
-    # Maximum orders per session (fail closed on conflicting/invalid counter or cap aliases)
+    # Maximum orders per session (fail closed on missing/null counter when order_present, or conflicting/invalid values)
     orders_today, orders_present, orders_conflict = _resolve_o5_alias(
         inputs, ('o5_orders_today', 'session_order_count', 'orders_today'), 'decimal'
     )
@@ -797,11 +809,14 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     ):
         violations.append('exceeds_max_orders')
     elif max_orders is not None:
-        ot = orders_today if orders_present else Decimal('0')
-        if ot >= max_orders:
+        if order_present and not orders_present:
             violations.append('exceeds_max_orders')
+        else:
+            ot = orders_today if orders_present else Decimal('0')
+            if ot >= max_orders:
+                violations.append('exceeds_max_orders')
 
-    # Turnover limit (fail closed on conflicting/invalid counter, cap aliases, or projected turnover overrun)
+    # Turnover limit (fail closed on missing/null counter when order_present, invalid aliases, or projected turnover overrun)
     turnover_today, turnover_present, turnover_conflict = _resolve_o5_alias(
         inputs, ('o5_turnover_today', 'session_turnover', 'turnover_today'), 'decimal'
     )
@@ -815,34 +830,38 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     ):
         violations.append('exceeds_max_turnover')
     elif max_turnover is not None:
-        tt = turnover_today if turnover_present else Decimal('0')
         if order_present:
-            if ov_dec is not None and derived_notional is not None:
-                proposed_notional = max(ov_dec, derived_notional)
-            elif ov_dec is not None:
-                proposed_notional = ov_dec
-            else:
-                proposed_notional = derived_notional
-            if (
-                ov_conflict or
-                (ov_present and (ov_dec is None or ov_dec < Decimal('0'))) or
-                qty_conflict or
-                (qty_present and (order_size is None or order_size <= Decimal('0'))) or
-                notional_invalid or unit_price_conflict or ref_price_conflict or
-                proposed_notional is None or proposed_notional < Decimal('0') or
-                (tt + proposed_notional) > max_turnover
-            ):
+            if not turnover_present:
                 violations.append('exceeds_max_turnover')
-        elif tt > max_turnover:
+            else:
+                tt = turnover_today
+                if ov_dec is not None and derived_notional is not None:
+                    proposed_notional = max(ov_dec, derived_notional)
+                elif ov_dec is not None:
+                    proposed_notional = ov_dec
+                else:
+                    proposed_notional = derived_notional
+                if (
+                    ov_conflict or
+                    (ov_present and (ov_dec is None or ov_dec < Decimal('0'))) or
+                    qty_conflict or
+                    (qty_present and (order_size is None or order_size <= Decimal('0'))) or
+                    notional_invalid or unit_price_conflict or ref_price_conflict or
+                    proposed_notional is None or proposed_notional < Decimal('0') or
+                    (tt + proposed_notional) > max_turnover
+                ):
+                    violations.append('exceeds_max_turnover')
+        elif turnover_present and turnover_today > max_turnover:
             violations.append('exceeds_max_turnover')
 
-    # Price collar (exact Decimal arithmetic against collar_pct)
-    if unit_price_present or unit_price_conflict or ref_price_present or ref_price_conflict:
+    # Price collar (always enforce on active orders via exact Decimal arithmetic against collar_pct)
+    if order_present or unit_price_present or unit_price_conflict or ref_price_present or ref_price_conflict:
         collar_dec = _to_decimal(o5_collar)
         if (
             unit_price_conflict or ref_price_conflict or
             unit_price_dec is None or ref_price_dec is None or
-            unit_price_dec <= Decimal('0') or ref_price_dec <= Decimal('0') or collar_dec is None
+            unit_price_dec <= Decimal('0') or ref_price_dec <= Decimal('0') or
+            collar_dec is None or collar_dec < Decimal('0')
         ):
             violations.append('invalid_price')
         else:

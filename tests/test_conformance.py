@@ -115,42 +115,93 @@ class TestSignatureConformance(unittest.TestCase):
 
 
 class TestEngineHash(unittest.TestCase):
-    """Test engine_hash conformance (§5.3)."""
+    """Test framed engine_hash conformance (§5.3)."""
 
     def test_engine_hash_computation(self):
-        """Test that engine_hash can be computed from canonical bundle."""
-        # Compute SHA-256 of engine source files in canonical order
+        """Test that framed engine_hash matches engine & matrix verifier across verified whitelist."""
+        sys.path.insert(0, str(repo_root / "tools"))
+        import run_matrix
+
         engine_dir = repo_root / "src" / "fuse_engine"
-        engine_files = sorted(engine_dir.glob("*.py"))
+        py_files = sorted(
+            engine_dir.rglob("*.py"),
+            key=lambda p: p.relative_to(engine_dir).as_posix(),
+        )
+        rel_paths = [p.relative_to(engine_dir).as_posix() for p in py_files]
+        self.assertEqual(rel_paths, list(engine._EXPECTED_ENGINE_FILES))
 
-        self.assertGreater(len(engine_files), 0, "Engine source files must exist")
-
-        # Compute hash
         hasher = hashlib.sha256()
-        for file_path in engine_files:
-            with open(file_path, 'rb') as f:
-                hasher.update(f.read())
+        for file_path, rel_path in zip(py_files, rel_paths):
+            rel_bytes = rel_path.encode("utf-8")
+            data = file_path.read_bytes()
+            hasher.update(len(rel_bytes).to_bytes(4, "big"))
+            hasher.update(rel_bytes)
+            hasher.update(len(data).to_bytes(8, "big"))
+            hasher.update(data)
 
         engine_hash = hasher.hexdigest()
-
-        # Verify it's a valid SHA-256 hex string
         self.assertEqual(len(engine_hash), 64, "engine_hash must be 64-char hex string")
         self.assertTrue(
             all(c in '0123456789abcdef' for c in engine_hash),
             "engine_hash must be lowercase hex"
         )
+        self.assertEqual(engine_hash, engine.compute_engine_hash())
+        self.assertEqual(engine_hash, run_matrix.compute_engine_hash())
 
     def test_engine_files_canonical_order(self):
-        """Test that engine files can be listed in canonical order."""
+        """Test that engine files match strict canonical whitelist in sorted POSIX order."""
         engine_dir = repo_root / "src" / "fuse_engine"
-        engine_files = sorted(engine_dir.glob("*.py"))
+        engine_files = sorted(
+            engine_dir.rglob("*.py"),
+            key=lambda p: p.relative_to(engine_dir).as_posix(),
+        )
+        rel_names = [f.relative_to(engine_dir).as_posix() for f in engine_files]
+        self.assertEqual(rel_names, list(engine._EXPECTED_ENGINE_FILES))
 
-        # Verify canonical order (sorted by path)
-        file_names = [f.name for f in engine_files]
-        sorted_names = sorted(file_names)
+    def test_engine_hash_framing_and_unexpected_file_rejection(self):
+        """Security P2: Moving bytes between engine files changes hash and unexpected/missing .py raises RuntimeError."""
+        import shutil
+        import tempfile
 
-        self.assertEqual(file_names, sorted_names,
-                        "Engine files must be hashable in sorted order")
+        src_dir = repo_root / "src" / "fuse_engine"
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            dir_a = td_path / "eng_a"
+            dir_b = td_path / "eng_b"
+            shutil.copytree(src_dir, dir_a)
+            shutil.copytree(src_dir, dir_b)
+
+            # Move 1 byte from end of canonical.py to start of state.py (identical unframed concatenation)
+            c_bytes = (dir_b / "canonical.py").read_bytes()
+            s_bytes = (dir_b / "state.py").read_bytes()
+            (dir_b / "canonical.py").write_bytes(c_bytes[:-1])
+            (dir_b / "state.py").write_bytes(c_bytes[-1:] + s_bytes)
+
+            self.assertNotEqual(
+                engine._compute_canonical_engine_hash_from_dir(dir_a),
+                engine._compute_canonical_engine_hash_from_dir(dir_b),
+            )
+
+            # Unexpected top-level or nested .py file MUST fail closed with RuntimeError
+            dir_extra = td_path / "eng_extra"
+            shutil.copytree(src_dir, dir_extra)
+            (dir_extra / "rogue.py").write_text("# unexpected\n", encoding="utf-8")
+            with self.assertRaises(RuntimeError):
+                engine._compute_canonical_engine_hash_from_dir(dir_extra)
+
+            dir_sub = td_path / "eng_sub"
+            shutil.copytree(src_dir, dir_sub)
+            (dir_sub / "nested").mkdir()
+            (dir_sub / "nested" / "helper.py").write_text("# unexpected\n", encoding="utf-8")
+            with self.assertRaises(RuntimeError):
+                engine._compute_canonical_engine_hash_from_dir(dir_sub)
+
+            # Missing expected .py file MUST also fail closed with RuntimeError
+            dir_miss = td_path / "eng_miss"
+            shutil.copytree(src_dir, dir_miss)
+            (dir_miss / "state.py").unlink()
+            with self.assertRaises(RuntimeError):
+                engine._compute_canonical_engine_hash_from_dir(dir_miss)
 
     def test_row_ids_declared(self):
         """Test that ROW_IDS constant is declared in evaluator."""

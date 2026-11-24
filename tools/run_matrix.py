@@ -1012,18 +1012,39 @@ def run_successor_cases(successor_cases: Dict[str, Any], engine_hash: str) -> Di
     return results
 
 
-def compute_engine_hash() -> str:
-    """Compute SHA-256 hash of the canonical engine bundle.
+_EXPECTED_ENGINE_FILES = (
+    '__init__.py',
+    'canonical.py',
+    'canonical_state.py',
+    'evaluator.py',
+    'rows_loss.py',
+    'rows_ops.py',
+    'rows_vehicle.py',
+    'state.py',
+)
 
-    Per §5.3: concatenation of sorted src/fuse_engine/*.py file bytes.
-    """
+
+def compute_engine_hash() -> str:
+    """Compute length-framed SHA-256 hash of the verified canonical engine bundle (§5.3)."""
     engine_dir = Path(__file__).parent.parent / 'src' / 'fuse_engine'
-    py_files = sorted(engine_dir.glob('*.py'))
+    py_files = sorted(
+        engine_dir.rglob('*.py'),
+        key=lambda p: p.relative_to(engine_dir).as_posix(),
+    )
+    rel_paths = [p.relative_to(engine_dir).as_posix() for p in py_files]
+    if rel_paths != list(_EXPECTED_ENGINE_FILES):
+        raise RuntimeError(
+            f"Unexpected engine file set: expected={list(_EXPECTED_ENGINE_FILES)!r}, got={rel_paths!r}"
+        )
 
     hasher = hashlib.sha256()
-    for py_file in py_files:
-        with open(py_file, 'rb') as f:
-            hasher.update(f.read())
+    for py_file, rel_path in zip(py_files, rel_paths):
+        rel_bytes = rel_path.encode('utf-8')
+        data = py_file.read_bytes()
+        hasher.update(len(rel_bytes).to_bytes(4, 'big'))
+        hasher.update(rel_bytes)
+        hasher.update(len(data).to_bytes(8, 'big'))
+        hasher.update(data)
 
     return hasher.hexdigest()
 

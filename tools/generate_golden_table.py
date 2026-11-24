@@ -5,6 +5,7 @@ Derives all 264 base cells + tier repetitions from §4 specification text alone,
 applying trigger/action/kind/clearing semantics cell by cell. Does NOT use engine.
 """
 
+import argparse
 import json
 from pathlib import Path
 from typing import Dict, Any, List, Tuple
@@ -460,7 +461,11 @@ def generate_golden_table(scenarios_path: Path) -> Dict[str, Any]:
 
 
 def main():
-    """Generate and save golden table."""
+    """Generate and save golden table (or verify existing file matches byte-for-byte)."""
+    parser = argparse.ArgumentParser(description='Generate or verify FUSE-1 golden table.')
+    parser.add_argument('--verify-only', action='store_true', help='Verify goldens/golden-table.json without writing')
+    args = parser.parse_args()
+
     repo_root = Path(__file__).parent.parent
     scenarios_path = repo_root / "goldens" / "scenarios.json"
     output_path = repo_root / "goldens" / "golden-table.json"
@@ -476,9 +481,17 @@ def main():
     tier_count = len(golden_table["tier_repetitions"])
     print(f"Generated {base_count} base cells + {tier_count} tier repetitions")
 
+    rendered = json.dumps(golden_table, indent=2) + '\n'
+    if args.verify_only:
+        existing = output_path.read_text(encoding='utf-8') if output_path.exists() else ''
+        if existing != rendered:
+            print(f"FAIL: {output_path} differs from generated golden table")
+            return 1
+        print(f"PASS: {output_path} matches generated golden table ({len(rendered.encode('utf-8'))} bytes)")
+        return 0
+
     with open(output_path, 'w') as f:
-        json.dump(golden_table, f, indent=2)
-        f.write('\n')
+        f.write(rendered)
 
     print(f"Wrote golden table to {output_path}")
     return 0

@@ -172,7 +172,7 @@ class TestExposureInvariants(unittest.TestCase):
     def test_permits_unrestricted_fund_purchase_when_other_fund_restricted(self):
         """A09: Buying normal SOXL when only TQQQ is NO-NEW-RISK permits 50,000 cleanly."""
         vi = copy.deepcopy(self.normal_vi)
-        vi.update({'joint_exposure': 45000.0, 'proposed_exposure': 50000.0, 'v7_spread_width': 0.02, 'o5_collar': 0.05, 'o5_symbol': 'SOXL', 'account': 'synthetic_account_1'})
+        vi.update({'joint_exposure': 45000.0, 'proposed_exposure': 50000.0, 'v7_spread_width': 0.02, 'o5_collar': 0.05, 'o5_symbol': 'SOXL', 'account': 'synthetic_account_1', 'unit_price': 50.0, 'o5_reference_price': 50.0})
         vi['funds']['TQQQ'].update({'forecast_volatility': 0.60, 'v5_tolerance': 0.01})
         vi['funds']['SOXL'].update({'v5_tolerance': 0.01})
         rows, eff, _ = evaluate(
@@ -201,7 +201,7 @@ class TestExposureInvariants(unittest.TestCase):
 
         # Only TQQQ stale under V7 -> buying SOXL permits 50,000 cleanly
         vi_soxl = copy.deepcopy(self.normal_vi)
-        vi_soxl.update({'joint_exposure': 45000.0, 'proposed_exposure': 50000.0, 'v7_spread_width': 0.02, 'o5_collar': 0.05, 'symbol': 'SOXL', 'account': 'synthetic_account_1'})
+        vi_soxl.update({'joint_exposure': 45000.0, 'proposed_exposure': 50000.0, 'v7_spread_width': 0.02, 'o5_collar': 0.05, 'symbol': 'SOXL', 'account': 'synthetic_account_1', 'unit_price': 50.0, 'o5_reference_price': 50.0})
         vi_soxl['funds']['TQQQ'].update({'quote_staleness': 5.0, 'v5_tolerance': 0.01})
         vi_soxl['funds']['SOXL'].update({'v5_tolerance': 0.01})
         rows_s, eff_s, _ = evaluate(

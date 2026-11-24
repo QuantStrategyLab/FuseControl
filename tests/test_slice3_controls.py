@@ -1165,7 +1165,7 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         self.assertTrue(self._eval(vi_acct)[0]['O5']['would_have_tripped'])
 
         vi_bil = copy.deepcopy(self.normal_vi)
-        vi_bil.update({'o5_collar': 0.05, 'o5_account': 'synthetic_account_1', 'o5_symbol': 'BIL'})
+        vi_bil.update({'o5_collar': 0.05, 'o5_account': 'synthetic_account_1', 'o5_symbol': 'BIL', 'unit_price': 50.0, 'o5_reference_price': 50.0})
         self.assertFalse(self._eval(vi_bil)[0]['O5']['would_have_tripped'])
 
     def test_intra_session_l5_o1_and_o2_status_whitelist(self):
@@ -1431,7 +1431,7 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         st = {}
         for _ in range(3):
             vi_sell = copy.deepcopy(self.normal_vi)
-            vi_sell.update({'o5_collar': 0.05, 'o5_side': 'sell', 'o5_symbol': 'TQQQ', 'qty': 1, 'settled_cash': 0.0, 'account': 'synthetic_account_1'})
+            vi_sell.update({'o5_collar': 0.05, 'o5_side': 'sell', 'o5_symbol': 'TQQQ', 'qty': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'settled_cash': 0.0, 'account': 'synthetic_account_1'})
             r_sell, eff_sell, st = self._eval(vi_sell, session='2026-01-05', prior=st)
             self.assertFalse(r_sell['O5']['would_have_tripped'])
             self.assertEqual(r_sell['O5']['state'], 'NORMAL')
@@ -1450,7 +1450,7 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
 
         # Canonical settled_cash=200 wins over alias o5_settled_cash=0
         vi_sc_win = copy.deepcopy(self.normal_vi)
-        vi_sc_win.update({'o5_collar': 0.05, 'o5_side': 'buy', 'settled_cash': 200.0, 'o5_settled_cash': 0.0, 'o5_order_value': 100.0, 'account': 'synthetic_account_1'})
+        vi_sc_win.update({'o5_collar': 0.05, 'o5_side': 'buy', 'settled_cash': 200.0, 'o5_settled_cash': 0.0, 'o5_order_value': 100.0, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'account': 'synthetic_account_1'})
         self.assertFalse(self._eval(vi_sc_win)[0]['O5']['would_have_tripped'])
 
         # account_whitelist=None or unapproved account masked by o5_account must both fail
@@ -2457,7 +2457,7 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
 
         for ok_kw in (
             {'side': 'buy', 'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'order_value': 50.0},
-            {'side': 'buy', 'order_value': 50.0},
+            {'side': 'buy', 'order_value': 50.0, 'unit_price': 50.0, 'o5_reference_price': 50.0},
             {'side': 'sell', 'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0},
         ):
             st_ok = {}
@@ -2480,7 +2480,7 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         vi_no_q = copy.deepcopy(self.normal_vi)
         vi_no_q.update({
             'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05,
-            'account': 'synthetic_account_1', 'o5_symbol': 'BIL',
+            'account': 'synthetic_account_1', 'o5_symbol': 'BIL', 'unit_price': 50.0, 'o5_reference_price': 50.0,
         })
         vi_no_q['funds']['TQQQ']['v5_tolerance'] = 0.01
         vi_no_q['funds']['SOXL']['v5_tolerance'] = 0.01
@@ -2594,6 +2594,102 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         self.assertEqual(r_clr['O4']['reason'], 'authorized_rearm')
         self.assertEqual(eff_clr['symbol:TQQQ'], 'NORMAL')
         self.assertEqual(st_clr['O4'], {})
+
+    def test_r13_o5_dollar_max_size_missing_counters_and_mandatory_price_collar(self):
+        """R13 O5 P1 #1-#3: dollar-order max_order_size, missing/null counters fail closed, and mandatory price collar."""
+        sys.path.insert(0, str(repo_root / 'tools'))
+        from check_exposure_invariants import compute_permitted_exposure
+
+        # 1. Dollar order (order_value=5000, price=ref=50, omit qty) must fail max_order_size=1 -> 3x HALT
+        st1 = {}
+        for i in range(1, 4):
+            vi1 = copy.deepcopy(self.normal_vi)
+            vi1.update({
+                'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02,
+                'o5_collar': 0.05, 'account': 'synthetic_account_1', 'symbol': 'TQQQ', 'side': 'buy',
+                'order_value': 5000.0, 'unit_price': 50.0, 'o5_reference_price': 50.0,
+                'max_order_size': 1, 'settled_cash': 10000.0,
+            })
+            vi1['funds']['TQQQ']['v5_tolerance'] = 0.01
+            vi1['funds']['SOXL']['v5_tolerance'] = 0.01
+            r1, eff1, st1 = self._eval(vi1, session='2026-01-05', prior=st1)
+            self.assertTrue(r1['O5']['would_have_tripped'])
+            self.assertEqual(r1['O5']['rejection_count_this_session'], i)
+            if i < 3:
+                self.assertEqual(compute_permitted_exposure(vi1, r1, eff1), 45000.0)
+            else:
+                self.assertEqual(r1['O5']['state'], 'HALT')
+                self.assertTrue(r1['O5']['latched'])
+                self.assertEqual(eff1['account'], 'HALT')
+                self.assertEqual(compute_permitted_exposure(vi1, r1, eff1), 0.0)
+
+        # Dollar order within max_order_size=1 (order_value=50, price=50) passes 3x cleanly
+        st1_ok = {}
+        for _ in range(3):
+            vi1_ok = copy.deepcopy(self.normal_vi)
+            vi1_ok.update({
+                'o5_collar': 0.05, 'account': 'synthetic_account_1', 'symbol': 'TQQQ', 'side': 'buy',
+                'order_value': 50.0, 'unit_price': 50.0, 'o5_reference_price': 50.0,
+                'max_order_size': 1, 'settled_cash': 10000.0,
+            })
+            r_ok, eff_ok, st1_ok = self._eval(vi1_ok, session='2026-01-05', prior=st1_ok)
+            self.assertFalse(r_ok['O5']['would_have_tripped'])
+            self.assertEqual(eff_ok['account'], 'NORMAL')
+
+        # 2. Missing or null session_order_count / session_turnover fail closed when cap set -> 3x HALT
+        for cap_key, drop_key, null_mode in (
+            ('max_orders_per_session', 'session_order_count', False),
+            ('max_orders_per_session', 'session_order_count', True),
+            ('max_turnover_per_session', 'session_turnover', False),
+            ('max_turnover_per_session', 'session_turnover', True),
+        ):
+            st2 = {}
+            for i in range(1, 4):
+                vi2 = copy.deepcopy(self.normal_vi)
+                vi2.update({
+                    'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02,
+                    'o5_collar': 0.05, 'account': 'synthetic_account_1', 'symbol': 'TQQQ', 'side': 'buy',
+                    'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'order_value': 50.0,
+                    'settled_cash': 200.0, cap_key: 1000.0 if 'turnover' in cap_key else 5,
+                })
+                vi2['funds']['TQQQ']['v5_tolerance'] = 0.01
+                vi2['funds']['SOXL']['v5_tolerance'] = 0.01
+                if null_mode:
+                    vi2[drop_key] = None
+                else:
+                    vi2.pop(drop_key, None)
+                r2, eff2, st2 = self._eval(vi2, session='2026-01-05', prior=st2)
+                self.assertTrue(r2['O5']['would_have_tripped'], f"Expected reject for {cap_key} {drop_key} null={null_mode}")
+                self.assertEqual(r2['O5']['rejection_count_this_session'], i)
+                if i == 3:
+                    self.assertEqual(r2['O5']['state'], 'HALT')
+                    self.assertEqual(eff2['account'], 'HALT')
+
+        # Without active order, missing counters do NOT spuriously trip max_orders / max_turnover
+        vi_no_order = copy.deepcopy(self.normal_vi)
+        vi_no_order.pop('session_order_count', None)
+        vi_no_order.pop('session_turnover', None)
+        vi_no_order.update({'o5_collar': 0.05, 'max_orders_per_session': 5, 'max_turnover_per_session': 1000.0})
+        self.assertFalse(self._eval(vi_no_order)[0]['O5']['would_have_tripped'])
+
+        # 3. Active order omitting unit_price / o5_reference_price fails collar check -> 3x HALT
+        st3 = {}
+        for i in range(1, 4):
+            vi3 = copy.deepcopy(self.normal_vi)
+            vi3.update({
+                'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02,
+                'o5_collar': 0.05, 'account': 'synthetic_account_1', 'symbol': 'TQQQ', 'side': 'buy',
+                'order_size': 10, 'order_value': 500.0, 'settled_cash': 1000.0,
+            })
+            vi3['funds']['TQQQ']['v5_tolerance'] = 0.01
+            vi3['funds']['SOXL']['v5_tolerance'] = 0.01
+            r3, eff3, st3 = self._eval(vi3, session='2026-01-05', prior=st3)
+            self.assertTrue(r3['O5']['would_have_tripped'])
+            self.assertEqual(r3['O5']['rejection_count_this_session'], i)
+            if i == 3:
+                self.assertEqual(r3['O5']['state'], 'HALT')
+                self.assertTrue(r3['O5']['latched'])
+                self.assertEqual(eff3['account'], 'HALT')
 
 
 if __name__ == '__main__':
