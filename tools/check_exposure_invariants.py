@@ -78,9 +78,18 @@ def _v7_blocks_target(
     if not target_sym:
         return True
     funds = validated_inputs.get('funds')
-    if not isinstance(funds, dict) or target_sym not in funds or not isinstance(funds[target_sym], dict):
+    fdata = None
+    if isinstance(funds, dict) and isinstance(funds.get(target_sym), dict):
+        fdata = funds[target_sym]
+    else:
+        quotes = validated_inputs.get('quotes')
+        symbols = validated_inputs.get('symbols')
+        if isinstance(quotes, dict) and isinstance(quotes.get(target_sym), dict):
+            fdata = quotes[target_sym]
+        elif isinstance(symbols, dict) and isinstance(symbols.get(target_sym), dict):
+            fdata = symbols[target_sym]
+    if fdata is None:
         return True
-    fdata = funds[target_sym]
     raw_thresh = fdata['v7_spread_width'] if 'v7_spread_width' in fdata else validated_inputs.get('v7_spread_width')
     thresh = _finite_or_none(raw_thresh)
     qs = _finite_or_none(fdata.get('quote_staleness'))

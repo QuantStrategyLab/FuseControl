@@ -697,14 +697,15 @@ def evaluate_V4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
 
 def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
-                authorized_events: Optional[Dict[str, Any]], fund: str, session: str) -> Dict[str, Any]:
+                authorized_events: Optional[Dict[str, Any]], fund: str, session: str,
+                as_of: Optional[str] = None, market_closed: bool = False) -> Dict[str, Any]:
     """V5: Decay monitor → notify; if persists for 40 sessions, escalate to V1.
 
     Kind: diagnostic (with stateful escalation)
     Scope: fund
     State contribution: Diagnostic only until escalation; then NO-NEW-RISK
-    Clearing: Diagnostic (stateful escalation)
-    Mechanism B5: persistence counter counts DISTINCT sessions (canonical format per Q6)
+    Clearing: Owner re-arms (Q4) once escalated
+    Mechanism B5: persistence counter counts DISTINCT open sessions (canonical format per Q6)
                   escalates to V1 treatment at 40 sessions
     """
     # Get prior V5 state from canonical format (flag 4 - includes session identity)
@@ -718,13 +719,31 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         persistence_count >= 40
     )
 
-    def _preserved_escalated_result() -> Dict[str, Any]:
+    if is_escalated_prior and cst.matches_fund_rearm(
+        authorized_events, 'V5', fund, session=session, as_of=as_of, require_date=True
+    ) is not None:
+        return {
+            'state': 'NORMAL',
+            'would_have_tripped': False,
+            'kind': 'diagnostic',
+            'latched': False,
+            'reason': 'authorized_rearm',
+            'fund': fund,
+            'outputs': {
+                'excess_shortfall': None,
+                'consecutive_sessions_beyond_tolerance': 0,
+                'escalated_to_v1': False,
+                'disposition': 'authorized_rearm'
+            }
+        }
+
+    def _preserved_escalated_result(preserve_session: bool = False) -> Dict[str, Any]:
         preserved_count = (
             persistence_count
-            if isinstance(persistence_count, int) and not isinstance(persistence_count, bool)
+            if isinstance(persistence_count, int) and not isinstance(persistence_count, bool) and persistence_count >= 40
             else 40
         )
-        return {
+        res = {
             'state': 'NO-NEW-RISK',
             'would_have_tripped': True,
             'kind': 'diagnostic',
@@ -738,6 +757,9 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'disposition': 'escalated_to_v1'
             }
         }
+        if preserve_session:
+            res['_preserve_prior_v5_session'] = True
+        return res
 
     # Calculate excess shortfall from fund inputs
     shortfall_observed = inputs.get('shortfall_observed')
@@ -783,6 +805,31 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             }
         }
 
+    # F5: Exclude closed-market / holiday sessions from V5 persistence counting (after tolerance validation)
+    if market_closed:
+        if is_escalated_prior:
+            return _preserved_escalated_result(preserve_session=True)
+        preserved_cnt = (
+            persistence_count
+            if isinstance(persistence_count, int) and not isinstance(persistence_count, bool) and persistence_count >= 0
+            else 0
+        )
+        return {
+            'state': 'NORMAL',
+            'would_have_tripped': False,
+            'kind': 'diagnostic',
+            'latched': False,
+            'reason': 'none',
+            'fund': fund,
+            'outputs': {
+                'excess_shortfall': None,
+                'consecutive_sessions_beyond_tolerance': preserved_cnt,
+                'escalated_to_v1': False,
+                'disposition': 'benign'
+            },
+            '_preserve_prior_v5_session': True
+        }
+
     obs_val = _is_valid_finite_number(shortfall_observed)
     pred_val = _is_valid_finite_number(shortfall_predicted)
     if obs_val is None or pred_val is None:
@@ -813,20 +860,31 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # Check if beyond tolerance
     beyond_tolerance = excess_shortfall > v5_tolerance
 
-    # B5: Count DISTINCT sessions - duplicate evaluations in same session don't double-count
+    # B5: Count DISTINCT open sessions; once escalated (>=40), persist until Q4 re-arm
     if beyond_tolerance:
         if last_session == session:
-            # Same session - don't increment (session deduplication per Q6)
             new_count = persistence_count
         else:
-            # New session - increment
-            new_count = persistence_count + 1
+            base_cnt = (
+                persistence_count
+                if isinstance(persistence_count, int) and not isinstance(persistence_count, bool)
+                else int(persistence_count) if isinstance(persistence_count, float) else 0
+            )
+            new_count = base_cnt + 1
+        if is_escalated_prior and (not isinstance(new_count, int) or isinstance(new_count, bool) or new_count < 40):
+            new_count = 40
+    elif is_escalated_prior:
+        new_count = (
+            persistence_count
+            if isinstance(persistence_count, int) and not isinstance(persistence_count, bool) and persistence_count >= 40
+            else 40
+        )
     else:
         # Reset counter
         new_count = 0
 
-    # B5: Escalate to V1 treatment at 40 sessions (two months per §4.3)
-    escalated = new_count >= 40
+    # B5: Escalate to V1 treatment at 40 sessions (two months per §4.3); remain escalated until Q4 re-arm
+    escalated = is_escalated_prior or (new_count >= 40)
 
     # Determine state contribution (SUC-08: reason strings, V5 is diagnostic-only until escalation)
     if escalated:

@@ -1431,7 +1431,7 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         st = {}
         for _ in range(3):
             vi_sell = copy.deepcopy(self.normal_vi)
-            vi_sell.update({'o5_collar': 0.05, 'o5_side': 'sell', 'o5_symbol': 'TQQQ', 'qty': 1, 'settled_cash': 0.0})
+            vi_sell.update({'o5_collar': 0.05, 'o5_side': 'sell', 'o5_symbol': 'TQQQ', 'qty': 1, 'settled_cash': 0.0, 'account': 'synthetic_account_1'})
             r_sell, eff_sell, st = self._eval(vi_sell, session='2026-01-05', prior=st)
             self.assertFalse(r_sell['O5']['would_have_tripped'])
             self.assertEqual(r_sell['O5']['state'], 'NORMAL')
@@ -1450,7 +1450,7 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
 
         # Canonical settled_cash=200 wins over alias o5_settled_cash=0
         vi_sc_win = copy.deepcopy(self.normal_vi)
-        vi_sc_win.update({'o5_collar': 0.05, 'o5_side': 'buy', 'settled_cash': 200.0, 'o5_settled_cash': 0.0, 'o5_order_value': 100.0})
+        vi_sc_win.update({'o5_collar': 0.05, 'o5_side': 'buy', 'settled_cash': 200.0, 'o5_settled_cash': 0.0, 'o5_order_value': 100.0, 'account': 'synthetic_account_1'})
         self.assertFalse(self._eval(vi_sc_win)[0]['O5']['would_have_tripped'])
 
         # account_whitelist=None or unapproved account masked by o5_account must both fail
@@ -1590,6 +1590,7 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
             vi_sell.update({
                 'o5_collar': 0.05, 'side': 'sell', 'symbol': 'TQQQ',
                 'order_size': 2, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'settled_cash': 0.0,
+                'account': 'synthetic_account_1',
             })
             r_sell, eff_sell, st_sell = self._eval(vi_sell, session='2026-01-05', prior=st_sell)
             self.assertFalse(r_sell['O5']['would_have_tripped'])
@@ -2206,7 +2207,7 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
             vi.update({
                 'o5_collar': 0.05, 'side': 'buy', 'symbol': 'TQQQ',
                 'order_size': 3, 'unit_price': 33.20, 'o5_reference_price': 33.20,
-                'order_value': 99.60, 'settled_cash': 200.0,
+                'order_value': 99.60, 'settled_cash': 200.0, 'account': 'synthetic_account_1',
             })
             r, eff, st = self._eval(vi, session='2026-01-05', prior=st)
             self.assertFalse(r['O5']['would_have_tripped'])
@@ -2255,12 +2256,265 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
                 'o5_collar': 0.05, 'side': 'buy', 'symbol': 'TQQQ',
                 'o5_symbol_whitelist': reversed_wl,
                 'order_size': 3, 'unit_price': 33.20, 'o5_reference_price': 33.20,
-                'order_value': 99.60, 'settled_cash': 200.0,
+                'order_value': 99.60, 'settled_cash': 200.0, 'account': 'synthetic_account_1',
             })
             r_p, eff_p, st_perm = self._eval(vi_p, session='2026-01-05', prior=st_perm)
             self.assertFalse(r_p['O5']['would_have_tripped'])
             self.assertEqual(r_p['O5']['state'], 'NORMAL')
             self.assertEqual(eff_p['account'], 'NORMAL')
+
+    def test_r11_f1_v5_escalation_persists_across_benign_and_clears_on_q4_rearm(self):
+        """F1: V5 >=40 escalation stays NO-NEW-RISK on benign sessions until dated fund Q4 re-arm."""
+        sys.path.insert(0, str(repo_root / 'tools'))
+        from check_exposure_invariants import compute_permitted_exposure
+
+        prior_esc = {
+            'V5': {'TQQQ': {'consecutive_beyond_tolerance': 40, 'escalated': True, 'last_session': '2026-03-06'}}
+        }
+        vi_benign = copy.deepcopy(self.normal_vi)
+        vi_benign.update({
+            'last_heartbeat': '2026-03-07T15:59:30Z', 'proposed_exposure': 50000.0,
+            'target_fund': 'TQQQ', 'v5_tolerance': 0.003, 'v7_spread_width': 0.02, 'o5_collar': 0.05,
+        })
+        vi_benign['funds']['TQQQ'].update({
+            'shortfall_observed': 0.0005, 'shortfall_predicted': 0.0005, 'v5_tolerance': 0.003,
+        })
+        vi_benign['funds']['SOXL']['v5_tolerance'] = 0.003
+
+        r_b, eff_b, st_b = self._eval(vi_benign, session='2026-03-07', prior=prior_esc)
+        self.assertEqual(r_b['V5']['state'], 'NO-NEW-RISK')
+        self.assertTrue(r_b['V5']['would_have_tripped'])
+        self.assertFalse(r_b['V5']['latched'])
+        self.assertEqual(r_b['V5']['reason'], 'escalated_to_v1_treatment')
+        self.assertEqual(r_b['V5']['outputs']['consecutive_sessions_beyond_tolerance'], 40)
+        self.assertTrue(r_b['V5']['outputs']['escalated_to_v1'])
+        self.assertEqual(r_b['V5']['outputs']['disposition'], 'escalated_to_v1')
+        self.assertEqual(eff_b['fund:TQQQ'], 'NO-NEW-RISK')
+        self.assertTrue(st_b['V5']['TQQQ']['escalated'])
+        self.assertEqual(st_b['V5']['TQQQ']['consecutive_beyond_tolerance'], 40)
+        self.assertEqual(compute_permitted_exposure(vi_benign, r_b, eff_b), 45000.0)
+
+        # Subsequent excess open session still increments counter (40 -> 41)
+        vi_excess = copy.deepcopy(vi_benign)
+        vi_excess.update({'last_heartbeat': '2026-03-08T15:59:30Z'})
+        vi_excess['funds']['TQQQ'].update({'shortfall_observed': 0.01, 'shortfall_predicted': 0.005})
+        r_ex, eff_ex, st_ex = self._eval(vi_excess, session='2026-03-08', prior=st_b)
+        self.assertEqual(r_ex['V5']['state'], 'NO-NEW-RISK')
+        self.assertEqual(r_ex['V5']['outputs']['consecutive_sessions_beyond_tolerance'], 41)
+        self.assertEqual(st_ex['V5']['TQQQ']['consecutive_beyond_tolerance'], 41)
+        self.assertEqual(eff_ex['fund:TQQQ'], 'NO-NEW-RISK')
+
+        # Invalid/stale/wrong-fund/wrong-scope/undated Q4 cards must NOT clear V5 escalation
+        for bad_ev in (
+            {'type': 'rearm', 'row': 'V4', 'fund': 'TQQQ', 'session': '2026-03-09'},
+            {'type': 'rearm', 'row': 'V5', 'fund': 'SOXL', 'session': '2026-03-09'},
+            {'type': 'rearm', 'row': 'V5', 'fund': 'TQQQ', 'session': '2026-03-08'},
+            {'type': 'rearm', 'row': 'V5', 'fund': 'TQQQ'},
+            {'type': 'rearm', 'row': 'V5', 'fund': 'TQQQ', 'session': '2026-03-09', 'scope': 'account'},
+        ):
+            r_no, eff_no, st_no = self._eval(vi_benign, session='2026-03-09', prior=st_ex, events=[bad_ev])
+            self.assertEqual(r_no['V5']['state'], 'NO-NEW-RISK', f"Unexpected V5 clear for {bad_ev}")
+            self.assertEqual(eff_no['fund:TQQQ'], 'NO-NEW-RISK')
+            self.assertTrue(st_no['V5']['TQQQ']['escalated'])
+
+        # Valid dated fund-scoped Q4 re-arm clears V5 escalation completely
+        vi_rearm = copy.deepcopy(vi_benign)
+        vi_rearm['last_heartbeat'] = '2026-03-09T15:59:30Z'
+        valid_ev = [{'type': 'rearm', 'row': 'V5', 'fund': 'TQQQ', 'session': '2026-03-09', 'scope': 'fund:TQQQ'}]
+        r_clr, eff_clr, st_clr = self._eval(vi_rearm, session='2026-03-09', prior=st_ex, events=valid_ev)
+        self.assertEqual(r_clr['V5']['state'], 'NORMAL')
+        self.assertFalse(r_clr['V5']['would_have_tripped'])
+        self.assertEqual(r_clr['V5']['reason'], 'authorized_rearm')
+        self.assertEqual(r_clr['V5']['outputs']['consecutive_sessions_beyond_tolerance'], 0)
+        self.assertFalse(r_clr['V5']['outputs']['escalated_to_v1'])
+        self.assertEqual(r_clr['V5']['outputs']['disposition'], 'authorized_rearm')
+        self.assertEqual(eff_clr['fund:TQQQ'], 'NORMAL')
+        self.assertNotIn('TQQQ', st_clr.get('V5', {}))
+        self.assertEqual(compute_permitted_exposure(vi_rearm, r_clr, eff_clr), 50000.0)
+
+        # Valid Q4 re-arm also clears omitted prior-escalated V5 fund (clean scope with SOXL, and V5: {} when funds={})
+        vi_omitted = copy.deepcopy(vi_rearm)
+        vi_omitted['funds'] = {'SOXL': copy.deepcopy(vi_rearm['funds']['SOXL'])}
+        r_om, eff_om, st_om = self._eval(vi_omitted, session='2026-03-09', prior=st_ex, events=valid_ev)
+        self.assertEqual(r_om['V5']['state'], 'NORMAL')
+        self.assertEqual(r_om['V5']['reason'], 'authorized_rearm')
+        self.assertEqual(eff_om['fund:TQQQ'], 'NORMAL')
+        self.assertNotIn('TQQQ', st_om.get('V5', {}))
+
+        vi_empty = copy.deepcopy(vi_rearm)
+        vi_empty['funds'] = {}
+        vi_empty['last_heartbeat'] = '2026-03-07T15:59:30Z'
+        r_em, _, st_em = self._eval(
+            vi_empty, session='2026-03-07', prior=prior_esc,
+            events=[{'type': 'rearm', 'row': 'V5', 'fund': 'TQQQ', 'session': '2026-03-07', 'scope': 'fund:TQQQ'}],
+        )
+        self.assertEqual(r_em['V5']['state'], 'NORMAL')
+        self.assertEqual(r_em['V5']['reason'], 'authorized_rearm')
+        self.assertEqual(st_em['V5'], {})
+
+    def test_r11_f5_v5_excludes_market_closed_and_preserves_unresolved_holiday(self):
+        """F5: V5 ignores holiday/closed sessions for persistence while keeping unresolved tolerance fail-closed."""
+        import json
+        holiday_vi = json.loads(
+            (repo_root / 'goldens' / 'scenarios.json').read_text(encoding='utf-8')
+        )['scenarios']['holiday']['inputs']['validated_inputs']
+
+        prior_39 = {
+            'V5': {'TQQQ': {'consecutive_beyond_tolerance': 39, 'escalated': False, 'last_session': '2026-01-16'}}
+        }
+        vi_hol = copy.deepcopy(holiday_vi)
+        vi_hol.update({'v5_tolerance': 0.003, 'v7_spread_width': 0.02, 'o5_collar': 0.05})
+        vi_hol['funds']['TQQQ'].update({
+            'shortfall_observed': 0.01, 'shortfall_predicted': 0.005, 'v5_tolerance': 0.003,
+        })
+        vi_hol['funds']['SOXL']['v5_tolerance'] = 0.003
+
+        r_h, eff_h, st_h = self._eval(vi_hol, session='2026-01-19', prior=prior_39)
+        self.assertEqual(r_h['V5']['state'], 'NORMAL')
+        self.assertFalse(r_h['V5']['would_have_tripped'])
+        self.assertEqual(r_h['V5']['outputs']['consecutive_sessions_beyond_tolerance'], 39)
+        self.assertFalse(r_h['V5']['outputs']['escalated_to_v1'])
+        self.assertEqual(eff_h['fund:TQQQ'], 'NORMAL')
+        self.assertEqual(
+            st_h['V5']['TQQQ'],
+            {'consecutive_beyond_tolerance': 39, 'escalated': False, 'last_session': '2026-01-16'},
+        )
+
+        # Fresh holiday with no prior V5 entry does NOT fabricate a holiday last_session
+        r_fresh, _, st_fresh = self._eval(vi_hol, session='2026-01-19', prior={})
+        self.assertFalse(r_fresh['V5']['would_have_tripped'])
+        self.assertNotIn('TQQQ', st_fresh.get('V5', {}))
+
+        # Unresolved v5_tolerance on holiday STILL fails closed as UNRESOLVED-FAIL-CLOSED (holiday.V5 oracle)
+        vi_unres = copy.deepcopy(holiday_vi)
+        r_unres, _, _ = self._eval(vi_unres, session='2026-01-19', prior={})
+        self.assertEqual(r_unres['V5']['reason'], 'unresolved_fail_closed')
+        self.assertEqual(r_unres['V5']['outputs']['disposition'], 'UNRESOLVED-FAIL-CLOSED')
+        self.assertTrue(r_unres['V5']['would_have_tripped'])
+
+        # Escalated fund on holiday stays NO-NEW-RISK and preserves prior last_session
+        prior_40 = {
+            'V5': {'TQQQ': {'consecutive_beyond_tolerance': 40, 'escalated': True, 'last_session': '2026-01-16'}}
+        }
+        r_esc, eff_esc, st_esc = self._eval(vi_hol, session='2026-01-19', prior=prior_40)
+        self.assertEqual(r_esc['V5']['state'], 'NO-NEW-RISK')
+        self.assertEqual(eff_esc['fund:TQQQ'], 'NO-NEW-RISK')
+        self.assertEqual(st_esc['V5']['TQQQ']['last_session'], '2026-01-16')
+
+    def test_r11_f2_o5_requires_whitelisted_account_when_order_present(self):
+        """F2: O5 fails closed whenever an active order omits account/o5_account and latches HALT on 3rd reject."""
+        st = {}
+        for i in range(1, 4):
+            vi_missing_acct = copy.deepcopy(self.normal_vi)
+            vi_missing_acct.update({
+                'o5_collar': 0.05, 'side': 'buy', 'symbol': 'TQQQ',
+                'order_size': 2, 'unit_price': 50.0, 'o5_reference_price': 50.0,
+                'order_value': 100.0, 'settled_cash': 200.0,
+            })
+            r, eff, st = self._eval(vi_missing_acct, session='2026-01-05', prior=st)
+            self.assertTrue(r['O5']['would_have_tripped'])
+            self.assertEqual(r['O5']['rejection_count_this_session'], i)
+            if i == 3:
+                self.assertEqual(r['O5']['state'], 'HALT')
+                self.assertTrue(r['O5']['latched'])
+                self.assertEqual(eff['account'], 'HALT')
+
+        # Valid whitelisted account passes 3x cleanly
+        st_ok = {}
+        for acct_key in ('account', 'o5_account'):
+            st_ok = {}
+            for _ in range(3):
+                vi_ok = copy.deepcopy(self.normal_vi)
+                vi_ok.update({
+                    'o5_collar': 0.05, 'side': 'buy', 'symbol': 'TQQQ',
+                    'order_size': 2, 'unit_price': 50.0, 'o5_reference_price': 50.0,
+                    'order_value': 100.0, 'settled_cash': 200.0,
+                    acct_key: 'synthetic_account_1',
+                })
+                r_ok, eff_ok, st_ok = self._eval(vi_ok, session='2026-01-05', prior=st_ok)
+                self.assertFalse(r_ok['O5']['would_have_tripped'])
+                self.assertEqual(r_ok['O5']['state'], 'NORMAL')
+                self.assertEqual(eff_ok['account'], 'NORMAL')
+
+    def test_r11_f3_o5_projected_session_turnover_includes_order_notional(self):
+        """F3: O5 rejects orders whose projected turnover exceeds max_turnover_per_session and allows exact boundary."""
+        for kw in (
+            {'side': 'buy', 'order_value': 50.0},
+            {'side': 'buy', 'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0},
+            {'side': 'buy', 'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'order_value': 0.0},
+            {'side': 'sell', 'order_value': 50.0, 'order_size': 1},
+            {'side': 'sell', 'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0},
+            {'side': 'sell', 'order_size': 1},
+        ):
+            vi_over = copy.deepcopy(self.normal_vi)
+            vi_over.update({
+                'o5_collar': 0.05, 'symbol': 'TQQQ', 'account': 'synthetic_account_1',
+                'settled_cash': 200.0, 'session_turnover': 99990.0, 'max_turnover_per_session': 100000.0,
+                **kw,
+            })
+            r_over, _, _ = self._eval(vi_over, session='2026-01-05')
+            self.assertTrue(r_over['O5']['would_have_tripped'], f"Expected turnover reject for {kw}")
+
+        for ok_kw in (
+            {'side': 'buy', 'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'order_value': 50.0},
+            {'side': 'buy', 'order_value': 50.0},
+            {'side': 'sell', 'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0},
+        ):
+            st_ok = {}
+            for _ in range(3):
+                vi_eq = copy.deepcopy(self.normal_vi)
+                vi_eq.update({
+                    'o5_collar': 0.05, 'symbol': 'TQQQ', 'account': 'synthetic_account_1',
+                    'settled_cash': 200.0, 'session_turnover': 99950.0, 'max_turnover_per_session': 100000.0,
+                    **ok_kw,
+                })
+                r_eq, eff_eq, st_ok = self._eval(vi_eq, session='2026-01-05', prior=st_ok)
+                self.assertFalse(r_eq['O5']['would_have_tripped'], f"Expected exact turnover boundary pass for {ok_kw}")
+                self.assertEqual(eff_eq['account'], 'NORMAL')
+
+    def test_r11_f4_v7_evaluates_proposed_order_symbol_outside_funds(self):
+        """F4: V7 evaluates o5_symbol/symbol outside funds (fails closed without quotes, passes with valid quotes)."""
+        sys.path.insert(0, str(repo_root / 'tools'))
+        from check_exposure_invariants import compute_permitted_exposure
+
+        vi_no_q = copy.deepcopy(self.normal_vi)
+        vi_no_q.update({
+            'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05,
+            'account': 'synthetic_account_1', 'o5_symbol': 'BIL',
+        })
+        vi_no_q['funds']['TQQQ']['v5_tolerance'] = 0.01
+        vi_no_q['funds']['SOXL']['v5_tolerance'] = 0.01
+
+        r_nq, eff_nq, _ = self._eval(vi_no_q)
+        self.assertTrue(r_nq['V7']['would_have_tripped'])
+        self.assertEqual(r_nq['V7']['reason'], 'missing_input')
+        self.assertIn('symbol:BIL', eff_nq)
+        self.assertEqual(compute_permitted_exposure(vi_no_q, r_nq, eff_nq), 45000.0)
+
+        # Supplying valid quote data for BIL clears V7 and permits exposure raise
+        vi_with_q = copy.deepcopy(vi_no_q)
+        vi_with_q['quotes'] = {
+            'BIL': {'quote_staleness': 0.05, 'spread_width': 0.0001, 'trading_pause': False, 'session_time': 'regular'}
+        }
+        r_wq, eff_wq, _ = self._eval(vi_with_q)
+        self.assertFalse(r_wq['V7']['would_have_tripped'])
+        self.assertEqual(r_wq['V7']['reason'], 'none')
+        self.assertEqual(compute_permitted_exposure(vi_with_q, r_wq, eff_wq), 50000.0)
+
+        # Per-symbol V7 scoping still permits BIL when only TQQQ is stale
+        vi_tqqq_stale = copy.deepcopy(vi_with_q)
+        vi_tqqq_stale['funds']['TQQQ']['quote_staleness'] = 5.0
+        r_ts, eff_ts, _ = self._eval(vi_tqqq_stale)
+        self.assertTrue(r_ts['V7']['would_have_tripped'])
+        self.assertEqual(compute_permitted_exposure(vi_tqqq_stale, r_ts, eff_ts), 50000.0)
+
+        # Malformed non-empty/blank proposed symbol still fails closed in V7
+        vi_bad_sym = copy.deepcopy(vi_no_q)
+        vi_bad_sym['o5_symbol'] = ''
+        r_bs, eff_bs, _ = self._eval(vi_bad_sym)
+        self.assertTrue(r_bs['V7']['would_have_tripped'])
+        self.assertEqual(r_bs['V7']['reason'], 'invalid_input')
+        self.assertEqual(compute_permitted_exposure(vi_bad_sym, r_bs, eff_bs), 45000.0)
 
 
 if __name__ == '__main__':

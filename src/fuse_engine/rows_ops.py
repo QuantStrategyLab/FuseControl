@@ -693,7 +693,7 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         explicit_null_whitelist or
         (acct_wl_present and invalid_whitelist) or
         (acct_present and (invalid_whitelist or account not in account_whitelist)) or
-        (order_present and (explicit_null_account or invalid_whitelist))
+        (order_present and (not acct_present or explicit_null_account or invalid_whitelist or account not in account_whitelist))
     ):
         violations.append('account_not_whitelisted')
 
@@ -791,7 +791,7 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         if ot >= max_orders:
             violations.append('exceeds_max_orders')
 
-    # Turnover limit (fail closed on conflicting/invalid counter or cap aliases)
+    # Turnover limit (fail closed on conflicting/invalid counter, cap aliases, or projected turnover overrun)
     turnover_today, turnover_present, turnover_conflict = _resolve_o5_alias(
         inputs, ('o5_turnover_today', 'session_turnover', 'turnover_today'), 'decimal'
     )
@@ -806,7 +806,24 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         violations.append('exceeds_max_turnover')
     elif max_turnover is not None:
         tt = turnover_today if turnover_present else Decimal('0')
-        if tt > max_turnover:
+        if order_present:
+            if ov_dec is not None and derived_notional is not None:
+                proposed_notional = max(ov_dec, derived_notional)
+            elif ov_dec is not None:
+                proposed_notional = ov_dec
+            else:
+                proposed_notional = derived_notional
+            if (
+                ov_conflict or
+                (ov_present and (ov_dec is None or ov_dec < Decimal('0'))) or
+                qty_conflict or
+                (qty_present and (order_size is None or order_size <= Decimal('0'))) or
+                notional_invalid or unit_price_conflict or ref_price_conflict or
+                proposed_notional is None or proposed_notional < Decimal('0') or
+                (tt + proposed_notional) > max_turnover
+            ):
+                violations.append('exceeds_max_turnover')
+        elif tt > max_turnover:
             violations.append('exceeds_max_turnover')
 
     # Price collar (exact Decimal arithmetic against collar_pct)

@@ -252,6 +252,14 @@ def set_v5_state(next_state: Dict, fund: str, count: int, escalated: bool, sessi
     }
 
 
+def clear_v5_state(next_state: Dict, fund: str) -> None:
+    """Clear V5 escalation state for a fund (Q4 authorized re-arm)."""
+    if 'V5' not in next_state:
+        next_state['V5'] = {}
+    if fund in next_state['V5']:
+        del next_state['V5'][fund]
+
+
 # O5 canonical state accessors
 
 def get_o5_state(prior_state: Optional[Dict]) -> Dict:

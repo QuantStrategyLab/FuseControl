@@ -115,8 +115,21 @@ def evaluate(
     funds = raw_funds if isinstance(raw_funds, dict) else {}
     fund_symbols = sorted(funds.keys(), key=_fund_sort_key)
 
-    # Build scopes: enumerate symbols from funds, pending_orders, AND durable O4 (Q6 wiring)
+    # Build scopes: enumerate symbols from funds, proposed order symbols, pending_orders, AND durable O4 (Q6 wiring)
     all_symbols_set = set(fund_symbols)
+    order_symbols_list = []
+    invalid_order_symbol = False
+    for sym_key in ('o5_symbol', 'symbol'):
+        if sym_key in validated_inputs and validated_inputs[sym_key] is not None:
+            raw_sym = validated_inputs[sym_key]
+            if isinstance(raw_sym, str) and raw_sym.strip():
+                cleaned_sym = raw_sym.strip()
+                if cleaned_sym not in order_symbols_list:
+                    order_symbols_list.append(cleaned_sym)
+            else:
+                invalid_order_symbol = True
+    order_symbols = sorted(order_symbols_list)
+    all_symbols_set.update(order_symbols)
     raw_pending_orders = validated_inputs.get('pending_orders')
     pending_orders = raw_pending_orders if isinstance(raw_pending_orders, dict) else {}
     all_symbols_set.update(pending_orders.keys())
@@ -574,12 +587,34 @@ def evaluate(
 
         # V5 - decay monitor (B5 canonical format per Q6; fallback to top-level policy v5_tolerance)
         v5_inputs = fund_inputs if 'v5_tolerance' in fund_inputs else {**fund_inputs, 'v5_tolerance': validated_inputs.get('v5_tolerance')}
-        v5_result = rows_vehicle.evaluate_V5(v5_inputs, prior_row_state, authorized_events, symbol, session)
+        v5_result = rows_vehicle.evaluate_V5(
+            v5_inputs, prior_row_state, authorized_events, symbol, session,
+            as_of=as_of, market_closed=market_closed,
+        )
+        preserve_v5_session = v5_result.pop('_preserve_prior_v5_session', False)
         v5_outputs[symbol] = v5_result
-        # Update V5 state - session identity per flag 4
-        new_count = v5_result['outputs']['consecutive_sessions_beyond_tolerance']
-        escalated = v5_result['outputs']['escalated_to_v1']
-        cst.set_v5_state(next_row_state, symbol, new_count, escalated, session)
+        # Update V5 state - preserve open-session identity & support Q4 re-arm clearing
+        if v5_result['reason'] == 'authorized_rearm':
+            cst.clear_v5_state(next_row_state, symbol)
+        elif preserve_v5_session or (
+            v5_result['outputs']['escalated_to_v1'] and v5_result['outputs']['excess_shortfall'] is None
+        ):
+            prior_v5_raw = (prior_row_state.get('V5') or {}).get(symbol) if isinstance(prior_row_state, dict) else None
+            if isinstance(prior_v5_raw, dict):
+                if 'V5' not in next_row_state:
+                    next_row_state['V5'] = {}
+                preserved_entry = copy.deepcopy(prior_v5_raw)
+                if v5_result['outputs']['escalated_to_v1']:
+                    preserved_entry.setdefault(
+                        'consecutive_beyond_tolerance',
+                        v5_result['outputs']['consecutive_sessions_beyond_tolerance'],
+                    )
+                    preserved_entry['escalated'] = True
+                next_row_state['V5'][symbol] = preserved_entry
+        else:
+            new_count = v5_result['outputs']['consecutive_sessions_beyond_tolerance']
+            escalated = v5_result['outputs']['escalated_to_v1']
+            cst.set_v5_state(next_row_state, symbol, new_count, escalated, session)
 
         # V6 - carrying cost
         v6_result = rows_vehicle.evaluate_V6(fund_inputs, prior_row_state, authorized_events, symbol)
@@ -589,6 +624,35 @@ def evaluate(
         v7_inputs = fund_inputs if 'v7_spread_width' in fund_inputs else {**fund_inputs, 'v7_spread_width': validated_inputs.get('v7_spread_width')}
         v7_result = rows_vehicle.evaluate_V7(v7_inputs, prior_row_state, authorized_events, symbol)
         v7_outputs[symbol] = v7_result
+
+    # V7 also evaluates proposed order symbols outside funds (lookup quotes/symbols dict or fail closed)
+    raw_quotes = validated_inputs.get('quotes')
+    raw_symbols = validated_inputs.get('symbols')
+    for sym in order_symbols:
+        if sym in fund_symbols:
+            continue
+        sym_quote = {}
+        if isinstance(raw_quotes, dict) and isinstance(raw_quotes.get(sym), dict):
+            sym_quote = raw_quotes[sym]
+        elif isinstance(raw_symbols, dict) and isinstance(raw_symbols.get(sym), dict):
+            sym_quote = raw_symbols[sym]
+        v7_order_inputs = (
+            sym_quote
+            if 'v7_spread_width' in sym_quote
+            else {**sym_quote, 'v7_spread_width': validated_inputs.get('v7_spread_width')}
+        )
+        v7_outputs[sym] = rows_vehicle.evaluate_V7(
+            v7_order_inputs, prior_row_state, authorized_events, sym
+        )
+    if invalid_order_symbol:
+        v7_outputs['__invalid_order_symbol__'] = {
+            'state': 'NORMAL',
+            'would_have_tripped': True,
+            'kind': 'interlock',
+            'latched': False,
+            'reason': 'invalid_input',
+            'fund': '__invalid_order_symbol__',
+        }
 
     # Aggregate vehicle rows into single row outputs
     rows_by_ID['V1'] = aggregate_fund_row(v1_outputs)
@@ -834,17 +898,45 @@ def evaluate(
                             'outputs': {'clearing_counter': v4_fund_state['clearing_counter']}
                         }
 
-        # Preserve V5 state and escalated restrictions for funds omitted from current inputs
+        # Preserve V5 state and escalated restrictions (or clear on Q4 re-arm) for funds omitted from current inputs
         if 'V5' in prior_row_state and isinstance(prior_row_state['V5'], dict):
             if 'V5' not in next_row_state:
                 next_row_state['V5'] = {}
             for fund in sorted(prior_row_state['V5'].keys()):
+                if fund in fund_symbols:
+                    continue
                 v5_fund_state = prior_row_state['V5'][fund]
-                if fund not in fund_symbols and fund not in next_row_state['V5']:
+                is_esc_omitted = isinstance(v5_fund_state, dict) and (
+                    bool(v5_fund_state.get('escalated')) or (
+                        isinstance(v5_fund_state.get('consecutive_beyond_tolerance'), (int, float))
+                        and not isinstance(v5_fund_state.get('consecutive_beyond_tolerance'), bool)
+                        and v5_fund_state.get('consecutive_beyond_tolerance') >= 40
+                    )
+                )
+                if is_esc_omitted and cst.matches_fund_rearm(
+                    authorized_events, 'V5', fund, session=session, as_of=as_of, require_date=True
+                ) is not None:
+                    cst.clear_v5_state(next_row_state, fund)
+                    v5_outputs[fund] = {
+                        'state': 'NORMAL',
+                        'would_have_tripped': False,
+                        'kind': 'diagnostic',
+                        'latched': False,
+                        'reason': 'authorized_rearm',
+                        'fund': fund,
+                        'outputs': {
+                            'excess_shortfall': None,
+                            'consecutive_sessions_beyond_tolerance': 0,
+                            'escalated_to_v1': False,
+                            'disposition': 'authorized_rearm',
+                        },
+                    }
+                    continue
+                if fund not in next_row_state['V5']:
                     next_row_state['V5'][fund] = copy.deepcopy(v5_fund_state)
-                if fund not in fund_symbols and isinstance(v5_fund_state, dict) and (
-                    v5_fund_state.get('escalated') or (v5_fund_state.get('consecutive_beyond_tolerance') or 0) >= 40
-                ):
+                if is_esc_omitted:
+                    cnt = v5_fund_state.get('consecutive_beyond_tolerance')
+                    preserved_cnt = cnt if isinstance(cnt, int) and not isinstance(cnt, bool) and cnt >= 40 else 40
                     v5_outputs[fund] = {
                         'state': 'NO-NEW-RISK',
                         'would_have_tripped': True,
@@ -854,7 +946,7 @@ def evaluate(
                         'fund': fund,
                         'outputs': {
                             'excess_shortfall': None,
-                            'consecutive_sessions_beyond_tolerance': v5_fund_state.get('consecutive_beyond_tolerance', 40),
+                            'consecutive_sessions_beyond_tolerance': preserved_cnt,
                             'escalated_to_v1': True,
                             'disposition': 'escalated_to_v1',
                         },
@@ -1083,7 +1175,8 @@ def aggregate_diagnostic_row(fund_outputs: Dict[str, Dict[str, Any]]) -> Dict[st
         'beyond_tolerance': 1,
         'missing_data': 2,
         'invalid_data': 2,
-        'benign': 3,
+        'authorized_rearm': 3,
+        'benign': 4,
     }
 
     def _diagnostic_severity(sym: str) -> tuple:
