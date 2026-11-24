@@ -66,6 +66,22 @@ def compute_no_trip_baseline_exposure(validated_inputs: Dict[str, Any]) -> Dict[
     }
 
 
+def _extract_target_symbols(validated_inputs: Dict[str, Any]) -> Tuple[List[str], bool]:
+    """Return normalized (stripped) non-empty target symbols and whether an invalid target was passed."""
+    target_syms: List[str] = []
+    invalid_target = False
+    for key in ('target_fund', 'proposed_fund', 'o5_symbol', 'symbol'):
+        if key in validated_inputs and validated_inputs[key] is not None:
+            raw = validated_inputs[key]
+            if isinstance(raw, str) and raw.strip():
+                cleaned = raw.strip()
+                if cleaned not in target_syms:
+                    target_syms.append(cleaned)
+            else:
+                invalid_target = True
+    return target_syms, invalid_target
+
+
 def _v7_blocks_target(
     validated_inputs: Dict[str, Any],
     rows_by_ID: Dict[str, Any],
@@ -75,8 +91,11 @@ def _v7_blocks_target(
     v7 = rows_by_ID.get('V7', {})
     if not v7.get('would_have_tripped'):
         return False
-    if not target_sym:
+    if target_sym is None:
         return True
+    if not isinstance(target_sym, str) or not target_sym.strip():
+        return True
+    target_sym = target_sym.strip()
     funds = validated_inputs.get('funds')
     fdata = None
     if isinstance(funds, dict) and isinstance(funds.get(target_sym), dict):
@@ -104,6 +123,26 @@ def _v7_blocks_target(
     ):
         return True
     return False
+
+
+def _target_scope_and_v7_blocked(
+    validated_inputs: Dict[str, Any],
+    rows_by_ID: Dict[str, Any],
+    effective_state_by_scope: Dict[str, str],
+) -> Tuple[bool, bool]:
+    """Return (target_blocked, v7_blocked) normalizing target symbol whitespace consistently."""
+    target_syms, invalid_target = _extract_target_symbols(validated_inputs)
+    target_blocked = invalid_target or any(
+        effective_state_by_scope.get(f'fund:{sym}', 'NORMAL') != 'NORMAL'
+        or effective_state_by_scope.get(f'symbol:{sym}', 'NORMAL') != 'NORMAL'
+        for sym in target_syms
+    )
+    v7_blocked = (
+        _v7_blocks_target(validated_inputs, rows_by_ID, None)
+        if (invalid_target or not target_syms)
+        else any(_v7_blocks_target(validated_inputs, rows_by_ID, sym) for sym in target_syms)
+    )
+    return target_blocked, v7_blocked
 
 
 def compute_permitted_exposure(
@@ -147,15 +186,8 @@ def compute_permitted_exposure(
         effective_state_by_scope[k] in ('NO-NEW-RISK', 'DE-RISK', 'HALT', 'ORDER-UNKNOWN')
         for k in symbol_scopes
     )
-    target_sym = (
-        validated_inputs.get('target_fund')
-        or validated_inputs.get('proposed_fund')
-        or validated_inputs.get('o5_symbol')
-        or validated_inputs.get('symbol')
-    )
-    target_blocked = bool(target_sym) and (
-        effective_state_by_scope.get(f'fund:{target_sym}', 'NORMAL') != 'NORMAL'
-        or effective_state_by_scope.get(f'symbol:{target_sym}', 'NORMAL') != 'NORMAL'
+    target_blocked, v7_blocked = _target_scope_and_v7_blocked(
+        validated_inputs, rows_by_ID, effective_state_by_scope
     )
     increases_blocked = (
         effective_state_by_scope.get('account') == 'NO-NEW-RISK'
@@ -166,7 +198,7 @@ def compute_permitted_exposure(
         or bool(l0.get('outputs', {}).get('increases_blocked'))
         or bool(j1.get('outputs', {}).get('above_cap'))
         or bool(rows_by_ID['O2'].get('would_have_tripped'))
-        or _v7_blocks_target(validated_inputs, rows_by_ID, target_sym)
+        or v7_blocked
         or bool(rows_by_ID['O5'].get('would_have_tripped'))
     )
     if increases_blocked:
@@ -244,15 +276,8 @@ def check_bundle_against_baseline(
         effective_state_by_scope[k] in ('NO-NEW-RISK', 'DE-RISK', 'HALT', 'ORDER-UNKNOWN')
         for k in symbol_scopes
     )
-    target_sym = (
-        validated_inputs.get('target_fund')
-        or validated_inputs.get('proposed_fund')
-        or validated_inputs.get('o5_symbol')
-        or validated_inputs.get('symbol')
-    )
-    target_restricted = bool(target_sym) and (
-        effective_state_by_scope.get(f'fund:{target_sym}', 'NORMAL') != 'NORMAL'
-        or effective_state_by_scope.get(f'symbol:{target_sym}', 'NORMAL') != 'NORMAL'
+    target_restricted, v7_blocked = _target_scope_and_v7_blocked(
+        validated_inputs, rows_by_ID, effective_state_by_scope
     )
     increase_must_be_blocked = (
         effective_state_by_scope.get('account') != 'NORMAL'
@@ -264,7 +289,7 @@ def check_bundle_against_baseline(
         or bool(rows_by_ID['J1'].get('outputs', {}).get('above_cap'))
         or bool(rows_by_ID['O2'].get('would_have_tripped'))
         or bool(rows_by_ID['O5'].get('would_have_tripped'))
-        or _v7_blocks_target(validated_inputs, rows_by_ID, target_sym)
+        or v7_blocked
     )
     if increase_must_be_blocked and baseline['joint_exposure'] is not None and baseline['joint_exposure'] >= 0.0 and permitted > baseline['joint_exposure']:
         errors.append(

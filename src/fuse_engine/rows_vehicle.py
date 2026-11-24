@@ -765,6 +765,11 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     shortfall_observed = inputs.get('shortfall_observed')
     shortfall_predicted = inputs.get('shortfall_predicted')
     v5_tolerance = inputs.get('v5_tolerance')  # From validated_inputs if supplied
+    preserved_cnt = (
+        persistence_count
+        if isinstance(persistence_count, int) and not isinstance(persistence_count, bool) and persistence_count >= 0
+        else 0
+    )
 
     # If tolerance unresolved, treat as unresolved (preserve active 40-session escalation!)
     if v5_tolerance is None or v5_tolerance == 'unresolved':
@@ -779,7 +784,7 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'fund': fund,
             'outputs': {
                 'excess_shortfall': None,
-                'consecutive_sessions_beyond_tolerance': 0,
+                'consecutive_sessions_beyond_tolerance': preserved_cnt,
                 'escalated_to_v1': False,
                 'disposition': 'UNRESOLVED-FAIL-CLOSED'
             }
@@ -799,7 +804,7 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'fund': fund,
             'outputs': {
                 'excess_shortfall': None,
-                'consecutive_sessions_beyond_tolerance': 0,
+                'consecutive_sessions_beyond_tolerance': preserved_cnt,
                 'escalated_to_v1': False,
                 'disposition': 'UNRESOLVED-FAIL-CLOSED'
             }
@@ -809,11 +814,6 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     if market_closed:
         if is_escalated_prior:
             return _preserved_escalated_result(preserve_session=True)
-        preserved_cnt = (
-            persistence_count
-            if isinstance(persistence_count, int) and not isinstance(persistence_count, bool) and persistence_count >= 0
-            else 0
-        )
         return {
             'state': 'NORMAL',
             'would_have_tripped': False,
@@ -844,7 +844,7 @@ def evaluate_V5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'fund': fund,
             'outputs': {
                 'excess_shortfall': None,
-                'consecutive_sessions_beyond_tolerance': 0,
+                'consecutive_sessions_beyond_tolerance': preserved_cnt,
                 'escalated_to_v1': False,
                 'disposition': 'missing_data' if (shortfall_observed is None or shortfall_predicted is None) else 'invalid_data'
             }

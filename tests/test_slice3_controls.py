@@ -2817,6 +2817,121 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
                 self.assertEqual(eff3['account'], 'HALT')
                 self.assertEqual(compute_permitted_exposure(vi3, r3, eff3), 0.0)
 
+    def test_r16_malformed_pending_orders_o4_durability_v5_missing_fund_and_symbol_whitespace(self):
+        """R16 P1: O4 preserves fund timeouts under malformed pending_orders, V1-V5 stay durable on missing fund, & whitespace target clamps."""
+        sys.path.insert(0, str(repo_root / 'tools'))
+        from check_exposure_invariants import compute_permitted_exposure
+
+        # 1. pending_orders=None + funds['TQQQ']['o4_pending_order']={'order_id':'A','timed_out':True} records 'A' into next_row_state['O4']
+        vi1a = copy.deepcopy(self.normal_vi)
+        vi1a.update({'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05})
+        vi1a['funds']['TQQQ'].update({'v5_tolerance': 0.01, 'o4_pending_order': {'order_id': 'A', 'timed_out': True}})
+        vi1a['funds']['SOXL']['v5_tolerance'] = 0.01
+        vi1a['pending_orders'] = None
+        r1a, eff1a, st1a = self._eval(vi1a, session='2026-01-05')
+        self.assertEqual(r1a['O4']['state'], 'ORDER-UNKNOWN')
+        self.assertEqual(r1a['O4']['reason'], 'malformed_pending_orders')
+        self.assertEqual(eff1a['symbol:TQQQ'], 'ORDER-UNKNOWN')
+        self.assertEqual(st1a['O4']['TQQQ']['original_order_id'], 'A')
+
+        # Next session pending_orders={} keeps ORDER-UNKNOWN on 'A' and clamps permitted exposure to 45000.0
+        vi1b = copy.deepcopy(self.normal_vi)
+        vi1b.update({'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05})
+        vi1b['funds']['TQQQ']['v5_tolerance'] = 0.01
+        vi1b['funds']['SOXL']['v5_tolerance'] = 0.01
+        vi1b['pending_orders'] = {}
+        for sr in vi1b['source_records'].values():
+            sr['timestamp'] = '2026-01-06T15:59:00Z'
+        r1b, eff1b, st1b = self._eval(vi1b, session='2026-01-06', prior=st1a)
+        self.assertEqual(r1b['O4']['state'], 'ORDER-UNKNOWN')
+        self.assertEqual(r1b['O4']['reason'], 'awaiting_original_order_status')
+        self.assertEqual(eff1b['symbol:TQQQ'], 'ORDER-UNKNOWN')
+        self.assertEqual(st1b['O4']['TQQQ']['original_order_id'], 'A')
+        self.assertEqual(compute_permitted_exposure(vi1b, r1b, eff1b), 45000.0)
+
+        # Malformed pending_orders also refuses clearing prior O4 lock even with Q4 rearm or filled fund hint
+        vi1c = copy.deepcopy(vi1a)
+        vi1c['funds']['TQQQ']['o4_pending_order'] = {'order_id': 'A', 'status': 'filled'}
+        rearm_o4 = [{'type': 'rearm', 'row': 'O4', 'symbol': 'TQQQ', 'session': '2026-01-06', 'scope': 'symbol:TQQQ'}]
+        r1c, eff1c, st1c = self._eval(vi1c, session='2026-01-06', prior=st1a, events=rearm_o4)
+        self.assertEqual(r1c['O4']['state'], 'ORDER-UNKNOWN')
+        self.assertEqual(r1c['O4']['reason'], 'malformed_pending_orders')
+        self.assertEqual(eff1c['symbol:TQQQ'], 'ORDER-UNKNOWN')
+        self.assertEqual(st1c['O4']['TQQQ']['original_order_id'], 'A')
+
+        # 2. V5 count=39 preserved across TQQQ missing from funds (buy TQQQ) and across in-fund missing_input; advances 39->40 on recovery
+        prior_durability = {
+            'V1': {'TQQQ': {'session_returns': [{'session': '2026-01-05', 'fund_return': 0.01, 'expected_return': 0.01}]}},
+            'V2': {
+                'pending_adjustments': {'TQQQ': {'type': 'split', 'ratio': 2, 'awaiting_reconciliation': True}},
+                'pending_action_identities': {'TQQQ': {'primary': {'type': 'split', 'ratio': 2, 'ex_date': '2026-01-08'}}},
+            },
+            'V3': {'TQQQ': {'latched': True, 'trip_session': '2026-01-05', 'details': {'reason': 'fund_event'}}},
+            'V4': {'TQQQ': {'clearing_counter': 5, 'last_session_below_threshold': '2026-01-05'}},
+            'V5': {'TQQQ': {'consecutive_beyond_tolerance': 39, 'escalated': False, 'last_session': '2026-01-05'}},
+        }
+        vi2_omit = copy.deepcopy(self.normal_vi)
+        vi2_omit.update({
+            'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05,
+            'account': 'synthetic_account_1', 'side': 'buy', 'symbol': 'TQQQ',
+            'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'order_value': 50.0, 'settled_cash': 200.0,
+            'quotes': {'TQQQ': {'quote_staleness': 0.05, 'spread_width': 0.0001, 'trading_pause': False, 'session_time': 'regular'}},
+        })
+        vi2_omit['funds'].pop('TQQQ')
+        vi2_omit['funds']['SOXL']['v5_tolerance'] = 0.01
+        r2a, _, st2a = self._eval(vi2_omit, session='2026-01-06', prior=prior_durability)
+        self.assertEqual(r2a['V5']['outputs']['consecutive_sessions_beyond_tolerance'], 39)
+        self.assertEqual(st2a['V5']['TQQQ'], {'consecutive_beyond_tolerance': 39, 'escalated': False, 'last_session': '2026-01-05'})
+        self.assertEqual(len(st2a['V1']['TQQQ']['session_returns']), 1)
+        self.assertEqual(st2a['V2']['pending_action_identities']['TQQQ']['primary']['ex_date'], '2026-01-08')
+        self.assertTrue(st2a['V3']['TQQQ']['latched'])
+        self.assertEqual(st2a['V4']['TQQQ'], {'clearing_counter': 5, 'last_session_below_threshold': '2026-01-05'})
+
+        # Restoring TQQQ on same session 2026-01-06 with excess advances V5 39 -> 40 -> NO-NEW-RISK
+        vi2_rest = copy.deepcopy(self.normal_vi)
+        vi2_rest.update({'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05})
+        vi2_rest['funds']['TQQQ'].update({'v5_tolerance': 0.01, 'shortfall_observed': 0.05, 'shortfall_predicted': 0.01})
+        vi2_rest['funds']['SOXL']['v5_tolerance'] = 0.01
+        for sr in vi2_rest['source_records'].values():
+            sr['timestamp'] = '2026-01-06T19:59:00Z'
+        r2b, eff2b, st2b = self._eval(
+            vi2_rest, session='2026-01-06',
+            prior={'V5': copy.deepcopy(st2a['V5'])},
+        )
+        self.assertEqual(r2b['V5']['state'], 'NO-NEW-RISK')
+        self.assertEqual(r2b['V5']['outputs']['consecutive_sessions_beyond_tolerance'], 40)
+        self.assertTrue(r2b['V5']['outputs']['escalated_to_v1'])
+        self.assertEqual(eff2b['fund:TQQQ'], 'NO-NEW-RISK')
+        self.assertEqual(st2b['V5']['TQQQ']['consecutive_beyond_tolerance'], 40)
+        self.assertEqual(compute_permitted_exposure(vi2_rest, r2b, eff2b), 45000.0)
+
+        # In-fund shortfall_observed=None also preserves V5 count=39 rather than resetting to 0
+        vi2_miss_sf = copy.deepcopy(self.normal_vi)
+        vi2_miss_sf.update({'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05})
+        vi2_miss_sf['funds']['TQQQ']['v5_tolerance'] = 0.01
+        vi2_miss_sf['funds']['TQQQ'].pop('shortfall_observed')
+        vi2_miss_sf['funds']['SOXL']['v5_tolerance'] = 0.01
+        r2c, _, st2c = self._eval(vi2_miss_sf, session='2026-01-06', prior={'V5': copy.deepcopy(prior_durability['V5'])})
+        self.assertEqual(r2c['V5']['reason'], 'missing_input')
+        self.assertEqual(r2c['V5']['outputs']['consecutive_sessions_beyond_tolerance'], 39)
+        self.assertEqual(st2c['V5']['TQQQ'], {'consecutive_beyond_tolerance': 39, 'escalated': False, 'last_session': '2026-01-05'})
+
+        # 3. Leading/trailing whitespace on order symbol (' TQQQ ') still triggers V1/V4 fail-closed clamp (45000.0)
+        vi3_ws = copy.deepcopy(self.normal_vi)
+        vi3_ws.update({
+            'proposed_exposure': 50000.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05,
+            'account': 'synthetic_account_1', 'side': 'buy', 'symbol': ' TQQQ ',
+            'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'order_value': 50.0, 'settled_cash': 200.0,
+            'quotes': {'TQQQ': {'quote_staleness': 0.05, 'spread_width': 0.0001, 'trading_pause': False, 'session_time': 'regular'}},
+        })
+        vi3_ws['funds'].pop('TQQQ')
+        vi3_ws['funds']['SOXL']['v5_tolerance'] = 0.01
+        r3_ws, eff3_ws, _ = self._eval(vi3_ws, session='2026-01-05')
+        self.assertFalse(r3_ws['O5']['would_have_tripped'])
+        self.assertEqual(eff3_ws['account'], 'NORMAL')
+        self.assertEqual(eff3_ws['fund:TQQQ'], 'NO-NEW-RISK')
+        self.assertEqual(compute_permitted_exposure(vi3_ws, r3_ws, eff3_ws), 45000.0)
+
 
 if __name__ == '__main__':
     unittest.main()

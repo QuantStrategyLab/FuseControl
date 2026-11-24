@@ -665,13 +665,16 @@ def evaluate(
         )
         preserve_v5_session = v5_result.pop('_preserve_prior_v5_session', False)
         v5_outputs[symbol] = v5_result
-        # Update V5 state - preserve open-session identity & support Q4 re-arm clearing
+        # Update V5 state - preserve open-session identity & prior streaks across omitted/missing/closed/holiday checks
+        prior_v5_raw = (prior_row_state.get('V5') or {}).get(symbol) if isinstance(prior_row_state, dict) else None
         if v5_result['reason'] == 'authorized_rearm':
             cst.clear_v5_state(next_row_state, symbol)
-        elif preserve_v5_session or (
-            v5_result['outputs']['escalated_to_v1'] and v5_result['outputs']['excess_shortfall'] is None
+        elif (
+            preserve_v5_session
+            or symbol not in funds
+            or v5_result['reason'] in ('missing_input', 'unresolved_fail_closed', 'invalid_input')
+            or (v5_result['outputs']['escalated_to_v1'] and v5_result['outputs']['excess_shortfall'] is None)
         ):
-            prior_v5_raw = (prior_row_state.get('V5') or {}).get(symbol) if isinstance(prior_row_state, dict) else None
             if isinstance(prior_v5_raw, dict):
                 if 'V5' not in next_row_state:
                     next_row_state['V5'] = {}
@@ -683,6 +686,10 @@ def evaluate(
                     )
                     preserved_entry['escalated'] = True
                 next_row_state['V5'][symbol] = preserved_entry
+            elif not preserve_v5_session and symbol in funds:
+                new_count = v5_result['outputs']['consecutive_sessions_beyond_tolerance']
+                escalated = v5_result['outputs']['escalated_to_v1']
+                cst.set_v5_state(next_row_state, symbol, new_count, escalated, session)
         else:
             new_count = v5_result['outputs']['consecutive_sessions_beyond_tolerance']
             escalated = v5_result['outputs']['escalated_to_v1']
@@ -792,25 +799,6 @@ def evaluate(
     restart_marker = validated_inputs.get('restart_marker')
 
     for symbol in all_symbols:
-        if malformed_pending_orders:
-            prior_pending = cst.get_o4_pending_order(prior_row_state, symbol)
-            o4_out = {
-                'state': 'ORDER-UNKNOWN',
-                'would_have_tripped': True,
-                'kind': 'interlock_or_breaker',
-                'latched': bool(prior_pending),
-                'reason': 'malformed_pending_orders',
-                'symbol': symbol,
-            }
-            if prior_pending:
-                o4_out['original_order_id'] = prior_pending['original_order_id']
-                cst.set_o4_pending_order(
-                    next_row_state, symbol,
-                    prior_pending['original_order_id'], prior_pending.get('status', 'unknown'),
-                )
-            o4_outputs[symbol] = o4_out
-            continue
-
         # Build order input for this symbol safely even if funds[symbol] is missing/non-dict
         order_input = {}
         if symbol in funds and isinstance(funds[symbol], dict):
@@ -828,6 +816,38 @@ def evaluate(
             order_input, prior_row_state, authorized_events, symbol,
             session=session, as_of=as_of,
         )
+
+        if malformed_pending_orders:
+            prior_pending = cst.get_o4_pending_order(prior_row_state, symbol)
+            if prior_pending:
+                # Never allow malformed pending_orders to clear an active prior O4 lock
+                order_id = prior_pending['original_order_id']
+                status = prior_pending.get('status', 'unknown')
+                latched = True
+            elif o4_result.get('original_order_id'):
+                # Record newly reported timed-out/malformed fund o4_pending_order even when top-level pending_orders failed
+                order_id = o4_result['original_order_id']
+                status = 'unknown'
+                latched = bool(o4_result.get('latched'))
+            else:
+                order_id = None
+                status = 'unknown'
+                latched = False
+
+            o4_out = {
+                'state': 'ORDER-UNKNOWN',
+                'would_have_tripped': True,
+                'kind': 'interlock_or_breaker',
+                'latched': latched,
+                'reason': 'malformed_pending_orders',
+                'symbol': symbol,
+            }
+            if order_id:
+                o4_out['original_order_id'] = order_id
+                cst.set_o4_pending_order(next_row_state, symbol, order_id, status)
+            o4_outputs[symbol] = o4_out
+            continue
+
         o4_outputs[symbol] = o4_result
 
         # Store O4 state using canonical accessors (Q6)

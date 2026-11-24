@@ -220,6 +220,37 @@ class TestExposureInvariants(unittest.TestCase):
         )
         self.assertEqual(inv.check_bundle_against_baseline('pos.neg_joint_exp', vi_neg, rows_n, eff_n), [])
 
+    def test_whitespace_padded_order_symbol_blocked_consistently(self):
+        """P1 #3: Leading/trailing whitespace on symbol/o5_symbol/target_fund stays blocked when fund omitted or NNR."""
+        vi_pad = copy.deepcopy(self.normal_vi)
+        vi_pad.update({
+            'joint_exposure': 45000.0, 'proposed_exposure': 50000.0,
+            'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05,
+            'account': 'synthetic_account_1', 'side': 'buy', 'symbol': ' TQQQ ',
+            'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0,
+            'order_value': 50.0, 'settled_cash': 200.0,
+            'quotes': {'TQQQ': {'quote_staleness': 0.05, 'spread_width': 0.0001, 'trading_pause': False, 'session_time': 'regular'}},
+        })
+        vi_pad['funds'].pop('TQQQ')
+        vi_pad['funds']['SOXL']['v5_tolerance'] = 0.01
+        rows, eff, _ = evaluate(
+            'fuse-eval-spec/v1', 'h', 'registered_policy_hash_v1',
+            '2026-01-05', '2026-01-05T16:00:00Z', 'shadow', vi_pad, {}, []
+        )
+        self.assertEqual(eff['fund:TQQQ'], 'NO-NEW-RISK')
+        self.assertEqual(eff['fund:SOXL'], 'NORMAL')
+        self.assertEqual(inv.compute_permitted_exposure(vi_pad, rows, eff), 45000.0)
+        self.assertEqual(inv.check_bundle_against_baseline('p1_3.whitespace_missing_fund', vi_pad, rows, eff), [])
+
+        vi_tf = {**vi_pad, 'target_fund': ' TQQQ '}
+        self.assertEqual(inv.compute_permitted_exposure(vi_tf, rows, eff), 45000.0)
+        # Healthy quote for 'TQQQ' (even with space padding) is NOT V7-blocked when only another symbol trips V7
+        self.assertFalse(inv._v7_blocks_target(vi_pad, {'V7': {'would_have_tripped': True}}, ' TQQQ '))
+        # Stale quote for 'TQQQ' (with ' TQQQ ' padded symbol) IS V7-blocked
+        vi_v7_stale = copy.deepcopy(vi_pad)
+        vi_v7_stale['quotes']['TQQQ']['quote_staleness'] = 5.0
+        self.assertTrue(inv._v7_blocks_target(vi_v7_stale, {'V7': {'would_have_tripped': True}}, ' TQQQ '))
+
 
 if __name__ == '__main__':
     unittest.main()
