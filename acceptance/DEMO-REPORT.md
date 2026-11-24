@@ -5,16 +5,16 @@
 - **Golden freeze version:** `fuse-eval-spec/v2` (`1da74ca5...`, owner-approved v2 refreeze `2026-11-24`, unchanged relative to `710758c`)
 - **Writer:** Sonnet
 - **Demonstration epoch:** `FUSE-DESIGN-2026-11-21-v1`
-- **Verified code / fixture / tool / test head:** `5a10391bae2364dafa9075bc4c9f1b37ee9ff16d` (`5a10391`, preceded by `62892c1`, `8909372`, `87e9e70`, `ce51c92`, `a684584`, `98f15b7`, `0d092dd`, `4f8f482`, `e9639f5`, `57c813b`, `882df2a`, `c39f4d0`, `0c9eb43`, `d816cca`, `72d5020`, `de50e4f`, `5ad8072`, `440373c`, `3a14e18`, `f9b6b3a`, `841b7cb`, `e3a7aba`, `18f8cdd`, `3277881`, `ef79aee`, `b1e2ec6`, `9335f26`, `710758c`, `d27f51a`, `b3084d7`; followed by this bundle/docs commit)
+- **Verified code / fixture / tool / test head:** `2f23e71f73d13ce10dd6dc4e0558bbd373deaa07` (`2f23e71`, preceded by `02ba196`, `5a10391`, `62892c1`, `8909372`, `87e9e70`, `ce51c92`, `a684584`, `98f15b7`, `0d092dd`, `4f8f482`, `e9639f5`, `57c813b`, `882df2a`, `c39f4d0`, `0c9eb43`, `d816cca`, `72d5020`, `de50e4f`, `5ad8072`, `440373c`, `3a14e18`, `f9b6b3a`, `841b7cb`, `e3a7aba`, `18f8cdd`, `3277881`, `ef79aee`, `b1e2ec6`, `9335f26`, `710758c`, `d27f51a`, `b3084d7`; followed by this bundle/docs commit)
 
 ## Status
 
-**LOCAL O4/V5 STATE-DURABILITY & SYMBOL-NORMALIZATION REMEDIATION VERIFIED ON `5a10391` (v2 `goldens/` FREEZE PRESERVED AT 0 DIFF BYTES; REMOTE CI / PR #3 `F1-A14` PENDING PUSH)**
+**LOCAL O4/V5 STATE-DURABILITY & SYMBOL-NORMALIZATION REMEDIATION VERIFIED ON `2f23e71` (v2 `goldens/` FREEZE PRESERVED AT 0 DIFF BYTES; REMOTE CI / PR #3 `F1-A14` PENDING PUSH)**
 
 - Base: **264/264** ✓ strict raw dict equality + type equality (`True != 1`) AND **264/264** full independent §4.1 scope maps inside formal `run_matrix.run_base_cells`
 - Tier (formal runner): **132/132 EXECUTED** ✓ full-key strict dict + type equality (`compare_base_outcome_exact` catches extra keys & `bool`/`int` mismatches; R5 real tier caps `0.40/0.60/0.80 × bankroll`, `tier_change` covers `balanced`+`aggressive`, `-1` J1-cap mutation `110 pass / 22 fail` detected)
 - Successor: **13/13** ✓ (every declared key in `expected` enforced; canonical-extra-only output/state enforcement rejects spoofed keys; summary integer vs float `6 != 6.0` enforced; `SUC-08` runs all `70` sequential sessions via live state; `SUC-11` runs `2` real calls; `SUC-06/5` runs `12` calls; `SUC-07/3` runs `7` calls)
-- Unit tests: **159 tests OK** (`unittest`: `Ran 159 tests` OK; `pytest`: **159 passed, 18 subtests passed**) ✓
+- Unit tests: **160 tests OK** (`unittest`: `Ran 160 tests` OK; `pytest`: **160 passed, 18 subtests passed**) ✓
 - ID-set gate (`tools/check_id_set.py`): **PASS** (`spec=24, engine=24, expected=24`) ✓
 - Spec lint (`tools/lint_spec.py`): **PASS** ✓
 - Exposure/policy invariant gate (`tools/check_exposure_invariants.py`): **168/168 bundles PASS** ✓ (`symbol` field included in target scope, per-symbol V7 scoping avoids clamping unrestricted `SOXL`, negative `joint_exposure` fail-closed headroom `0.0` handled cleanly)
@@ -26,11 +26,11 @@
   2. `O1` `missing_required_source_*` intra-session clearing vs frozen `SUC-05` Step 7 (`goldens/successor-cases.json` chains Steps 1–7 on single session `2026-01-05` with minimal `['source_records', 'tier']` inputs expecting `NORMAL` at Step 7): all real operational calls (`stale_or_missing_input`) retain same-session `clearing_period` (`NO-NEW-RISK`); only non-operational minimal `SUC-05` `missing_required_source_*` preserves Step 7 parity.
 - Remote CI / PR #3 (`F1-A14`): **PENDING** (local branch unpushed; exact-head CI, `ai-review`, and R2 governance labels pending push)
 
-## Artifact Hashes (Head `5a10391` + Unchanged v2 Refreeze)
+## Artifact Hashes (Head `2f23e71` + Unchanged v2 Refreeze)
 
-- **Engine hash (8 strictly whitelisted framed `.py` files + strict `rglob('*')` `__pycache__/<stem>.cpython-<digits>.pyc` guard):** `429860550f2a1c1bd3cf5872922c298556642cb4d4ae1e0b685a05ab77e51679`
-- **Bundle hash:** `b439448a0dd6524746d98093fbf1b9dffed0a61c6be626c51abd91e85e62d3a5`
-- **`acceptance/result-bundle.json` SHA-256 (973 bytes, trailing LF):** `1de6f538dd5dbbc8bd64b88eae52c8090407046f2caab699bc4111b87e0785f3`
+- **Engine hash (8 strictly whitelisted framed `.py` files + strict `rglob('*')` `__pycache__/<stem>.cpython-<digits>.pyc` guard):** `3ef61470ab322c576256ad79b8ec09b84aac45a0f3634ce6d496676808fb0623`
+- **Bundle hash:** `8456582fb6c55c83cfe54842492a7b001002ff290911342153cc3a4a476e053b`
+- **`acceptance/result-bundle.json` SHA-256 (973 bytes, trailing LF):** `9c47d29c22d118be49e8a587b1c9dcccfbb0f3ce0fd5deee950e877d5508b287`
 - **Original freeze (`f60986a`):** `efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50`
 - **Adjudication freeze v1 (`86be6d7`):** `499641a2185131bccc49f93c1784eab3fd226336d6ac0edc66a1d983df1d89f1`
 - **Owner-approved v2 refreeze (at `d27f51a` / `710758c`, 0 bytes modified in R3–R14 remediation):**
@@ -41,8 +41,9 @@
   - `goldens/DERIVATION.md` (v2 addendum): `eaa8034df0271cbeca9297a77c76ca3c6b4bd0968dd433ed7082af28c80a4682`
   - **Combined v2 freeze:** `1da74ca508161ba6d9a424101321381a9f5156d8cb2c84c03be2fd2fe3f22a74`
 
-## Local `gpt-6.2-astra` O4/V5 State-Durability & Symbol-Normalization Fixes (`5a10391` & this docs/bundle commit)
+## Local `gpt-6.2-astra` O4/V5 State-Durability & Symbol-Normalization Fixes (`2f23e71` / `5a10391` & this docs/bundle commit)
 
+- **No spurious `V5` `last_session` on unevaluated ticks (`src/fuse_engine/evaluator.py`)**: When `V5` cannot evaluate (`missing_input`, `unresolved_fail_closed`, `invalid_input`, `market_closed`, or omitted fund) and no prior `V5` state exists, `next_row_state['V5']` no longer records `{consecutive_beyond_tolerance: 0, escalated: False, last_session: session}`, ensuring subsequent same-session telemetry recovery counts cleanly (`1..40 -> NO-NEW-RISK`) rather than being skipped as duplicate; verified `V1`–`V4` similarly do not record blocking session state on initial unevaluated ticks.
 - **O4 fund-level `o4_pending_order` recording under `malformed_pending_orders` (`src/fuse_engine/evaluator.py`)**: Evaluates `rows_ops.evaluate_O4` on `funds[symbol]` even when top-level `pending_orders` is malformed (`None`/non-`dict`), recording any newly reported timed-out or malformed fund `o4_pending_order` into `next_row_state['O4'][symbol]` while keeping active `prior_pending` locks un-clearable and failing O4 closed (`ORDER-UNKNOWN`, `malformed_pending_orders`).
 - **V5 & V1–V4 state preservation when a target fund is omitted or lacks telemetry (`src/fuse_engine/evaluator.py`, `src/fuse_engine/rows_vehicle.py`)**: Preserves `prior_row_state['V5'][symbol]` (including `consecutive_beyond_tolerance=39`, `escalated`, and `last_session`) across `symbol not in funds`, `missing_input`, `unresolved_fail_closed`, `invalid_input`, and `market_closed` without fabricating fresh entries on closed/omitted calls; verified `V1`–`V4` (`five_session_history`, `V2` pending/mismatch identities, `V3` latch, `V4` clearing counter) all remain durable when omitted from `funds`.
 - **Target symbol whitespace normalization across invariant checks (`tools/check_exposure_invariants.py`)**: Shared helper `_extract_target_symbols()` / `_target_scope_and_v7_blocked()` and `_v7_blocks_target()` strip whitespace across `target_fund`, `proposed_fund`, `o5_symbol`, and `symbol` (failing closed on invalid/blank values), preventing leading/trailing whitespace such as `" TQQQ "` from bypassing `fund:TQQQ` / `symbol:TQQQ` / `V7` exposure clamps.

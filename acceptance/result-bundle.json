@@ -5,10 +5,10 @@
     "passed": 264,
     "total": 264
   },
-  "bundle_hash": "b439448a0dd6524746d98093fbf1b9dffed0a61c6be626c51abd91e85e62d3a5",
+  "bundle_hash": "8456582fb6c55c83cfe54842492a7b001002ff290911342153cc3a4a476e053b",
   "description": "FUSE-1 trip matrix execution results",
   "enforcement_mode": "shadow_would_have_tripped",
-  "engine_hash": "429860550f2a1c1bd3cf5872922c298556642cb4d4ae1e0b685a05ab77e51679",
+  "engine_hash": "3ef61470ab322c576256ad79b8ec09b84aac45a0f3634ce6d496676808fb0623",
   "freeze_hash": "1da74ca508161ba6d9a424101321381a9f5156d8cb2c84c03be2fd2fe3f22a74",
   "loss_breakers_armed": false,
   "spec_version": "fuse-eval-spec/v1",
