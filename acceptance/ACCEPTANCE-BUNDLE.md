@@ -3,13 +3,13 @@
 - **Branch:** `demo/fuse1-sonnet`
 - **Spec version:** `fuse-eval-spec/v1`
 - **Golden freeze version:** `fuse-eval-spec/v2` (`1da74ca5...`, owner-approved v2 refreeze `2026-11-24`, 0 bytes changed vs `710758c`)
-- **Code / fixture / tool / test head:** `d816ccaf151fdde0b5d18efca5e936bcf127184e` (R9 P1 remediation at `d816cca` on top of `72d5020`/`de50e4f`/`5ad8072`/`440373c`/`3a14e18`/`f9b6b3a`/`841b7cb`/`e3a7aba`/`18f8cdd`/`3277881`/`ef79aee`/`b1e2ec6`/`9335f26`/`710758c`/`d27f51a`/`b3084d7`; this bundle/docs commit follows)
+- **Code / fixture / tool / test head:** `c39f4d0c706a8ebd2bd54c2ad639a5424f027977` (R10 P1 remediation at `c39f4d0` on top of `0c9eb43`/`d816cca`/`72d5020`/`de50e4f`/`5ad8072`/`440373c`/`3a14e18`/`f9b6b3a`/`841b7cb`/`e3a7aba`/`18f8cdd`/`3277881`/`ef79aee`/`b1e2ec6`/`9335f26`/`710758c`/`d27f51a`/`b3084d7`; this bundle/docs commit follows)
 
 ## Artifact Hashes
 
 ### Engine Hash (§5.3)
 ```
-7105ad09e26d0903ffa86f48df336cafd30612da1361287d8ddff02b84054f91
+668078b36db6e5bf958fe6b22800c2e3572ca0ed8bf4bea202983495ae9f1a53
 ```
 
 Computed from canonical bundle (8 sorted Python files):
@@ -55,11 +55,11 @@ src/fuse_engine/state.py
 ### Result Bundle Hash
 
 ```
-4ca56cfe25feab9dbd31fb6c4e5e8bf1c1948d0771d6ea8ed775db7a235e9b0c
+efc7ff18aff476f05a98a86972b9cd2e0abceb2dd640792f40da2474bfb33a90
 ```
-File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `065a587f8ec579c0d00cbcded1e4a5cec1c79847859649297b1f4acc07a161d5`.
+File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `8c23279144cb26574771b015037f0a31fa1db011cb64382a21058d12e79ad36a`.
 
-## Matrix Results (Head `d816cca`, R9 P1 Remediation Applied; Option A v2 `goldens/` Freeze Unchanged)
+## Matrix Results (Head `c39f4d0`, R10 P1 Remediation Applied; Option A v2 `goldens/` Freeze Unchanged)
 
 | Section | Passed | Failed | Total | % |
 |---------|--------|--------|-------|---|
@@ -120,6 +120,6 @@ acceptance/
 
 ## Notes
 
-- Full unit test suite: `Ran 146 tests` OK (`pytest`: `146 passed, 18 subtests passed`), plus `check_id_set.py` PASS, `lint_spec.py` PASS, `check_exposure_invariants.py` (`168/168` bundles) PASS, and `generate_golden_table.py` (`0` golden diff bytes).
+- Full unit test suite: `Ran 147 tests` OK (`pytest`: `147 passed, 18 subtests passed`), plus `check_id_set.py` PASS, `lint_spec.py` PASS, `check_exposure_invariants.py` (`168/168` bundles) PASS, and `generate_golden_table.py` (`0` golden diff bytes).
 - Option A / frozen v2 bounds (`missing.L6` `NORMAL` guarded by `O1` `NO-NEW-RISK`, and `SUC-05` minimal Step 7) are documented while preserving 0-byte `goldens/` diff from `710758c`. Nothing pushed and PR #3 untouched per local remediation protocol.
 - Owner-approved v2 refreeze (`d27f51a`) updated only `goldens/golden-table.json`, `goldens/DERIVATION.md`, and `goldens/FREEZE.json` for R1/R4/R5; all files under `goldens/` remain 0 bytes modified relative to `710758c`.

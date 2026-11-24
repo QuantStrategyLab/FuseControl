@@ -5,16 +5,16 @@
 - **Golden freeze version:** `fuse-eval-spec/v2` (`1da74ca5...`, owner-approved v2 refreeze `2026-11-24`, unchanged relative to `710758c`)
 - **Writer:** Sonnet
 - **Demonstration epoch:** `FUSE-DESIGN-2026-11-21-v1`
-- **Verified code / fixture / tool / test head:** `d816ccaf151fdde0b5d18efca5e936bcf127184e` (`d816cca`, preceded by `72d5020`, `de50e4f`, `5ad8072`, `440373c`, `3a14e18`, `f9b6b3a`, `841b7cb`, `e3a7aba`, `18f8cdd`, `3277881`, `ef79aee`, `b1e2ec6`, `9335f26`, `710758c`, `d27f51a`, `b3084d7`; followed by this bundle/docs commit)
+- **Verified code / fixture / tool / test head:** `c39f4d0c706a8ebd2bd54c2ad639a5424f027977` (`c39f4d0`, preceded by `0c9eb43`, `d816cca`, `72d5020`, `de50e4f`, `5ad8072`, `440373c`, `3a14e18`, `f9b6b3a`, `841b7cb`, `e3a7aba`, `18f8cdd`, `3277881`, `ef79aee`, `b1e2ec6`, `9335f26`, `710758c`, `d27f51a`, `b3084d7`; followed by this bundle/docs commit)
 
 ## Status
 
-**LOCAL R9 P1 REMEDIATION VERIFIED ON `d816cca` (v2 `goldens/` FREEZE PRESERVED AT 0 DIFF BYTES; REMOTE CI / PR #3 `F1-A14` PENDING PUSH)**
+**LOCAL R10 P1 REMEDIATION VERIFIED ON `c39f4d0` (v2 `goldens/` FREEZE PRESERVED AT 0 DIFF BYTES; REMOTE CI / PR #3 `F1-A14` PENDING PUSH)**
 
 - Base: **264/264** ✓ strict raw dict equality + type equality (`True != 1`) AND **264/264** full independent §4.1 scope maps inside formal `run_matrix.run_base_cells`
 - Tier (formal runner): **132/132 EXECUTED** ✓ full-key strict dict + type equality (`compare_base_outcome_exact` catches extra keys & `bool`/`int` mismatches; R5 real tier caps `0.40/0.60/0.80 × bankroll`, `tier_change` covers `balanced`+`aggressive`, `-1` J1-cap mutation `110 pass / 22 fail` detected)
 - Successor: **13/13** ✓ (every declared key in `expected` enforced; canonical-extra-only output/state enforcement rejects spoofed keys; summary integer vs float `6 != 6.0` enforced; `SUC-08` runs all `70` sequential sessions via live state; `SUC-11` runs `2` real calls; `SUC-06/5` runs `12` calls; `SUC-07/3` runs `7` calls)
-- Unit tests: **146 tests OK** (`unittest`: `Ran 146 tests` OK; `pytest`: **146 passed, 18 subtests passed**) ✓
+- Unit tests: **147 tests OK** (`unittest`: `Ran 147 tests` OK; `pytest`: **147 passed, 18 subtests passed**) ✓
 - ID-set gate (`tools/check_id_set.py`): **PASS** (`spec=24, engine=24, expected=24`) ✓
 - Spec lint (`tools/lint_spec.py`): **PASS** ✓
 - Exposure/policy invariant gate (`tools/check_exposure_invariants.py`): **168/168 bundles PASS** ✓ (`symbol` field included in target scope, per-symbol V7 scoping avoids clamping unrestricted `SOXL`, negative `joint_exposure` fail-closed headroom `0.0` handled cleanly)
@@ -26,14 +26,14 @@
   2. `O1` `missing_required_source_*` intra-session clearing vs frozen `SUC-05` Step 7 (`goldens/successor-cases.json` chains Steps 1–7 on single session `2026-01-05` with minimal `['source_records', 'tier']` inputs expecting `NORMAL` at Step 7): all real operational calls (`stale_or_missing_input`) retain same-session `clearing_period` (`NO-NEW-RISK`); only non-operational minimal `SUC-05` `missing_required_source_*` preserves Step 7 parity.
 - Remote CI / PR #3 (`F1-A14`): **PENDING** (local branch unpushed; exact-head CI, `ai-review`, and R2 governance labels pending push)
 
-## Artifact Hashes (Head `d816cca` + Unchanged v2 Refreeze)
+## Artifact Hashes (Head `c39f4d0` + Unchanged v2 Refreeze)
 
-- **Engine hash (8 sorted files incl. `canonical.py`):** `7105ad09e26d0903ffa86f48df336cafd30612da1361287d8ddff02b84054f91`
-- **Bundle hash:** `4ca56cfe25feab9dbd31fb6c4e5e8bf1c1948d0771d6ea8ed775db7a235e9b0c`
-- **`acceptance/result-bundle.json` SHA-256 (973 bytes, trailing LF):** `065a587f8ec579c0d00cbcded1e4a5cec1c79847859649297b1f4acc07a161d5`
+- **Engine hash (8 sorted files incl. `canonical.py`):** `668078b36db6e5bf958fe6b22800c2e3572ca0ed8bf4bea202983495ae9f1a53`
+- **Bundle hash:** `efc7ff18aff476f05a98a86972b9cd2e0abceb2dd640792f40da2474bfb33a90`
+- **`acceptance/result-bundle.json` SHA-256 (973 bytes, trailing LF):** `8c23279144cb26574771b015037f0a31fa1db011cb64382a21058d12e79ad36a`
 - **Original freeze (`f60986a`):** `efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50`
 - **Adjudication freeze v1 (`86be6d7`):** `499641a2185131bccc49f93c1784eab3fd226336d6ac0edc66a1d983df1d89f1`
-- **Owner-approved v2 refreeze (at `d27f51a` / `710758c`, 0 bytes modified in R3–R9 remediation):**
+- **Owner-approved v2 refreeze (at `d27f51a` / `710758c`, 0 bytes modified in R3–R10 remediation):**
   - `goldens/FREEZE.json` (`fuse-eval-spec/v2`): `2262eabd746d2c6ff9e0e5f49853244d638b550330db049d2af9c41c659dd89d`
   - `goldens/scenarios.json` (unchanged): `37d4f48210368cbe981a780aed4c10434bbdfb1a328c4bb1c3f196371ac26a3b`
   - `goldens/golden-table.json` (R1/R4/R5): `a9750d390fe194e947e9593dee53f3a0dbbba9e465a6dad374f449d24c265e8d`
@@ -41,7 +41,14 @@
   - `goldens/DERIVATION.md` (v2 addendum): `eaa8034df0271cbeca9297a77c76ca3c6b4bd0968dd433ed7082af28c80a4682`
   - **Combined v2 freeze:** `1da74ca508161ba6d9a424101321381a9f5156d8cb2c84c03be2fd2fe3f22a74`
 
-## Codex R9 P1 & Decimal Fixes (`d816cca` & this docs/bundle commit)
+## Codex R10 P1 `O5` Fixes (`c39f4d0` & this docs/bundle commit)
+
+1. **`O5` Sell-side `order_value` conflict validation (`rows_ops.py`):** Rejects conflicting/negative `order_value`/`o5_order_value` aliases uniformly across both buy and sell orders (`invalid_order_value` on sell).
+2. **`O5` Daily counter & limit alias conflict checks (`rows_ops.py`):** Applies `_resolve_o5_alias()` across `o5_orders_today`/`session_order_count`, `o5_max_orders_per_session`/`max_orders_per_session`, `o5_turnover_today`/`session_turnover`, `o5_max_turnover_per_session`/`max_turnover_per_session`, and `o5_max_order_size`/`max_order_size`, failing closed on mismatched/negative values.
+3. **`O5` Explicit `symbol_whitelist=null` fail-closed (`rows_ops.py`):** Never substitutes default whitelists when `symbol_whitelist` or `o5_symbol_whitelist` is explicitly `None` (or empty on active orders).
+4. **`O5` Order-insensitive whitelist equality (`rows_ops.py`):** Canonicalizes valid `str_list` aliases as sorted unique sets so reversed/permuted equivalent whitelists (`symbol_whitelist` vs `o5_symbol_whitelist`) do not false-trip.
+
+## Prior Codex R9 P1 & Decimal Fixes (`d816cca` / `0c9eb43`, retained in `c39f4d0`)
 
 1. **`V2` omitted-fund pending identity carryover (`evaluator.py`):** Carries forward `latched_mismatch_actions` and `pending_action_identities` when a fund with unresolved corporate-action adjustments is omitted from `funds`, preventing earlier reconciliations from falsely clearing distinct pending dates or actions.
 2. **`V2` exact string CA identifiers & dates (`canonical_state.py`):** Restricts float/Decimal normalization in `canonical_ca_identity()` to `_CA_NUMERIC_FIELDS` so string identifiers (`action_id="001"` vs `"1"`) and date fields (`effective_date`, `ex_date`, etc.) retain exact stripped string identity.
