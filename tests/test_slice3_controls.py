@@ -2214,6 +2214,54 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
             self.assertEqual(r['O5']['rejection_count_this_session'], 0)
             self.assertEqual(eff['account'], 'NORMAL')
 
+    def test_r10_o5_sell_conflict_session_aliases_null_whitelist_and_permuted_whitelists(self):
+        """R10 #1-#4: sell order_value conflict, session_order_count/turnover aliases, explicit symbol_whitelist=None, and order-insensitive valid whitelists."""
+        sys.path.insert(0, str(repo_root / 'tools'))
+        from check_exposure_invariants import compute_permitted_exposure
+
+        vi_trip = copy.deepcopy(self.normal_vi)
+        vi_trip.update({'o5_collar': 0.05, 'side': 'short'})
+        st_o5 = {}
+        for _ in range(3):
+            _, _, st_o5 = self._eval(vi_trip, session='2026-01-05', prior=st_o5)
+        rearm_ev = [{'type': 'rearm', 'row_id': 'O5', 'session': '2026-01-06', 'scope': 'account'}]
+
+        sell_conflict = {'side': 'sell', 'symbol': 'TQQQ', 'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'order_value': 50.0, 'o5_order_value': 40.0}
+        count_conflict = {'side': 'buy', 'symbol': 'TQQQ', 'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'order_value': 50.0, 'settled_cash': 200.0, 'o5_max_orders_per_session': 5, 'session_order_count': 5, 'o5_orders_today': 0}
+        turn_conflict = {'side': 'buy', 'symbol': 'TQQQ', 'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'order_value': 50.0, 'settled_cash': 200.0, 'o5_max_turnover_per_session': 100.0, 'session_turnover': 200.0, 'o5_turnover_today': 0.0}
+        null_wl = {'side': 'buy', 'symbol': 'TQQQ', 'symbol_whitelist': None, 'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'order_value': 50.0, 'settled_cash': 200.0}
+
+        for kw in (sell_conflict, count_conflict, turn_conflict, null_wl):
+            vi_norm = copy.deepcopy(self.normal_vi)
+            vi_norm.update({'o5_collar': 0.05, **kw})
+            r_norm, _, _ = self._eval(vi_norm, session='2026-01-05')
+            self.assertTrue(r_norm['O5']['would_have_tripped'], f"Expected reject on normal path for {kw}")
+
+            vi_rearm = copy.deepcopy(self.normal_vi)
+            vi_rearm.update({'last_heartbeat': '2026-01-06T15:59:30Z', 'o5_collar': 0.05, 'proposed_exposure': 50000.0, 'v7_spread_width': 0.02, **kw})
+            vi_rearm['funds']['TQQQ']['v5_tolerance'] = 0.01
+            vi_rearm['funds']['SOXL']['v5_tolerance'] = 0.01
+            r_rearm, eff_rearm, _ = self._eval(vi_rearm, session='2026-01-06', prior=st_o5, events=rearm_ev)
+            self.assertTrue(r_rearm['O5']['would_have_tripped'], f"Expected reject post-rearm for {kw}")
+            self.assertEqual(r_rearm['O5']['rejection_count_this_session'], 1)
+            self.assertEqual(compute_permitted_exposure(vi_rearm, r_rearm, eff_rearm), 45000.0)
+
+        # Permuted equal symbol_whitelist and o5_symbol_whitelist MUST pass 3x cleanly
+        st_perm = {}
+        reversed_wl = list(reversed(self.normal_vi['symbol_whitelist']))
+        for _ in range(3):
+            vi_p = copy.deepcopy(self.normal_vi)
+            vi_p.update({
+                'o5_collar': 0.05, 'side': 'buy', 'symbol': 'TQQQ',
+                'o5_symbol_whitelist': reversed_wl,
+                'order_size': 3, 'unit_price': 33.20, 'o5_reference_price': 33.20,
+                'order_value': 99.60, 'settled_cash': 200.0,
+            })
+            r_p, eff_p, st_perm = self._eval(vi_p, session='2026-01-05', prior=st_perm)
+            self.assertFalse(r_p['O5']['would_have_tripped'])
+            self.assertEqual(r_p['O5']['state'], 'NORMAL')
+            self.assertEqual(eff_p['account'], 'NORMAL')
+
 
 if __name__ == '__main__':
     unittest.main()

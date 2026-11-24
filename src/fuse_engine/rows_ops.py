@@ -49,7 +49,7 @@ def _resolve_o5_alias(
         elif kind == 'str_list':
             if not isinstance(raw, list) or not all(isinstance(x, str) and x.strip() for x in raw):
                 return None, True, True
-            parsed.append(tuple(x.strip() for x in raw))
+            parsed.append(tuple(sorted({x.strip() for x in raw})))
         else:
             parsed.append(raw)
     first = parsed[0]
@@ -620,11 +620,24 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     whitelist, whitelist_present, whitelist_conflict = _resolve_o5_alias(
         inputs, ('symbol_whitelist', 'o5_symbol_whitelist'), 'str_list'
     )
-    if not whitelist_present and not whitelist_conflict:
+    explicit_null_symbol_whitelist = (
+        ('symbol_whitelist' in inputs and inputs['symbol_whitelist'] is None) or
+        ('o5_symbol_whitelist' in inputs and inputs['o5_symbol_whitelist'] is None)
+    )
+    if not whitelist_present and not whitelist_conflict and not explicit_null_symbol_whitelist:
         whitelist = ['TQQQ', 'SOXL']
+    empty_explicit_symbol_whitelist = (
+        (whitelist_present and isinstance(whitelist, list) and len(whitelist) == 0)
+        and any((
+            symbol_present, symbol_conflict,
+            any(k in inputs and inputs[k] is not None for k in ('o5_order_size', 'order_size', 'o5_order_qty', 'order_qty', 'qty', 'o5_side', 'side', 'order_side', 'o5_order_value', 'order_value'))
+        ))
+    )
     if (
         symbol_conflict or
         whitelist_conflict or
+        explicit_null_symbol_whitelist or
+        empty_explicit_symbol_whitelist or
         (symbol is not None and (not isinstance(whitelist, list) or symbol not in whitelist))
     ):
         violations.append('symbol_not_whitelisted')
@@ -727,13 +740,13 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     sc_dec = _to_decimal(settled_cash_raw)
     explicit_buy = side_conflict or (side == 'buy') or (side is None and (qty_present or qty_conflict))
 
-    if side != 'sell':
-        if notional_invalid or ov_conflict or unit_price_conflict or ref_price_conflict:
+    if ov_conflict or (ov_present and (ov_dec is None or ov_dec < Decimal('0'))):
+        violations.append('exceeds_settled_cash' if side != 'sell' else 'invalid_order_value')
+    elif side != 'sell':
+        if notional_invalid or unit_price_conflict or ref_price_conflict:
             violations.append('exceeds_settled_cash')
         elif ov_present or derived_notional is not None:
-            if ov_present and (ov_dec is None or ov_dec < Decimal('0')):
-                violations.append('exceeds_settled_cash')
-            elif explicit_buy and ov_dec is not None and (
+            if explicit_buy and ov_dec is not None and (
                 ov_dec <= Decimal('0') or
                 (derived_notional is not None and ov_dec < derived_notional)
             ):
@@ -751,28 +764,49 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             violations.append('exceeds_settled_cash')
 
     # Maximum order size
-    max_order_size_raw = inputs.get('o5_max_order_size')
-    if (qty_present or qty_conflict) and max_order_size_raw is not None:
-        msize_dec = _to_decimal(max_order_size_raw)
-        if qty_conflict or order_size is None or msize_dec is None or order_size <= Decimal('0') or msize_dec < Decimal('0') or order_size > msize_dec:
+    max_order_size_val, msize_present, msize_conflict = _resolve_o5_alias(
+        inputs, ('o5_max_order_size', 'max_order_size'), 'decimal'
+    )
+    if msize_conflict or (msize_present and (max_order_size_val is None or max_order_size_val < Decimal('0'))):
+        violations.append('exceeds_max_order_size')
+    elif (qty_present or qty_conflict) and max_order_size_val is not None:
+        if qty_conflict or order_size is None or order_size <= Decimal('0') or order_size > max_order_size_val:
             violations.append('exceeds_max_order_size')
 
-    # Maximum orders per session
-    orders_today = inputs.get('o5_orders_today', inputs.get('session_order_count', 0))
-    max_orders = inputs.get('o5_max_orders_per_session')
-    if max_orders is not None:
-        ot = _to_decimal(orders_today)
-        mo = _to_decimal(max_orders)
-        if ot is None or mo is None or ot >= mo:
+    # Maximum orders per session (fail closed on conflicting/invalid counter or cap aliases)
+    orders_today, orders_present, orders_conflict = _resolve_o5_alias(
+        inputs, ('o5_orders_today', 'session_order_count', 'orders_today'), 'decimal'
+    )
+    max_orders, max_orders_present, max_orders_conflict = _resolve_o5_alias(
+        inputs, ('o5_max_orders_per_session', 'max_orders_per_session'), 'decimal'
+    )
+    if (
+        orders_conflict or max_orders_conflict or
+        (orders_present and (orders_today is None or orders_today < Decimal('0'))) or
+        (max_orders_present and (max_orders is None or max_orders < Decimal('0')))
+    ):
+        violations.append('exceeds_max_orders')
+    elif max_orders is not None:
+        ot = orders_today if orders_present else Decimal('0')
+        if ot >= max_orders:
             violations.append('exceeds_max_orders')
 
-    # Turnover limit
-    turnover_today = inputs.get('o5_turnover_today', inputs.get('session_turnover', 0))
-    max_turnover = inputs.get('o5_max_turnover_per_session')
-    if max_turnover is not None:
-        tt = _to_decimal(turnover_today)
-        mt = _to_decimal(max_turnover)
-        if tt is None or mt is None or tt > mt:
+    # Turnover limit (fail closed on conflicting/invalid counter or cap aliases)
+    turnover_today, turnover_present, turnover_conflict = _resolve_o5_alias(
+        inputs, ('o5_turnover_today', 'session_turnover', 'turnover_today'), 'decimal'
+    )
+    max_turnover, max_turnover_present, max_turnover_conflict = _resolve_o5_alias(
+        inputs, ('o5_max_turnover_per_session', 'max_turnover_per_session'), 'decimal'
+    )
+    if (
+        turnover_conflict or max_turnover_conflict or
+        (turnover_present and (turnover_today is None or turnover_today < Decimal('0'))) or
+        (max_turnover_present and (max_turnover is None or max_turnover < Decimal('0')))
+    ):
+        violations.append('exceeds_max_turnover')
+    elif max_turnover is not None:
+        tt = turnover_today if turnover_present else Decimal('0')
+        if tt > max_turnover:
             violations.append('exceeds_max_turnover')
 
     # Price collar (exact Decimal arithmetic against collar_pct)
