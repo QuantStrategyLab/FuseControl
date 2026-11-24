@@ -720,6 +720,134 @@ class TestG4StateContinuityAndDominance(unittest.TestCase):
         self.assertEqual(rows['V2']['reason'], 'pending_corporate_action_carried')
         self.assertEqual(st2['V2']['pending_adjustments']['TQQQ']['type'], 'split')
 
+    def test_v2_second_announcement_preserves_unresolved_split_until_both_reconciled(self):
+        """A12: Second distribution announcement cannot overwrite split or clear HALT until both reconcile."""
+        import copy
+        vi1 = copy.deepcopy(self.normal_vi)
+        vi1['funds']['TQQQ']['corporate_action'] = {
+            'type': 'split', 'ratio': 2.0, 'adjustment_complete': False, 'exact_reconciliation': False
+        }
+        r1, eff1, st1 = self._ev(vi1, '2026-01-05')
+        self.assertEqual(r1['V2']['state'], 'HALT')
+        self.assertEqual(eff1['fund:TQQQ'], 'HALT')
+
+        vi_dist_ann = copy.deepcopy(self.normal_vi)
+        vi_dist_ann['last_heartbeat'] = '2026-01-06T15:59:30Z'
+        vi_dist_ann['funds']['TQQQ']['corporate_action'] = {
+            'type': 'distribution', 'adjustment_complete': False, 'exact_reconciliation': False
+        }
+        r2, eff2, st2 = self._ev(vi_dist_ann, '2026-01-06', st1)
+        self.assertEqual(r2['V2']['state'], 'HALT')
+        self.assertEqual(eff2['fund:TQQQ'], 'HALT')
+        self.assertEqual(st2['V2']['pending_adjustments']['TQQQ']['type'], 'split')
+
+        vi_dist_clr = copy.deepcopy(self.normal_vi)
+        vi_dist_clr['last_heartbeat'] = '2026-01-07T15:59:30Z'
+        vi_dist_clr['funds']['TQQQ']['corporate_action'] = {
+            'type': 'distribution', 'adjustment_complete': True, 'exact_reconciliation': True
+        }
+        r3, eff3, st3 = self._ev(vi_dist_clr, '2026-01-07', st2)
+        self.assertEqual(r3['V2']['state'], 'HALT')
+        self.assertEqual(r3['V2']['reason'], 'pending_corporate_action_carried_TQQQ')
+        self.assertEqual(eff3['fund:TQQQ'], 'HALT')
+        self.assertEqual(st3['V2']['pending_adjustments']['TQQQ']['type'], 'split')
+
+        vi_split_clr = copy.deepcopy(self.normal_vi)
+        vi_split_clr['last_heartbeat'] = '2026-01-08T15:59:30Z'
+        vi_split_clr['funds']['TQQQ']['corporate_action'] = {
+            'type': 'split', 'ratio': 2.0, 'adjustment_complete': True, 'exact_reconciliation': True
+        }
+        r4, eff4, st4 = self._ev(vi_split_clr, '2026-01-08', st3)
+        self.assertEqual(r4['V2']['state'], 'NORMAL')
+        self.assertEqual(r4['V2']['reason'], 'exact_reconciliation_auto_clear')
+        self.assertEqual(eff4['fund:TQQQ'], 'NORMAL')
+        self.assertEqual(st4['V2'], {})
+
+    def test_v2_rejects_string_false_flags_and_omitted_known_ratio(self):
+        """A12: Non-bool 'false' completion flags and omitted known ratio must latch HALT."""
+        import copy
+        s1_in = self.suc_cases['SUC-01']['steps'][0]['inputs']['validated_inputs']
+        _, _, st1 = self._ev(s1_in, '2026-01-05')
+
+        vi_str = copy.deepcopy(self.normal_vi)
+        vi_str['funds']['TQQQ']['corporate_action'] = {
+            'type': 'split', 'ratio': 2.0, 'adjustment_complete': 'false', 'exact_reconciliation': 'false'
+        }
+        r_str, _, _ = self._ev(vi_str, '2026-01-06', st1)
+        self.assertEqual(r_str['V2']['state'], 'HALT')
+        self.assertTrue(r_str['V2']['latched'])
+
+        vi_no_ratio = copy.deepcopy(self.normal_vi)
+        vi_no_ratio['funds']['TQQQ']['corporate_action'] = {
+            'type': 'split', 'adjustment_complete': True, 'exact_reconciliation': True
+        }
+        r_ratio, _, _ = self._ev(vi_no_ratio, '2026-01-06', st1)
+        self.assertEqual(r_ratio['V2']['state'], 'HALT')
+        self.assertTrue(r_ratio['V2']['latched'])
+        self.assertEqual(r_ratio['V2']['reason'], 'reconciliation_mismatch')
+
+    def test_l3_and_l4_ignore_spoofed_caller_elapsed_counters(self):
+        """R4/Q4: L3 ignores spoofed days_since_trip=30 and L4 ignores spoofed sessions_since_trip=1 on trip day."""
+        import copy
+        vi_l3 = copy.deepcopy(self.normal_vi)
+        vi_l3['bankroll'] = 60000.0
+        _, _, s_l3 = self._ev(vi_l3, '2026-01-05')
+        r_l3, _, _ = self._ev(
+            copy.deepcopy(self.normal_vi), '2026-01-05', s_l3,
+            [{'type': 'rearm', 'row_id': 'L3', 'days_since_trip': 30, 'session': '2026-01-05'}]
+        )
+        self.assertEqual(r_l3['L3']['state'], 'DE-RISK')
+        self.assertEqual(r_l3['L3']['outputs']['cooling_off_days_remaining'], 30)
+
+        vi_l4 = copy.deepcopy(self.normal_vi)
+        vi_l4['one_session_loss'] = 0.05
+        _, _, s_l4 = self._ev(vi_l4, '2026-01-05')
+        r_l4, _, _ = self._ev(
+            copy.deepcopy(self.normal_vi), '2026-01-05', s_l4,
+            [{'type': 'rearm', 'row_id': 'L4', 'sessions_since_trip': 1, 'session': '2026-01-05'}]
+        )
+        self.assertEqual(r_l4['L4']['state'], 'NO-NEW-RISK')
+        self.assertTrue(r_l4['L4']['latched'])
+
+    def test_o4_unrecognized_status_with_terminal_true_cannot_clear(self):
+        """B6/R4: Unrecognized status string cannot clear O4 even when terminal=True."""
+        import copy
+        vi1 = copy.deepcopy(self.normal_vi)
+        vi1['pending_orders'] = {'TQQQ': {'order_id': 'ordA', 'status': 'pending', 'timeout': True}}
+        _, _, st1 = self._ev(vi1, '2026-01-05')
+
+        vi2 = copy.deepcopy(self.normal_vi)
+        vi2['pending_orders'] = {'TQQQ': {'order_id': 'ordA', 'status': 'unrecognized_xyz', 'terminal': True}}
+        r2, eff2, _ = self._ev(vi2, '2026-01-06', st1)
+        self.assertEqual(r2['O4']['state'], 'ORDER-UNKNOWN')
+        self.assertEqual(r2['O4']['reason'], 'unrecognized_status_for_original_order')
+        self.assertEqual(eff2['symbol:TQQQ'], 'ORDER-UNKNOWN')
+
+    def test_multi_fund_canonical_json_roundtrip_and_dict_order_independence(self):
+        """A05: canonical_json round-trip of missing and swapped-order V5/V6 dual-fund inputs are identical."""
+        import copy
+        scenarios = json.loads((Path(__file__).parent.parent / 'goldens' / 'scenarios.json').read_text())['scenarios']
+        vi_missing = copy.deepcopy(scenarios['missing']['inputs']['validated_inputs'])
+        res_raw = self._ev(vi_missing, '2026-01-13')
+        vi_roundtrip = json.loads(canonical_json(vi_missing))
+        res_roundtrip = self._ev(vi_roundtrip, '2026-01-13')
+        self.assertEqual(res_raw[0]['V1']['funds'], ['TQQQ', 'SOXL'])
+        self.assertEqual(res_roundtrip[0]['V1']['funds'], ['TQQQ', 'SOXL'])
+        self.assertEqual(canonical_json(res_raw), canonical_json(res_roundtrip))
+
+        # Swapping fund order when second fund triggers V6 notify and V5 NaN must yield identical bundle
+        vi_fwd = copy.deepcopy(self.normal_vi)
+        vi_fwd['funds']['SOXL'].update({'carrying_cost_measured': 0.10, 'excess_return_shrunk': 0.04, 'v5_tolerance': float('nan')})
+        vi_fwd['funds']['TQQQ'].update({'v5_tolerance': 0.01})
+        vi_rev = copy.deepcopy(vi_fwd)
+        vi_rev['funds'] = {'SOXL': vi_rev['funds']['SOXL'], 'TQQQ': vi_rev['funds']['TQQQ']}
+        r_fwd = self._ev(vi_fwd, '2026-01-05')
+        r_rev = self._ev(vi_rev, '2026-01-05')
+        self.assertTrue(r_fwd[0]['V6']['would_have_tripped'])
+        self.assertTrue(r_fwd[0]['V6']['outputs']['notify'])
+        self.assertEqual(r_fwd[0]['V5']['outputs']['disposition'], 'UNRESOLVED-FAIL-CLOSED')
+        self.assertEqual(canonical_json(r_fwd), canonical_json(r_rev))
+
 
 if __name__ == '__main__':
     unittest.main()

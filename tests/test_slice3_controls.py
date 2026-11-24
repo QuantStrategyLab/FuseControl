@@ -58,6 +58,7 @@ class TestCompleteInputD4Control(unittest.TestCase):
                 # Complete account inputs - O3/O6 clean
                 'positions_cash': 100000.0,
                 'broker_cash': 100000.0,
+                'reconciliation_tolerance': 1.0,
                 'loaded_policy_hash': 'abc123',
                 'registered_policy_hash': 'abc123'
             },
@@ -106,6 +107,7 @@ class TestCompleteInputD4Control(unittest.TestCase):
                 },
                 'positions_cash': 100000.0,
                 'broker_cash': 100000.0,
+                'reconciliation_tolerance': 1.0,
                 'loaded_policy_hash': 'abc123',
                 'registered_policy_hash': 'abc123'
             },
@@ -938,10 +940,13 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         self.assertEqual(eff2['account'], 'NO-NEW-RISK')
         self.assertEqual(eff2['fund:TQQQ'], 'NO-NEW-RISK')
 
-        # Authorized re-arm clears O7 latch cleanly
+        # Authorized re-arm clears O7 latch cleanly when session & account scope match (Q4)
         vi3 = copy.deepcopy(self.normal_vi)
         vi3.update({'last_heartbeat': '2026-01-15T15:59:30Z', 'scheduled_interval': 3600})
-        rows3, eff3, st3 = self._eval(vi3, session='2026-01-15', prior=st2, events=[{'type': 'rearm', 'row_id': 'O7'}])
+        rows3, eff3, st3 = self._eval(
+            vi3, session='2026-01-15', prior=st2,
+            events=[{'type': 'rearm', 'row_id': 'O7', 'session': '2026-01-15', 'scope': 'account'}]
+        )
         self.assertEqual(rows3['O7']['state'], 'NORMAL')
         self.assertEqual(rows3['O7']['reason'], 'authorized_rearm')
         self.assertEqual(st3['O7'], {})
@@ -959,6 +964,224 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         self.assertTrue(rows['O9']['latched'])
         self.assertEqual(rows['O9']['reason'], 'unauthorized_change')
         self.assertEqual(eff['account'], 'HALT')
+
+    def test_o9_rejects_stitched_multi_card_parameter_approval(self):
+        """R4/O9: Requires one single parameter_change_card approving all changed fields (no cross-card stitching)."""
+        vi = copy.deepcopy(self.normal_vi)
+        vi['o9_change_descriptors'] = {'param': 'max_loss_cap', 'from': 60000, 'to': 80000}
+        stitched_cards = [
+            {'type': 'parameter_change_card', 'change_descriptors': {'param': 'max_loss_cap', 'from': 60000, 'to': 61000}},
+            {'type': 'parameter_change_card', 'change_descriptors': {'param': 'other_param', 'to': 80000}},
+        ]
+        r_bad, _, _ = self._eval(vi, events=stitched_cards)
+        self.assertEqual(r_bad['O9']['state'], 'HALT')
+        self.assertTrue(r_bad['O9']['latched'])
+        self.assertEqual(r_bad['O9']['reason'], 'unauthorized_change')
+
+        single_card = [
+            {'type': 'parameter_change_card', 'change_descriptors': {'param': 'max_loss_cap', 'from': 60000, 'to': 80000}}
+        ]
+        r_ok, _, _ = self._eval(vi, events=single_card)
+        self.assertEqual(r_ok['O9']['state'], 'NORMAL')
+        self.assertFalse(r_ok['O9']['would_have_tripped'])
+
+    def test_account_rearm_enforces_session_date_and_account_scope(self):
+        """R4/Q4: Account re-arms on O5, O7, O9 reject prior-day, undated, and fund-scoped cards."""
+        # O5 latch
+        vi_o5 = copy.deepcopy(self.normal_vi)
+        vi_o5.update({'o5_collar': 0.05, 'o5_side': 'sell'})
+        st_o5 = {}
+        for _ in range(3):
+            _, _, st_o5 = self._eval(vi_o5, session='2026-01-05', prior=st_o5)
+        # O7 latch
+        vi_o7 = copy.deepcopy(self.normal_vi)
+        vi_o7.update({'last_heartbeat': '2026-01-05T08:00:00Z', 'scheduled_interval': 3600})
+        _, _, st_o7 = self._eval(vi_o7, session='2026-01-05')
+        # O9 latch
+        vi_o9 = copy.deepcopy(self.normal_vi)
+        vi_o9['o9_change_descriptors'] = {'param': 'max_loss_cap', 'to': 80000}
+        _, _, st_o9 = self._eval(vi_o9, session='2026-01-05')
+
+        for row_id, st_latched in (('O5', st_o5), ('O7', st_o7), ('O9', st_o9)):
+            vi_clean = copy.deepcopy(self.normal_vi)
+            vi_clean.update({'last_heartbeat': '2026-01-06T15:59:30Z', 'scheduled_interval': 3600, 'o5_collar': 0.05})
+            for bad_ev in (
+                {'type': 'rearm', 'row_id': row_id, 'session': '2026-01-05'},
+                {'type': 'rearm', 'row_id': row_id, 'session': '2026-01-06', 'fund': 'TQQQ'},
+                {'type': 'rearm', 'row_id': row_id, 'session': '2026-01-06', 'scope': 'fund:TQQQ'},
+                {'type': 'rearm', 'row_id': row_id},
+            ):
+                r_refuse, _, _ = self._eval(vi_clean, session='2026-01-06', prior=st_latched, events=[bad_ev])
+                self.assertTrue(r_refuse[row_id]['latched'], f"{row_id} accepted invalid card {bad_ev}")
+
+            r_clear, _, _ = self._eval(
+                vi_clean, session='2026-01-06', prior=st_latched,
+                events=[{'type': 'rearm', 'row_id': row_id, 'session': '2026-01-06', 'scope': 'account'}]
+            )
+            self.assertEqual(r_clear[row_id]['reason'], 'authorized_rearm')
+            self.assertEqual(r_clear[row_id]['state'], 'NORMAL')
+
+    def test_loss_breakers_l4_nan_l6_mixed_indices_l6_o3_block_and_missing_bankroll(self):
+        """R4/L3/L4/L6: L4 NaN fails closed; L6 scans past invalid index; L6 refuses rearm on O3 failure; missing bankroll safe."""
+        vi_l4 = copy.deepcopy(self.normal_vi)
+        vi_l4['one_session_loss'] = float('nan')
+        r_l4, _, _ = self._eval(vi_l4)
+        self.assertEqual(r_l4['L4']['state'], 'NO-NEW-RISK')
+
+        vi_l6 = copy.deepcopy(self.normal_vi)
+        vi_l6['index_one_session_returns'] = {'SPX': 'bad', 'NDX': -0.12}
+        r_l6, _, _ = self._eval(vi_l6)
+        self.assertEqual(r_l6['L6']['state'], 'HALT')
+        self.assertEqual(r_l6['L6']['reason'], 'index_fall_10pct')
+
+        vi_l6_trip = copy.deepcopy(self.normal_vi)
+        vi_l6_trip['market_halt_level'] = 3
+        _, _, st_l6 = self._eval(vi_l6_trip, session='2026-01-05')
+        vi_o3_bad = copy.deepcopy(self.normal_vi)
+        vi_o3_bad.update({'broker_cash': 90000.0, 'last_heartbeat': '2026-01-06T15:59:30Z'})
+        r_l6_blocked, _, _ = self._eval(
+            vi_o3_bad, session='2026-01-06', prior=st_l6,
+            events=[{'type': 'rearm', 'row_id': 'L6', 'session': '2026-01-06'}]
+        )
+        self.assertEqual(r_l6_blocked['L6']['state'], 'HALT')
+        self.assertTrue(r_l6_blocked['L6']['latched'])
+
+        vi_nobk = copy.deepcopy(self.normal_vi)
+        vi_nobk.pop('bankroll')
+        r_nobk, _, _ = self._eval(vi_nobk)
+        self.assertEqual(r_nobk['L3']['state'], 'DE-RISK')
+
+    def test_v1_empty_five_session_history_and_v4_holiday_omitted_scope(self):
+        """R4/V1/V4: empty five_session_history=[] preserves prior; V4 holiday stays at 9; omitted V4 kept in scopes."""
+        prior = {}
+        for idx, day in enumerate(('2026-01-13', '2026-01-14', '2026-01-15', '2026-01-16', '2026-01-19'), start=1):
+            vi = copy.deepcopy(self.normal_vi)
+            vi['funds'] = {'TQQQ': {
+                **copy.deepcopy(self.normal_vi['funds']['TQQQ']),
+                'fund_return': 0.005, 'index_return': 0.0, 'modelled_fee': 0.0,
+                'modelled_financing': 0.0, 'five_session_history': [],
+            }}
+            rows, _, prior = self._eval(vi, session=day, prior=prior)
+            if idx == 5:
+                self.assertEqual(rows['V1']['state'], 'NO-NEW-RISK')
+                self.assertTrue(rows['V1']['latched'])
+
+        vi_hol = copy.deepcopy(self.normal_vi)
+        vi_hol.update({'session_calendar_status': 'holiday', 'exchange_status': 'closed', 'last_heartbeat': '2026-01-19T15:59:30Z'})
+        v4_9 = {'V4': {'TQQQ': {'clearing_counter': 9, 'last_session_below_threshold': '2026-01-16'}}}
+        r_hol, _, s_hol = self._eval(vi_hol, session='2026-01-19', prior=v4_9)
+        self.assertEqual(r_hol['V4']['state'], 'NO-NEW-RISK')
+        self.assertEqual(r_hol['V4']['outputs']['TQQQ']['clearing_counter'], 9)
+        self.assertEqual(s_hol['V4']['TQQQ']['clearing_counter'], 9)
+
+        vi_omit = copy.deepcopy(self.normal_vi)
+        vi_omit['funds'] = {'SOXL': copy.deepcopy(self.normal_vi['funds']['SOXL'])}
+        v4_5 = {'V4': {'TQQQ': {'clearing_counter': 5, 'last_session_below_threshold': '2026-01-05'}}}
+        r_omit, eff_omit, _ = self._eval(vi_omit, session='2026-01-06', prior=v4_5)
+        self.assertEqual(eff_omit.get('fund:TQQQ'), 'NO-NEW-RISK')
+        self.assertEqual(r_omit['V4']['state'], 'NO-NEW-RISK')
+
+    def test_v6_canonical_precedence_missing_and_v7_missing_quotes(self):
+        """R4/V6/V7: V6 missing inputs fail closed & canonical beats synthetic; V7 missing quotes fail closed."""
+        vi_miss = copy.deepcopy(self.normal_vi)
+        vi_miss['funds']['TQQQ'].pop('carrying_cost_measured')
+        vi_miss['funds']['TQQQ'].pop('excess_return_shrunk')
+        r_miss, _, _ = self._eval(vi_miss)
+        self.assertTrue(r_miss['V6']['would_have_tripped'])
+        self.assertTrue(r_miss['V6']['outputs']['notify'])
+
+        vi_syn = copy.deepcopy(self.normal_vi)
+        vi_syn['funds']['TQQQ'].update({
+            'carrying_cost_measured': 0.10, 'excess_return_shrunk': 0.04,
+            'v6_cost_per_unit_exposure': 0.001, 'v6_threshold': 0.5,
+        })
+        r_syn, _, _ = self._eval(vi_syn)
+        self.assertTrue(r_syn['V6']['would_have_tripped'])
+        self.assertEqual(r_syn['V6']['reason'], 'carrying_cost_exceeded')
+
+        vi_v7 = copy.deepcopy(self.normal_vi)
+        vi_v7['v7_spread_width'] = 0.02
+        vi_v7['funds']['TQQQ'].pop('quote_staleness')
+        vi_v7['funds']['TQQQ'].pop('spread_width')
+        r_v7, _, _ = self._eval(vi_v7)
+        self.assertTrue(r_v7['V7']['would_have_tripped'])
+
+    def test_o3_shares_missing_pos_omitted_tol_and_o7_missing_heartbeat_fail_closed(self):
+        """R4/O3/O7: O3 checks shares, missing both position values, and missing tolerance; O7 fails when both absent."""
+        vi_sh = copy.deepcopy(self.normal_vi)
+        vi_sh['funds']['TQQQ']['broker_position'] = 0
+        self.assertEqual(self._eval(vi_sh)[0]['O3']['state'], 'HALT')
+
+        vi_nv = copy.deepcopy(self.normal_vi)
+        vi_nv['funds']['TQQQ'].pop('ledger_value')
+        vi_nv['funds']['TQQQ'].pop('broker_value')
+        self.assertEqual(self._eval(vi_nv)[0]['O3']['state'], 'HALT')
+
+        vi_nt = copy.deepcopy(self.normal_vi)
+        vi_nt.pop('reconciliation_tolerance')
+        vi_nt['broker_cash'] = 99999.5
+        self.assertEqual(self._eval(vi_nt)[0]['O3']['state'], 'HALT')
+
+        vi_o7 = copy.deepcopy(self.normal_vi)
+        vi_o7.pop('last_heartbeat')
+        vi_o7.pop('scheduled_interval')
+        self.assertEqual(self._eval(vi_o7)[0]['O7']['state'], 'NO-NEW-RISK')
+
+    def test_o5_qty_price_derivation_canonical_settled_cash_and_whitelists(self):
+        """R4/O5: qty*price cash check, settled_cash=0 beats o5_settled_cash=200, account_whitelist & BIL."""
+        vi_qp = copy.deepcopy(self.normal_vi)
+        vi_qp.update({'o5_collar': 0.05, 'o5_side': 'buy', 'settled_cash': 0.0, 'o5_order_size': 2, 'o5_order_price': 50.0, 'o5_reference_price': 50.0})
+        r_qp, _, _ = self._eval(vi_qp)
+        self.assertTrue(r_qp['O5']['would_have_tripped'])
+
+        vi_sc = copy.deepcopy(self.normal_vi)
+        vi_sc.update({'o5_collar': 0.05, 'o5_side': 'buy', 'settled_cash': 0.0, 'o5_settled_cash': 200.0, 'o5_order_value': 100.0})
+        self.assertTrue(self._eval(vi_sc)[0]['O5']['would_have_tripped'])
+
+        vi_acct = copy.deepcopy(self.normal_vi)
+        vi_acct.update({'o5_collar': 0.05, 'o5_account': 'rogue_acct', 'o5_symbol': 'BIL'})
+        self.assertTrue(self._eval(vi_acct)[0]['O5']['would_have_tripped'])
+
+        vi_bil = copy.deepcopy(self.normal_vi)
+        vi_bil.update({'o5_collar': 0.05, 'o5_account': 'synthetic_account_1', 'o5_symbol': 'BIL'})
+        self.assertFalse(self._eval(vi_bil)[0]['O5']['would_have_tripped'])
+
+    def test_intra_session_l5_o1_and_o2_status_whitelist(self):
+        """R4/L5/O1/O2: L5/O1 persist within same session; O2 rejects 'n/a' calendar/exchange tokens."""
+        vi_l5 = copy.deepcopy(self.normal_vi)
+        vi_l5['market_halt_level'] = 1
+        _, _, st_l5 = self._eval(vi_l5, session='2026-01-05')
+        r_same, _, st_same = self._eval(copy.deepcopy(self.normal_vi), session='2026-01-05', prior=st_l5)
+        self.assertEqual(r_same['L5']['state'], 'NO-NEW-RISK')
+        vi_next = copy.deepcopy(self.normal_vi)
+        vi_next['last_heartbeat'] = '2026-01-06T15:59:30Z'
+        r_next, _, _ = self._eval(vi_next, session='2026-01-06', prior=st_same)
+        self.assertEqual(r_next['L5']['state'], 'NORMAL')
+
+        vi_stale = copy.deepcopy(self.normal_vi)
+        vi_stale['source_records']['market_data']['age_sessions'] = 2
+        _, _, st_o1 = self._eval(vi_stale, session='2026-01-05')
+        r_o1_same, _, st_o1_same = self._eval(copy.deepcopy(self.normal_vi), session='2026-01-05', prior=st_o1)
+        self.assertEqual(r_o1_same['O1']['state'], 'NO-NEW-RISK')
+        self.assertEqual(st_o1_same['O1']['fresh_session_count'], 0)
+        r_o1_next, _, st_o1_next = self._eval(vi_next, session='2026-01-06', prior=st_o1_same)
+        self.assertEqual(r_o1_next['O1']['state'], 'NORMAL')
+        self.assertEqual(st_o1_next['O1']['fresh_session_count'], 1)
+
+        vi_o2 = copy.deepcopy(self.normal_vi)
+        vi_o2.update({'session_calendar_status': 'n/a', 'exchange_status': 'n/a'})
+        self.assertTrue(self._eval(vi_o2)[0]['O2']['would_have_tripped'])
+
+    def test_j1_nan_cap_fails_closed(self):
+        """R4/J1: Non-finite tier_joint_cap=NaN fails closed with finite 0.0 cap/headroom and True flags."""
+        vi = copy.deepcopy(self.normal_vi)
+        vi['tier_joint_cap'] = float('nan')
+        r_j1 = self._eval(vi)[0]['J1']
+        self.assertTrue(r_j1['would_have_tripped'])
+        self.assertEqual(r_j1['outputs']['cap'], 0.0)
+        self.assertEqual(r_j1['outputs']['headroom'], 0.0)
+        self.assertTrue(r_j1['outputs']['above_cap'])
+        self.assertTrue(r_j1['outputs']['above_trim_threshold'])
 
 
 if __name__ == '__main__':

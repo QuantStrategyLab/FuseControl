@@ -315,21 +315,30 @@ def clear_v1_latch(next_state: Dict, fund: str) -> None:
 def get_o1_fresh_state(prior_state: Optional[Dict]) -> Dict:
     """Get O1 fresh-session state."""
     if not prior_state or 'O1' not in prior_state:
-        return {'fresh_session_count': 0, 'last_session': None}
+        return {'fresh_session_count': 0, 'last_session': None, 'last_tripped_session': None}
 
     o1 = prior_state['O1']
     return {
         'fresh_session_count': o1.get('fresh_session_count', 0),
-        'last_session': o1.get('last_session')
+        'last_session': o1.get('last_session'),
+        'last_tripped_session': o1.get('last_tripped_session')
     }
 
 
-def set_o1_fresh_state(next_state: Dict, count: int, session: str) -> None:
+def set_o1_fresh_state(
+    next_state: Dict,
+    count: int,
+    session: str,
+    last_tripped_session: Optional[str] = None
+) -> None:
     """Set O1 fresh-session state."""
-    next_state['O1'] = {
+    entry = {
         'fresh_session_count': count,
         'last_session': session
     }
+    if last_tripped_session is not None:
+        entry['last_tripped_session'] = last_tripped_session
+    next_state['O1'] = entry
 
 
 # L3 canonical state accessors
@@ -371,6 +380,29 @@ def clear_l3_lock(next_state: Dict, loss_record: Dict) -> None:
 
 # L5 canonical state accessors
 
+def get_l5_state(prior_state: Optional[Dict]) -> Dict:
+    """Get L5 interlock state (active session persistence + fresh counter)."""
+    if not prior_state or 'L5' not in prior_state:
+        return {'active': False, 'trip_session': None, 'fresh_session_count': 0}
+    l5 = prior_state['L5']
+    if not isinstance(l5, dict):
+        return {'active': False, 'trip_session': None, 'fresh_session_count': 0}
+    return {
+        'active': bool(l5.get('active') or l5.get('latched')),
+        'trip_session': l5.get('trip_session'),
+        'fresh_session_count': l5.get('fresh_session_count', 0)
+    }
+
+
+def set_l5_active_trip(next_state: Dict, trip_session: str) -> None:
+    """Persist L5 active halt state for remainder of trading session."""
+    next_state['L5'] = {
+        'active': True,
+        'trip_session': trip_session,
+        'fresh_session_count': 0
+    }
+
+
 def get_l5_fresh_count(prior_state: Optional[Dict]) -> int:
     """Get L5 fresh-session counter."""
     if not prior_state or 'L5' not in prior_state:
@@ -383,6 +415,53 @@ def set_l5_fresh_count(next_state: Dict, count: int) -> None:
     if 'L5' not in next_state:
         next_state['L5'] = {}
     next_state['L5']['fresh_session_count'] = count
+
+
+def matches_account_rearm(
+    authorized_events: Optional[Any],
+    row_id: str,
+    session: Optional[str] = None,
+    as_of: Optional[str] = None,
+    require_date: bool = True,
+) -> Optional[Dict[str, Any]]:
+    """Return matching account-scoped rearm event per Q4 (row, session/as_of, account scope)."""
+    if not authorized_events:
+        return None
+    if isinstance(authorized_events, list):
+        events_list = authorized_events
+    elif isinstance(authorized_events, dict):
+        events_list = authorized_events.get('account', [])
+    else:
+        return None
+
+    cur_date = (
+        as_of[:10] if isinstance(as_of, str) and len(as_of) >= 10
+        else session
+    )
+    for event in events_list:
+        if not isinstance(event, dict):
+            continue
+        if event.get('type') != 'rearm':
+            continue
+        if event.get('row') != row_id and event.get('row_id') != row_id:
+            continue
+        # Reject fund/symbol/joint scoped cards on account-level latches
+        if event.get('fund') or event.get('symbol'):
+            continue
+        if 'scope' in event and event.get('scope') != 'account':
+            continue
+        ev_session = event.get('session')
+        ev_as_of = event.get('as_of')
+        if require_date and ev_session is None and ev_as_of is None:
+            continue
+        if ev_session is not None and session is not None and ev_session != session:
+            continue
+        if ev_as_of is not None:
+            ev_date = ev_as_of[:10] if isinstance(ev_as_of, str) and len(ev_as_of) >= 10 else None
+            if ev_date is None or (cur_date is not None and ev_date != cur_date):
+                continue
+        return event
+    return None
 
 
 # General latch accessors for rows using old state.py pattern (L4, L6, V3)

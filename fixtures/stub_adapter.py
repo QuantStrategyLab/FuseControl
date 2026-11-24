@@ -38,15 +38,18 @@ def evaluate(
     if authorized_events is None:
         authorized_events = {}
 
-    # Get funds from inputs to build scopes
+    # Get funds, pending orders, and durable O4 symbols to build scopes cleanly
     funds = validated_inputs.get('funds', {})
     fund_symbols = list(funds.keys()) if funds else ['TQQQ', 'SOXL']
+    pending_orders = validated_inputs.get('pending_orders') or {}
+    prior_o4 = prior_row_state.get('O4') or {}
+    all_symbols = sorted(set(fund_symbols) | set(pending_orders.keys()) | set(prior_o4.keys()))
 
     # Build scopes: account, fund:SYMBOL, symbol:SYMBOL, joint
     scopes = ['account']
     for symbol in fund_symbols:
         scopes.append(f'fund:{symbol}')
-    for symbol in fund_symbols:
+    for symbol in all_symbols:
         scopes.append(f'symbol:{symbol}')
     scopes.append('joint')
 
@@ -181,14 +184,42 @@ def evaluate(
 
         rows_by_ID[row_id] = row
 
-    # O4 - symbol scope
-    rows_by_ID['O4'] = {
-        'state': 'NORMAL',
-        'would_have_tripped': False,
-        'kind': 'interlock_or_breaker',
-        'latched': False,
-        'reason': 'none'
-    }
+    # O4 - symbol scope (align symbol:<sym> & symbols/symbol shape with real evaluator)
+    timed_out_symbols = []
+    for sym in all_symbols:
+        po = pending_orders.get(sym)
+        if isinstance(po, dict) and (po.get('timeout') or po.get('timed_out')):
+            timed_out_symbols.append(sym)
+        elif isinstance(prior_o4.get(sym), dict) and 'original_order_id' in prior_o4[sym]:
+            timed_out_symbols.append(sym)
+
+    if timed_out_symbols:
+        o4_row = {
+            'state': 'ORDER-UNKNOWN',
+            'would_have_tripped': True,
+            'kind': 'interlock_or_breaker',
+            'latched': False,
+            'reason': 'order_timeout',
+        }
+        if len(all_symbols) == 1:
+            sym = all_symbols[0]
+            po = pending_orders.get(sym) or {}
+            oid = po.get('order_id') or (prior_o4.get(sym) or {}).get('original_order_id')
+            o4_row['symbol'] = sym
+            o4_row['symbols'] = list(timed_out_symbols)
+            if oid is not None:
+                o4_row['original_order_id'] = oid
+        else:
+            o4_row['symbols'] = list(timed_out_symbols)
+        rows_by_ID['O4'] = o4_row
+    else:
+        rows_by_ID['O4'] = {
+            'state': 'NORMAL',
+            'would_have_tripped': False,
+            'kind': 'interlock_or_breaker',
+            'latched': False,
+            'reason': 'none'
+        }
 
     # J1 - joint scope limit
     rows_by_ID['J1'] = {
@@ -205,8 +236,10 @@ def evaluate(
         }
     }
 
-    # Build effective_state_by_scope (all NORMAL in stub)
+    # Build effective_state_by_scope (all NORMAL in stub except timed-out O4 symbol scopes)
     effective_state_by_scope = {scope: 'NORMAL' for scope in scopes}
+    for sym in timed_out_symbols:
+        effective_state_by_scope[f'symbol:{sym}'] = 'ORDER-UNKNOWN'
 
     # Build next_row_state (empty in stub - no latches or counters)
     next_row_state = {}

@@ -238,7 +238,7 @@ def compare_next_row_state(actual: Dict[str, Any], expected: Dict[str, Any]) -> 
         # Strict empty row map check (G1.3): {"L2":{}} requires present empty dict {},
         # NEVER absent state (None).
         if expected_row_state == {}:
-            if row_id not in actual or actual[row_id] != {}:
+            if row_id not in actual or not strict_value_equal(actual[row_id], {}):
                 actual_repr = '<absent>' if row_id not in actual else actual[row_id]
                 diffs.append(f"  next_row_state.{row_id}: expected explicit empty map {{}}, got {actual_repr}")
         else:
@@ -246,7 +246,7 @@ def compare_next_row_state(actual: Dict[str, Any], expected: Dict[str, Any]) -> 
             if actual_row_state is None:
                 diffs.append(f"  next_row_state.{row_id}: missing in actual")
             elif isinstance(expected_row_state, dict) and isinstance(actual_row_state, dict):
-                # Deep comparison: only check fields present in expected
+                # Deep comparison with exact Python type checks (rejects True == 1)
                 for scope_key in expected_row_state:
                     expected_scope_state = expected_row_state[scope_key]
                     actual_scope_state = actual_row_state.get(scope_key)
@@ -258,14 +258,20 @@ def compare_next_row_state(actual: Dict[str, Any], expected: Dict[str, Any]) -> 
                         for field in expected_scope_state:
                             if field not in actual_scope_state:
                                 diffs.append(f"  next_row_state.{row_id}.{scope_key}.{field}: missing in actual")
-                            elif actual_scope_state[field] != expected_scope_state[field]:
-                                diffs.append(f"  next_row_state.{row_id}.{scope_key}.{field}: actual={actual_scope_state[field]} != expected={expected_scope_state[field]}")
-                    elif actual_scope_state != expected_scope_state:
-                        diffs.append(f"  next_row_state.{row_id}.{scope_key}: actual={actual_scope_state} != expected={expected_scope_state}")
+                            elif not strict_value_equal(actual_scope_state[field], expected_scope_state[field]):
+                                diffs.append(
+                                    f"  next_row_state.{row_id}.{scope_key}.{field}: "
+                                    f"actual={actual_scope_state[field]!r} != expected={expected_scope_state[field]!r}"
+                                )
+                    elif not strict_value_equal(actual_scope_state, expected_scope_state):
+                        diffs.append(
+                            f"  next_row_state.{row_id}.{scope_key}: "
+                            f"actual={actual_scope_state!r} != expected={expected_scope_state!r}"
+                        )
             else:
-                # Non-dict: direct comparison
-                if actual_row_state != expected_row_state:
-                    diffs.append(f"  next_row_state.{row_id}: actual={actual_row_state} != expected={expected_row_state}")
+                # Non-dict: direct strict type+value comparison
+                if not strict_value_equal(actual_row_state, expected_row_state):
+                    diffs.append(f"  next_row_state.{row_id}: actual={actual_row_state!r} != expected={expected_row_state!r}")
 
     return (len(diffs) == 0, diffs)
 
@@ -484,8 +490,8 @@ def run_tier_repetitions(scenarios: Dict[str, Any], golden_table: Dict[str, Any]
 
             actual_row = rows.get(row_id, {})
 
-            # Compare against expected outcome
-            matches, diff_msgs = compare_outcome(actual_row, expected_outcome)
+            # Compare against expected outcome using full-key strict equality (A04)
+            matches, diff_msgs = compare_base_outcome_exact(actual_row, expected_outcome, row_id)
             if not matches:
                 results['failed'] += 1
                 results['failures'].append({

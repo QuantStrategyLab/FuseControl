@@ -144,6 +144,47 @@ class TestExposureInvariants(unittest.TestCase):
         permitted = inv.compute_permitted_exposure(vi, rows, eff)
         self.assertEqual(permitted, 45000.0)
 
+    def test_negative_control_detects_missing_j1_cap(self):
+        """A09: Removing J1.outputs.cap (setting None) must fail invariant checks."""
+        vi = copy.deepcopy(self.normal_vi)
+        rows, eff, _ = evaluate(
+            'fuse-eval-spec/v1', 'h', 'registered_policy_hash_v1',
+            '2026-01-05', '2026-01-05T16:00:00Z', 'shadow', vi, {}, []
+        )
+        mutated_rows = copy.deepcopy(rows)
+        mutated_rows['J1']['outputs']['cap'] = None
+        errors = inv.check_bundle_against_baseline('neg.missing_j1_cap', vi, mutated_rows, eff)
+        self.assertTrue(any('J1.outputs.cap missing or non-finite' in e for e in errors))
+
+    def test_permits_genuine_reduction_under_no_new_risk(self):
+        """A09: Genuine exposure reduction (45,000 -> 40,000) under account NO-NEW-RISK has 0 errors."""
+        vi = copy.deepcopy(self.normal_vi)
+        vi.update({'joint_exposure': 45000.0, 'proposed_exposure': 40000.0, 'v7_spread_width': 0.02, 'o5_collar': 0.05})
+        rows, eff, _ = evaluate(
+            'fuse-eval-spec/v1', 'h', 'registered_policy_hash_v1',
+            '2026-01-05', '2026-01-05T16:00:00Z', 'shadow', vi, {}, []
+        )
+        eff_nnr = {**eff, 'account': 'NO-NEW-RISK'}
+        self.assertEqual(inv.compute_permitted_exposure(vi, rows, eff_nnr), 40000.0)
+        errors = inv.check_bundle_against_baseline('pos.reduce_45_to_40', vi, rows, eff_nnr)
+        self.assertEqual(errors, [])
+
+    def test_permits_unrestricted_fund_purchase_when_other_fund_restricted(self):
+        """A09: Buying normal SOXL when only TQQQ is NO-NEW-RISK permits 50,000 cleanly."""
+        vi = copy.deepcopy(self.normal_vi)
+        vi.update({'joint_exposure': 45000.0, 'proposed_exposure': 50000.0, 'v7_spread_width': 0.02, 'o5_collar': 0.05, 'o5_symbol': 'SOXL'})
+        vi['funds']['TQQQ'].update({'forecast_volatility': 0.60, 'v5_tolerance': 0.01})
+        vi['funds']['SOXL'].update({'v5_tolerance': 0.01})
+        rows, eff, _ = evaluate(
+            'fuse-eval-spec/v1', 'h', 'registered_policy_hash_v1',
+            '2026-01-05', '2026-01-05T16:00:00Z', 'shadow', vi, {}, []
+        )
+        self.assertEqual(eff['fund:TQQQ'], 'NO-NEW-RISK')
+        self.assertEqual(eff['fund:SOXL'], 'NORMAL')
+        self.assertEqual(inv.compute_permitted_exposure(vi, rows, eff), 50000.0)
+        errors = inv.check_bundle_against_baseline('pos.buy_soxl_only_tqqq_nnr', vi, rows, eff)
+        self.assertEqual(errors, [])
+
 
 if __name__ == '__main__':
     unittest.main()

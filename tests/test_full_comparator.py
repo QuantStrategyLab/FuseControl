@@ -203,6 +203,35 @@ class TestFullComparator(unittest.TestCase):
         self.assertEqual(generated['tier_repetitions'], self.golden_table['tier_repetitions'])
         self.assertEqual(generated, self.golden_table)
 
+    def test_successor_next_row_state_rejects_bool_int_and_tier_rejects_extra_keys(self):
+        """A04/A07: Successor next_row_state rejects True vs 1 and tier comparison rejects extra output keys."""
+        ok_suc, diffs_suc = run_matrix.compare_next_row_state({'O5': {'rejection_count': True}}, {'O5': {'rejection_count': 1}})
+        self.assertFalse(ok_suc)
+        self.assertTrue(any('rejection_count' in d for d in diffs_suc))
+
+        j1_exp = {
+            'state': 'NORMAL', 'would_have_tripped': False, 'kind': 'limit', 'latched': False, 'reason': 'none',
+            'outputs': {'headroom': 15000.0, 'cap': 60000.0, 'above_cap': False, 'above_trim_threshold': False},
+        }
+        j1_extra = {**j1_exp, 'outputs': {**j1_exp['outputs'], 'spoof_extra': 123}}
+        ok_tier, diffs_tier = run_matrix.compare_base_outcome_exact(j1_extra, j1_exp, 'J1')
+        self.assertFalse(ok_tier)
+        self.assertTrue(any('extra' in d or 'spoof_extra' in d for d in diffs_tier))
+
+    def test_generate_golden_table_serialized_bytes_with_trailing_lf_match_frozen(self):
+        """Tools: generate_golden_table serialized with trailing LF matches frozen golden-table.json byte-for-byte."""
+        import hashlib, tempfile
+        import generate_golden_table as ggt
+        generated = ggt.generate_golden_table(REPO_ROOT / 'goldens' / 'scenarios.json')
+        frozen_bytes = (REPO_ROOT / 'goldens' / 'golden-table.json').read_bytes()
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix='.json') as tmp:
+            json.dump(generated, tmp, indent=2)
+            tmp.write('\n')
+            tmp.flush()
+            gen_bytes = Path(tmp.name).read_bytes()
+        self.assertEqual(len(gen_bytes), len(frozen_bytes))
+        self.assertEqual(hashlib.sha256(gen_bytes).hexdigest(), hashlib.sha256(frozen_bytes).hexdigest())
+
 
 if __name__ == '__main__':
     unittest.main()

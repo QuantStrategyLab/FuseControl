@@ -125,9 +125,17 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     expected_return = 3.0 * index_return - modelled_fee - modelled_financing
     one_session_dev = fund_return - expected_return
 
-    # Always maintain rolling 5-session history across valid observations (§4.3 / A06)
+    # Always maintain rolling 5-session history across valid observations (§4.3 / A06);
+    # an empty caller five_session_history=[] must never wipe real prior_row_state history.
     explicit_history = inputs.get('five_session_history')
-    if isinstance(explicit_history, list):
+    curr_entry = {
+        'session': session,
+        'fund_return': fund_return,
+        'expected_return': expected_return,
+    }
+    if prior_history:
+        updated_history = [dict(item) for item in prior_history]
+    elif isinstance(explicit_history, list) and explicit_history:
         parsed = []
         for entry in explicit_history:
             if isinstance(entry, dict):
@@ -143,17 +151,13 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                     })
         updated_history = parsed[-5:]
     else:
-        updated_history = [dict(item) for item in prior_history]
-        curr_entry = {
-            'session': session,
-            'fund_return': fund_return,
-            'expected_return': expected_return,
-        }
-        if session is not None and any(item.get('session') == session for item in updated_history):
-            updated_history = [curr_entry if item.get('session') == session else item for item in updated_history]
-        else:
-            updated_history.append(curr_entry)
-        updated_history = updated_history[-5:]
+        updated_history = []
+
+    if session is not None and any(item.get('session') == session for item in updated_history):
+        updated_history = [curr_entry if item.get('session') == session else item for item in updated_history]
+    elif not (len(updated_history) == 5 and isinstance(explicit_history, list) and explicit_history and not prior_history):
+        updated_history.append(curr_entry)
+    updated_history = updated_history[-5:]
 
     # Thresholds per §4.5 (proposal values)
     one_session_threshold = 0.0075  # 0.75 pp
@@ -313,11 +317,23 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'fund': fund
             }
 
-        adjustment_complete = corporate_action.get('adjustment_complete', False)
-        exact_reconciliation = corporate_action.get('exact_reconciliation', False)
+        raw_adj_complete = corporate_action.get('adjustment_complete', False)
+        raw_exact_rec = corporate_action.get('exact_reconciliation', False)
+        if not isinstance(raw_adj_complete, bool) or not isinstance(raw_exact_rec, bool):
+            return {
+                'state': 'HALT',
+                'would_have_tripped': True,
+                'kind': 'interlock_or_breaker',
+                'latched': True,
+                'reason': 'reconciliation_mismatch',
+                'fund': fund
+            }
+        adjustment_complete = raw_adj_complete is True
+        exact_reconciliation = raw_exact_rec is True
 
-        # R3 / A12: Exact reconciliation requires matching ledger/broker values, share_count == broker_position,
-        # matching action type/identity against pending event, and no unadjusted HWM flag.
+        # R3 / A12 / R4: Exact reconciliation requires matching ledger/broker values,
+        # matching share_count == broker_position, exact boolean flags, uncompromised HWM,
+        # and exact action type + known ratio matching pending event(s).
         if adjustment_complete:
             ledger_val = _is_valid_finite_number(inputs.get('ledger_value'))
             broker_val = _is_valid_finite_number(inputs.get('broker_value'))
@@ -336,34 +352,68 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 corporate_action.get('hwm_adjusted') is not False and
                 inputs.get('hwm_adjusted') is not False
             )
-            action_matches = True
-            if prior_pending:
-                prior_type = prior_pending.get('type')
-                prior_ratio = prior_pending.get('ratio')
-                curr_ratio = corporate_action.get('ratio')
-                action_matches = (
-                    action_type == prior_type and
-                    (prior_ratio is None or curr_ratio is None or curr_ratio == prior_ratio)
+
+            def _item_matches(item: Dict[str, Any], a_type: Any, c_ratio: Any) -> bool:
+                if item.get('type') != a_type:
+                    return False
+                p_ratio = item.get('ratio')
+                if p_ratio is None:
+                    return True
+                p_ratio_num = _is_valid_finite_number(p_ratio)
+                c_ratio_num = _is_valid_finite_number(c_ratio)
+                return (
+                    p_ratio_num is not None and
+                    c_ratio_num is not None and
+                    c_ratio_num == p_ratio_num
                 )
 
-            if exact_reconciliation and amounts_match and hwm_ok and action_matches:
+            curr_ratio = corporate_action.get('ratio')
+            if exact_reconciliation and amounts_match and hwm_ok:
                 if prior_pending:
+                    queued_actions = prior_pending.get('queued_actions') or []
+                    if _item_matches(prior_pending, action_type, curr_ratio):
+                        if not queued_actions:
+                            return {
+                                'state': 'NORMAL',
+                                'would_have_tripped': False,
+                                'kind': 'interlock_or_breaker',
+                                'latched': False,
+                                'reason': 'exact_reconciliation_auto_clear',
+                                'fund': fund
+                            }
+                        return {
+                            'state': 'HALT',
+                            'would_have_tripped': True,
+                            'kind': 'interlock_or_breaker',
+                            'latched': False,
+                            'reason': 'pending_corporate_action_carried',
+                            'fund': fund,
+                            '_v2_reconcile_target': 'primary'
+                        }
+                    matched_q_idx = next(
+                        (idx for idx, q in enumerate(queued_actions)
+                         if isinstance(q, dict) and _item_matches(q, action_type, curr_ratio)),
+                        None
+                    )
+                    if matched_q_idx is not None:
+                        return {
+                            'state': 'HALT',
+                            'would_have_tripped': True,
+                            'kind': 'interlock_or_breaker',
+                            'latched': False,
+                            'reason': 'pending_corporate_action_carried',
+                            'fund': fund,
+                            '_v2_reconcile_target': ('queued', matched_q_idx)
+                        }
+                else:
                     return {
                         'state': 'NORMAL',
                         'would_have_tripped': False,
                         'kind': 'interlock_or_breaker',
                         'latched': False,
-                        'reason': 'exact_reconciliation_auto_clear',
+                        'reason': 'none',
                         'fund': fund
                     }
-                return {
-                    'state': 'NORMAL',
-                    'would_have_tripped': False,
-                    'kind': 'interlock_or_breaker',
-                    'latched': False,
-                    'reason': 'none',
-                    'fund': fund
-                }
 
             # Adjustment complete without complete matching reconciliation latches HALT
             return {
@@ -375,13 +425,10 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'fund': fund
             }
 
-        # Action announced or detected → pending HALT
-        # V2 branch order (Q6): repeated announcement of same action = carried
-        if prior_pending and prior_pending.get('type') == action_type:
-            # Same action repeated - carried forward
+        # Action announced or detected -> pending HALT (never overwrite unresolved prior action!)
+        if prior_pending:
             reason = 'pending_corporate_action_carried'
         else:
-            # New action announced
             reason = 'pending_corporate_action'
 
         return {
@@ -500,7 +547,8 @@ def evaluate_V3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
 
 def evaluate_V4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
-                authorized_events: Optional[Dict[str, Any]], fund: str, session: str) -> Dict[str, Any]:
+                authorized_events: Optional[Dict[str, Any]], fund: str, session: str,
+                market_closed: bool = False) -> Dict[str, Any]:
     """V4: Extreme volatility → NO-NEW-RISK in that fund.
 
     Kind: interlock
@@ -566,6 +614,19 @@ def evaluate_V4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'latched': False,
             'reason': 'none',
             'fund': fund
+        }
+
+    # Closed/holiday sessions do not count toward the 10-session clearing counter
+    if market_closed:
+        return {
+            'state': 'NO-NEW-RISK',
+            'would_have_tripped': True,
+            'kind': 'interlock',
+            'latched': False,
+            'reason': 'volatility_below_2x_but_not_yet_cleared',
+            'fund': fund,
+            'outputs': {'clearing_counter': clearing_count},
+            '_preserve_prior_v4_session': True,
         }
 
     # In clearing mode - check progress (B4: increment at most once per session)
@@ -745,11 +806,64 @@ def evaluate_V6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     raw_v6_cost = inputs.get('v6_cost_per_unit_exposure')
     raw_v6_threshold = inputs.get('v6_threshold')
 
-    # Synthetic direct threshold mode (e.g., SUC-11 fixture)
+    # Canonical spec fields take precedence over any synthetic threshold override
+    if raw_spec_cost is not None or raw_spec_excess is not None:
+        cost_val = _is_valid_finite_number(raw_spec_cost)
+        excess_val = _is_valid_finite_number(raw_spec_excess)
+        if cost_val is None or excess_val is None or cost_val < 0.0 or excess_val < 0.0:
+            return {
+                'state': 'NORMAL',
+                'would_have_tripped': True,
+                'kind': 'diagnostic',
+                'latched': False,
+                'reason': 'missing_input',
+                'fund': fund,
+                'outputs': {
+                    'cost_per_unit_exposure': 0.0,
+                    'threshold': 0.0,
+                    'exceeded': True,
+                    'notify': True
+                }
+            }
+
+        threshold = excess_val / 4.0
+        exceeded = cost_val > threshold
+        if exceeded:
+            return {
+                'state': 'NORMAL',
+                'would_have_tripped': True,
+                'kind': 'diagnostic',
+                'latched': False,
+                'reason': 'carrying_cost_exceeded',
+                'fund': fund,
+                'outputs': {
+                    'cost_per_unit_exposure': cost_val,
+                    'threshold': threshold,
+                    'exceeded': True,
+                    'notify': True
+                }
+            }
+
+        return {
+            'state': 'NORMAL',
+            'would_have_tripped': False,
+            'kind': 'diagnostic',
+            'latched': False,
+            'reason': 'none',
+            'fund': fund,
+            'outputs': {
+                'cost_per_unit_exposure': None,
+                'threshold': None,
+                'exceeded': False,
+                'notify': False
+            }
+        }
+
+    # Synthetic direct threshold mode (only when canonical spec fields are absent)
     if raw_v6_cost is not None or raw_v6_threshold is not None:
         cost_val = _is_valid_finite_number(raw_v6_cost)
         thresh_val = _is_valid_finite_number(raw_v6_threshold)
-        if cost_val is None or thresh_val is None:
+        if cost_val is None or thresh_val is None or cost_val < 0.0 or thresh_val < 0.0:
             return {
                 'state': 'NORMAL',
                 'would_have_tripped': True,
@@ -780,71 +894,19 @@ def evaluate_V6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             }
         }
 
-    # Spec field mode: carrying_cost_measured > (excess_return_shrunk / 4)
-    if raw_spec_cost is None and raw_spec_excess is None:
-        return {
-            'state': 'NORMAL',
-            'would_have_tripped': False,
-            'kind': 'diagnostic',
-            'latched': False,
-            'reason': 'none',
-            'fund': fund,
-            'outputs': {
-                'cost_per_unit_exposure': None,
-                'threshold': None,
-                'exceeded': False,
-                'notify': False
-            }
-        }
-
-    cost_val = _is_valid_finite_number(raw_spec_cost)
-    excess_val = _is_valid_finite_number(raw_spec_excess)
-    if cost_val is None or excess_val is None:
-        return {
-            'state': 'NORMAL',
-            'would_have_tripped': True,
-            'kind': 'diagnostic',
-            'latched': False,
-            'reason': 'missing_input',
-            'fund': fund,
-            'outputs': {
-                'cost_per_unit_exposure': 0.0,
-                'threshold': 0.0,
-                'exceeded': True,
-                'notify': True
-            }
-        }
-
-    threshold = excess_val / 4.0
-    exceeded = cost_val > threshold
-    if exceeded:
-        return {
-            'state': 'NORMAL',
-            'would_have_tripped': True,
-            'kind': 'diagnostic',
-            'latched': False,
-            'reason': 'carrying_cost_exceeded',
-            'fund': fund,
-            'outputs': {
-                'cost_per_unit_exposure': cost_val,
-                'threshold': threshold,
-                'exceeded': True,
-                'notify': True
-            }
-        }
-
+    # Both canonical and synthetic inputs absent: fail closed while keeping stub-compatible output types
     return {
         'state': 'NORMAL',
-        'would_have_tripped': False,
+        'would_have_tripped': True,
         'kind': 'diagnostic',
         'latched': False,
-        'reason': 'none',
+        'reason': 'missing_input',
         'fund': fund,
         'outputs': {
             'cost_per_unit_exposure': None,
             'threshold': None,
-            'exceeded': False,
-            'notify': False
+            'exceeded': True,
+            'notify': True
         }
     }
 
@@ -891,19 +953,21 @@ def evaluate_V7(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'fund': fund
         }
 
-    # Check staleness (staleness > 1.0 or invalid/non-finite/negative fails closed)
-    if quote_staleness is not None:
-        qs_val = _is_valid_finite_number(quote_staleness)
-        quote_stale = (qs_val is None or qs_val < 0.0 or qs_val > 1.0)
-    else:
-        quote_stale = False
+    # Fail closed if quote_staleness or spread_width is missing, non-finite, or negative
+    qs_val = _is_valid_finite_number(quote_staleness)
+    sw_val = _is_valid_finite_number(spread_width)
+    if qs_val is None or sw_val is None or qs_val < 0.0 or sw_val < 0.0:
+        return {
+            'state': 'NORMAL',
+            'would_have_tripped': True,
+            'kind': 'interlock',
+            'latched': False,
+            'reason': 'missing_input' if (quote_staleness is None or spread_width is None) else 'quote_or_liquidity_issue',
+            'fund': fund
+        }
 
-    # Check spread width (invalid/non-finite/negative fails closed)
-    if spread_width is not None:
-        sw_val = _is_valid_finite_number(spread_width)
-        spread_too_wide = (sw_val is None or sw_val < 0.0 or sw_val > thresh_val)
-    else:
-        spread_too_wide = False
+    quote_stale = qs_val > 1.0
+    spread_too_wide = sw_val > thresh_val
 
     # Check if outside regular session
     outside_regular_session = session_time != 'regular'

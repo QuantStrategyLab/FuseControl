@@ -98,7 +98,7 @@ def compute_permitted_exposure(
     if fund_scopes and all(effective_state_by_scope[k] in ('HALT', 'DE-RISK') for k in fund_scopes):
         return 0.0
 
-    # Any NO-NEW-RISK, all-fund/symbol restriction, limit block, or order suppression forbids raising exposure
+    # Any NO-NEW-RISK, all-fund/symbol restriction, targeted-fund restriction, limit block, or order suppression forbids raising exposure
     all_funds_restricted = bool(fund_scopes) and all(
         effective_state_by_scope[k] in ('NO-NEW-RISK', 'DE-RISK', 'HALT', 'ORDER-UNKNOWN')
         for k in fund_scopes
@@ -107,11 +107,21 @@ def compute_permitted_exposure(
         effective_state_by_scope[k] in ('NO-NEW-RISK', 'DE-RISK', 'HALT', 'ORDER-UNKNOWN')
         for k in symbol_scopes
     )
+    target_sym = (
+        validated_inputs.get('target_fund')
+        or validated_inputs.get('proposed_fund')
+        or validated_inputs.get('o5_symbol')
+    )
+    target_blocked = bool(target_sym) and (
+        effective_state_by_scope.get(f'fund:{target_sym}', 'NORMAL') != 'NORMAL'
+        or effective_state_by_scope.get(f'symbol:{target_sym}', 'NORMAL') != 'NORMAL'
+    )
     increases_blocked = (
         effective_state_by_scope.get('account') == 'NO-NEW-RISK'
         or effective_state_by_scope.get('joint') in ('NO-NEW-RISK', 'DE-RISK', 'HALT')
         or all_funds_restricted
         or all_symbols_restricted
+        or target_blocked
         or bool(l0.get('outputs', {}).get('increases_blocked'))
         or bool(j1.get('outputs', {}).get('above_cap'))
         or bool(rows_by_ID['O2'].get('would_have_tripped'))
@@ -119,7 +129,7 @@ def compute_permitted_exposure(
         or bool(rows_by_ID['O5'].get('would_have_tripped'))
     )
     if increases_blocked:
-        return min(joint_exp, effective_cap)
+        return min(target, joint_exp, effective_cap)
 
     return min(target, effective_cap)
 
@@ -139,6 +149,11 @@ def check_bundle_against_baseline(
     j1_outputs = rows_by_ID['J1'].get('outputs', {})
     j1_cap = _finite_or_none(j1_outputs.get('cap'))
     j1_headroom = _finite_or_none(j1_outputs.get('headroom'))
+
+    if l0_cap is None and rows_by_ID['L0'].get('reason') != 'missing_input':
+        errors.append(f"{label}: L0.outputs.cap missing or non-finite")
+    if j1_cap is None:
+        errors.append(f"{label}: J1.outputs.cap missing or non-finite")
 
     if baseline['max_loss_cap'] is not None and l0_cap is not None and l0_cap > baseline['max_loss_cap']:
         errors.append(f"{label}: L0 cap {l0_cap} exceeds policy max_loss_cap {baseline['max_loss_cap']}")
@@ -172,17 +187,42 @@ def check_bundle_against_baseline(
             f"{label}: permitted exposure {permitted} exceeds no-trip baseline {baseline['baseline_permitted']}"
         )
 
-    any_trip = any(r.get('would_have_tripped') for r in rows_by_ID.values())
-    if any_trip and baseline['joint_exposure'] is not None and permitted > baseline['joint_exposure']:
-        # Unless only diagnostic V5/V6 tripped without blocking
-        blocking_trip = any(
-            r.get('would_have_tripped') and r.get('kind') != 'diagnostic'
-            for r in rows_by_ID.values()
+    # Check portfolio-wide / target-scope increase blocking only when the bundle actually blocks increases there
+    fund_scopes = [k for k in effective_state_by_scope if k.startswith('fund:')]
+    symbol_scopes = [k for k in effective_state_by_scope if k.startswith('symbol:')]
+    all_funds_restricted = bool(fund_scopes) and all(
+        effective_state_by_scope[k] in ('NO-NEW-RISK', 'DE-RISK', 'HALT', 'ORDER-UNKNOWN')
+        for k in fund_scopes
+    )
+    all_symbols_restricted = bool(symbol_scopes) and all(
+        effective_state_by_scope[k] in ('NO-NEW-RISK', 'DE-RISK', 'HALT', 'ORDER-UNKNOWN')
+        for k in symbol_scopes
+    )
+    target_sym = (
+        validated_inputs.get('target_fund')
+        or validated_inputs.get('proposed_fund')
+        or validated_inputs.get('o5_symbol')
+    )
+    target_restricted = bool(target_sym) and (
+        effective_state_by_scope.get(f'fund:{target_sym}', 'NORMAL') != 'NORMAL'
+        or effective_state_by_scope.get(f'symbol:{target_sym}', 'NORMAL') != 'NORMAL'
+    )
+    increase_must_be_blocked = (
+        effective_state_by_scope.get('account') != 'NORMAL'
+        or effective_state_by_scope.get('joint') != 'NORMAL'
+        or all_funds_restricted
+        or all_symbols_restricted
+        or target_restricted
+        or bool(rows_by_ID['L0'].get('outputs', {}).get('increases_blocked'))
+        or bool(rows_by_ID['J1'].get('outputs', {}).get('above_cap'))
+        or bool(rows_by_ID['O2'].get('would_have_tripped'))
+        or bool(rows_by_ID['O5'].get('would_have_tripped'))
+        or bool(rows_by_ID['V7'].get('would_have_tripped'))
+    )
+    if increase_must_be_blocked and baseline['joint_exposure'] is not None and permitted > baseline['joint_exposure']:
+        errors.append(
+            f"{label}: blocking trip allowed exposure {permitted} > current {baseline['joint_exposure']}"
         )
-        if blocking_trip:
-            errors.append(
-                f"{label}: blocking trip allowed exposure {permitted} > current {baseline['joint_exposure']}"
-            )
 
     if effective_state_by_scope.get('account') == 'HALT':
         for scope, state in effective_state_by_scope.items():

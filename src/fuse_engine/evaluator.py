@@ -4,13 +4,36 @@ Implements the §5.1 signature with all 24 rows fully evaluated.
 """
 
 import copy
+import hashlib
 from datetime import date, timedelta
+from functools import lru_cache
+from pathlib import Path
 from typing import Any, Dict, Optional
 from . import rows_loss
 from . import rows_vehicle
 from . import rows_ops
 from . import state as st
 from . import canonical_state as cst
+from .canonical import finite_float
+
+
+@lru_cache(maxsize=1)
+def compute_engine_hash() -> str:
+    """Compute canonical SHA-256 of sorted src/fuse_engine/*.py source bytes (§5.3)."""
+    engine_dir = Path(__file__).resolve().parent
+    hasher = hashlib.sha256()
+    for py_file in sorted(engine_dir.glob('*.py')):
+        hasher.update(py_file.read_bytes())
+    return hasher.hexdigest()
+
+
+def _fund_sort_key(symbol: str) -> tuple[int, str]:
+    """Deterministic canonical fund order preserving [TQQQ, SOXL] legacy order (§0.4)."""
+    if symbol == 'TQQQ':
+        return (0, symbol)
+    if symbol == 'SOXL':
+        return (1, symbol)
+    return (2, symbol)
 
 
 # The 24 named row IDs per §4.3
@@ -56,6 +79,18 @@ def evaluate(
     if mode != 'shadow':
         raise ValueError(f"FUSE-1 operates in shadow mode only; forbidden mode={mode!r}")
 
+    # §5.3: Always bind authentic canonical engine hash; reject mismatched 64-hex pinned digests
+    canonical_engine_hash = compute_engine_hash()
+    if (
+        isinstance(engine_hash, str) and
+        len(engine_hash) == 64 and
+        all(c in '0123456789abcdefABCDEF' for c in engine_hash) and
+        engine_hash.lower() != canonical_engine_hash
+    ):
+        raise ValueError(
+            f"engine_hash mismatch: caller={engine_hash}, actual={canonical_engine_hash}"
+        )
+
     # Initialize outputs
     if prior_row_state is None:
         prior_row_state = {}
@@ -65,9 +100,9 @@ def evaluate(
     # Initialize next_row_state
     next_row_state = st.init_next_state()
 
-    # Get funds from inputs
+    # Get funds from inputs (sorted canonically for dict-order independence)
     funds = validated_inputs.get('funds', {})
-    fund_symbols = list(funds.keys())
+    fund_symbols = sorted(funds.keys(), key=_fund_sort_key)
 
     # Build scopes: enumerate symbols from funds, pending_orders, AND durable O4 (Q6 wiring)
     # Use deterministic sorted ordering (A07.4: avoid PYTHONHASHSEED-dependent set iteration)
@@ -79,7 +114,7 @@ def evaluate(
         all_symbols_set.update(prior_row_state['O4'].keys())
     all_symbols = sorted(all_symbols_set)
 
-    # Also track any prior latched funds omitted from current funds dict (A07.2)
+    # Also track any prior restricted funds (V1/V2/V3/V4) omitted from current funds dict (A07.2 / A08)
     prior_latched_funds = set()
     if prior_row_state:
         for fn, fstate in prior_row_state.get('V1', {}).items():
@@ -93,6 +128,9 @@ def evaluate(
                 prior_latched_funds.add(fn)
         for fn, v3state in prior_row_state.get('V3', {}).items():
             if isinstance(v3state, dict) and v3state.get('latched') and fn not in funds:
+                prior_latched_funds.add(fn)
+        for fn, v4state in prior_row_state.get('V4', {}).items():
+            if isinstance(v4state, dict) and v4state.get('clearing_counter') is not None and fn not in funds:
                 prior_latched_funds.add(fn)
 
     scopes = ['account']
@@ -118,7 +156,7 @@ def evaluate(
     rows_by_ID['L1'] = l1_result
 
     # L2 - drawdown 2D/3 breaker (canonical format per Q6)
-    l2_result = rows_loss.evaluate_L2(validated_inputs, prior_row_state, authorized_events)
+    l2_result = rows_loss.evaluate_L2(validated_inputs, prior_row_state, authorized_events, session=session, as_of=as_of)
     rows_by_ID['L2'] = l2_result
     if l2_result['latched']:
         # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
@@ -130,7 +168,7 @@ def evaluate(
         cst.clear_l2_latch(next_row_state)
 
     # L3 - drawdown D breaker (canonical format per Q6; A07.3 durable loss_record & trip_session)
-    l3_result = rows_loss.evaluate_L3(validated_inputs, prior_row_state, authorized_events, session=session)
+    l3_result = rows_loss.evaluate_L3(validated_inputs, prior_row_state, authorized_events, session=session, as_of=as_of)
     rows_by_ID['L3'] = l3_result
     if l3_result['latched']:
         # Preserve original trip_session, cooling_off_until, and loss_record if already latched
@@ -145,12 +183,14 @@ def evaluate(
                 cooling_off_until = (date.fromisoformat(session) + timedelta(days=30)).isoformat()
             except ValueError:
                 cooling_off_until = session
-            hwm = validated_inputs.get('high_water_mark')
-            bk = validated_inputs.get('bankroll')
-            dd = (hwm - bk) / hwm if hwm else 0
+            hwm_raw = validated_inputs.get('high_water_mark')
+            bk_raw = validated_inputs.get('bankroll')
+            hwm_val = finite_float(hwm_raw)
+            bk_val = finite_float(bk_raw)
+            dd = (hwm_val - bk_val) / hwm_val if (hwm_val is not None and bk_val is not None and hwm_val > 0.0) else None
             loss_record = {
-                'bankroll': bk,
-                'high_water_mark': hwm,
+                'bankroll': bk_val,
+                'high_water_mark': hwm_val,
                 'tier': validated_inputs.get('tier'),
                 'drawdown': dd
             }
@@ -165,7 +205,7 @@ def evaluate(
         cst.clear_l3_lock(next_row_state, prior_row_state['L3']['loss_record'])
 
     # L4 - one-session loss D/10 breaker (canonical per Q6; A07.3 preserve original trip_session)
-    l4_result = rows_loss.evaluate_L4(validated_inputs, prior_row_state, authorized_events, session=session)
+    l4_result = rows_loss.evaluate_L4(validated_inputs, prior_row_state, authorized_events, session=session, as_of=as_of)
     rows_by_ID['L4'] = l4_result
     if l4_result['latched']:
         prior_latch = cst.get_account_latch(prior_row_state, 'L4')
@@ -174,23 +214,29 @@ def evaluate(
     elif l4_result['reason'] == 'authorized_rearm':
         next_row_state['L4'] = {}
 
-    # L5 - market halt L1/L2 interlock (canonical format per Q6)
-    l5_result = rows_loss.evaluate_L5(validated_inputs, prior_row_state, authorized_events, session)
+    # L5 - market halt L1/L2 interlock (persists through remainder of trading session)
+    l5_result = rows_loss.evaluate_L5(validated_inputs, prior_row_state, authorized_events, session, as_of=as_of)
     rows_by_ID['L5'] = l5_result
-    # Update L5 fresh session counter
-    fresh_count = cst.get_l5_fresh_count(prior_row_state)
-    if not l5_result['would_have_tripped']:
-        cst.set_l5_fresh_count(next_row_state, fresh_count + 1)
+    prior_l5 = cst.get_l5_state(prior_row_state)
+    l5_cur_date = as_of[:10] if isinstance(as_of, str) and len(as_of) >= 10 else session
+    if l5_result['reason'] == 'market_halt_level_1_or_2':
+        cst.set_l5_active_trip(next_row_state, l5_cur_date)
+    elif l5_result['reason'] == 'clearing_period':
+        cst.set_l5_active_trip(next_row_state, prior_l5['trip_session'] or l5_cur_date)
+    elif prior_l5['active']:
+        next_row_state['L5'] = {}
     else:
-        cst.set_l5_fresh_count(next_row_state, 0)
-    # L5 latch (if needed) uses general account latch accessor
-    if l5_result.get('latched'):
-        prior_latch = cst.get_account_latch(prior_row_state, 'L5')
-        trip_session = prior_latch['trip_session'] if prior_latch and prior_latch.get('trip_session') else session
-        cst.set_account_latch(next_row_state, 'L5', trip_session)
+        cst.set_l5_fresh_count(next_row_state, prior_l5['fresh_session_count'] + 1)
 
-    # L6 - market halt L3 or 10% index fall breaker (canonical per Q6)
-    l6_result = rows_loss.evaluate_L6(validated_inputs, prior_row_state, authorized_events)
+    # Pre-compute O3 reconciliation state so L6 re-arm refuses if O3 reconciliation fails
+    o3_result = rows_ops.evaluate_O3(validated_inputs, prior_row_state, authorized_events, session=session, as_of=as_of)
+    o3_failed = o3_result['would_have_tripped'] or o3_result['state'] != 'NORMAL'
+
+    # L6 - market halt L3 or 10% index fall breaker (canonical per Q6; rearm requires reconciliation)
+    l6_result = rows_loss.evaluate_L6(
+        validated_inputs, prior_row_state, authorized_events,
+        session=session, as_of=as_of, o3_failed=o3_failed
+    )
     rows_by_ID['L6'] = l6_result
     if l6_result['latched']:
         prior_latch = cst.get_account_latch(prior_row_state, 'L6')
@@ -243,6 +289,7 @@ def evaluate(
 
         # V2 - corporate action
         v2_result = rows_vehicle.evaluate_V2(fund_inputs, prior_row_state, authorized_events, symbol)
+        v2_reconcile_target = v2_result.pop('_v2_reconcile_target', None)
         v2_outputs[symbol] = v2_result
 
         # B1: Store V2 latches and mismatch details (SUC-02) - canonical format per Q6
@@ -257,7 +304,7 @@ def evaluate(
                 except (TypeError, ValueError):
                     mismatch_amt = None
                 mismatch_details = {
-                    'type': corporate_action.get('type'),
+                    'type': corporate_action.get('type') if isinstance(corporate_action, dict) else 'unknown',
                     'ledger_value': lv,
                     'broker_value': bv,
                     'mismatch': mismatch_amt
@@ -275,28 +322,60 @@ def evaluate(
             if v2_result['reason'] == 'authorized_rearm':
                 cst.clear_v2_latched_mismatch(next_row_state, symbol)
 
-        # Update pending state (B1 canonical format per Q6)
+        # Update pending state (B1 canonical format per Q6; never overwrite unresolved prior action)
+        prior_pending = cst.get_v2_pending_adjustment(prior_row_state, symbol)
         if v2_result['reason'] in ['pending_corporate_action', 'pending_corporate_action_carried']:
             corporate_action = fund_inputs.get('corporate_action')
-            if isinstance(corporate_action, dict) and corporate_action.get('type'):
+            if v2_reconcile_target == 'primary' and prior_pending:
+                q_list = list(prior_pending.get('queued_actions') or [])
+                promoted = q_list.pop(0)
+                new_pending = {
+                    'type': promoted.get('type'),
+                    'ratio': promoted.get('ratio'),
+                    'awaiting_reconciliation': True
+                }
+                if q_list:
+                    new_pending['queued_actions'] = q_list
+                cst.set_v2_pending_adjustment(next_row_state, symbol, new_pending)
+            elif isinstance(v2_reconcile_target, tuple) and v2_reconcile_target[0] == 'queued' and prior_pending:
+                new_pending = copy.deepcopy(prior_pending)
+                q_list = list(new_pending.get('queued_actions') or [])
+                idx_to_pop = v2_reconcile_target[1]
+                if 0 <= idx_to_pop < len(q_list):
+                    q_list.pop(idx_to_pop)
+                if q_list:
+                    new_pending['queued_actions'] = q_list
+                else:
+                    new_pending.pop('queued_actions', None)
+                cst.set_v2_pending_adjustment(next_row_state, symbol, new_pending)
+            elif prior_pending:
+                new_pending = copy.deepcopy(prior_pending)
+                if isinstance(corporate_action, dict) and corporate_action.get('type'):
+                    inc_type = corporate_action.get('type')
+                    inc_ratio = corporate_action.get('ratio')
+                    matches_primary = (inc_type == new_pending.get('type') and inc_ratio == new_pending.get('ratio'))
+                    q_list = list(new_pending.get('queued_actions') or [])
+                    matches_queued = any(
+                        isinstance(q, dict) and q.get('type') == inc_type and q.get('ratio') == inc_ratio
+                        for q in q_list
+                    )
+                    if not matches_primary and not matches_queued:
+                        q_list.append({'type': inc_type, 'ratio': inc_ratio})
+                        new_pending['queued_actions'] = q_list
+                cst.set_v2_pending_adjustment(next_row_state, symbol, new_pending)
+            elif isinstance(corporate_action, dict) and corporate_action.get('type'):
                 pending = {
                     'type': corporate_action.get('type'),
                     'ratio': corporate_action.get('ratio'),
                     'awaiting_reconciliation': True
                 }
                 cst.set_v2_pending_adjustment(next_row_state, symbol, pending)
-            else:
-                # Carry forward from prior (B1 continuity; preserves state on {} or absent dict)
-                prior_pending = cst.get_v2_pending_adjustment(prior_row_state, symbol)
-                if prior_pending:
-                    cst.set_v2_pending_adjustment(next_row_state, symbol, prior_pending)
         elif v2_result['reason'] in ('exact_reconciliation_auto_clear', 'authorized_rearm'):
             # Clear pending on exact reconciliation or authorized re-arm (Q4)
             cst.clear_v2_pending_adjustment(next_row_state, symbol)
         elif v2_result['reason'] != 'reconciliation_mismatch':
-            prior_pending = cst.get_v2_pending_adjustment(prior_row_state, symbol)
             if prior_pending:
-                cst.set_v2_pending_adjustment(next_row_state, symbol, prior_pending)
+                cst.set_v2_pending_adjustment(next_row_state, symbol, copy.deepcopy(prior_pending))
 
         # V3 - fund event (canonical format per Q6)
         v3_result = rows_vehicle.evaluate_V3(fund_inputs, prior_row_state, authorized_events, symbol)
@@ -311,11 +390,23 @@ def evaluate(
             if 'V3' not in next_row_state:
                 next_row_state['V3'] = {}
 
-        # V4 - extreme volatility (B4 canonical format per Q6)
-        v4_result = rows_vehicle.evaluate_V4(fund_inputs, prior_row_state, authorized_events, symbol, session)
+        # V4 - extreme volatility (B4 canonical format per Q6; closed/holiday skips increment)
+        v4_result = rows_vehicle.evaluate_V4(
+            fund_inputs, prior_row_state, authorized_events, symbol, session,
+            market_closed=market_closed
+        )
+        preserve_v4_session = v4_result.pop('_preserve_prior_v4_session', False)
         v4_outputs[symbol] = v4_result
         # Update V4 state based on result reason - counter now in outputs
-        if v4_result['reason'] == 'volatility_at_or_above_2x':
+        if preserve_v4_session:
+            prior_v4 = cst.get_v4_state(prior_row_state, symbol)
+            if prior_v4['clearing_counter'] is not None:
+                cst.set_v4_state(
+                    next_row_state, symbol,
+                    prior_v4['clearing_counter'],
+                    prior_v4['last_session_below_threshold']
+                )
+        elif v4_result['reason'] == 'volatility_at_or_above_2x':
             # Initial trip: volatility HIGH, no "last session below threshold" yet
             counter = v4_result.get('outputs', {}).get('clearing_counter', 0)
             cst.set_v4_state(next_row_state, symbol, counter, None)
@@ -369,31 +460,45 @@ def evaluate(
 
     # ==== OPERATIONS ROWS (O1-O9, J1) ====
 
-    # O1 - required inputs stale/missing (B3)
-    o1_result = rows_ops.evaluate_O1(validated_inputs, prior_row_state, authorized_events, session)
+    # O1 - required inputs stale/missing (B3; same-day stale->fresh cannot clear mid-session)
+    o1_result = rows_ops.evaluate_O1(validated_inputs, prior_row_state, authorized_events, session, as_of=as_of)
     rows_by_ID['O1'] = o1_result
-    # Update O1 fresh session state (canonical format per Q6)
     o1_state = cst.get_o1_fresh_state(prior_row_state)
-    if not o1_result['would_have_tripped']:
-        # Fresh data - increment counter
-        fresh_count = o1_state['fresh_session_count'] + 1
-        cst.set_o1_fresh_state(next_row_state, fresh_count, session)
+    o1_cur_date = as_of[:10] if isinstance(as_of, str) and len(as_of) >= 10 else session
+    if o1_result['reason'] == 'clearing_period':
+        cst.set_o1_fresh_state(
+            next_row_state, 0, o1_cur_date,
+            last_tripped_session=o1_state.get('last_tripped_session') or o1_cur_date
+        )
+    elif not o1_result['would_have_tripped']:
+        if o1_state.get('last_session') == o1_cur_date and o1_state.get('fresh_session_count', 0) == 0:
+            # Stale->fresh transition within the same session must NOT count as a full clean session
+            cst.set_o1_fresh_state(next_row_state, 0, o1_cur_date)
+        elif o1_state.get('last_session') == o1_cur_date:
+            cst.set_o1_fresh_state(next_row_state, o1_state['fresh_session_count'], o1_cur_date)
+        else:
+            fresh_count = o1_state['fresh_session_count'] + 1
+            cst.set_o1_fresh_state(next_row_state, fresh_count, o1_cur_date)
     else:
-        # Issues present - reset counter
-        cst.set_o1_fresh_state(next_row_state, 0, session)
+        # Operational stale/missing trip records last_tripped_session so same-day recovery cannot clear
+        if o1_result['reason'] == 'stale_or_missing_input':
+            cst.set_o1_fresh_state(next_row_state, 0, o1_cur_date, last_tripped_session=o1_cur_date)
+        else:
+            cst.set_o1_fresh_state(next_row_state, 0, o1_cur_date)
 
     # O2 - session calendar
     o2_result = rows_ops.evaluate_O2(validated_inputs, prior_row_state, authorized_events)
     rows_by_ID['O2'] = o2_result
 
-    # O3 - reconciliation mismatch (canonical format per Q6)
-    o3_result = rows_ops.evaluate_O3(validated_inputs, prior_row_state, authorized_events)
+    # O3 - reconciliation mismatch (already evaluated before L6)
     rows_by_ID['O3'] = o3_result
     if o3_result['latched']:
         # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
         prior_latch = cst.get_account_latch(prior_row_state, 'O3')
         trip_session = prior_latch['trip_session'] if prior_latch else session
         cst.set_account_latch(next_row_state, 'O3', trip_session)
+    elif o3_result['reason'] == 'authorized_rearm':
+        next_row_state['O3'] = {}
 
     # O4 - order timeout (canonical format per Q6, enumerate from all sources)
     o4_outputs = {}
@@ -428,7 +533,7 @@ def evaluate(
     rows_by_ID['O4'] = aggregate_fund_row(o4_outputs, symbol_scoped=True)
 
     # O5 - pre-trade limits (B2 canonical format per Q6)
-    o5_result = rows_ops.evaluate_O5(validated_inputs, prior_row_state, authorized_events, session)
+    o5_result = rows_ops.evaluate_O5(validated_inputs, prior_row_state, authorized_events, session, as_of=as_of)
     rows_by_ID['O5'] = o5_result
     # O5 state: preserve session rejection count & latch across mixed PASS/REJECT checks in same session
     if o5_result['reason'] == 'authorized_rearm':
@@ -443,7 +548,7 @@ def evaluate(
             cst.set_o5_state(next_row_state, prior_o5['rejection_count'], session, prior_o5['latched'])
 
     # O6 - policy hash mismatch (canonical format per Q6)
-    o6_result = rows_ops.evaluate_O6(validated_inputs, prior_row_state, authorized_events)
+    o6_result = rows_ops.evaluate_O6(validated_inputs, prior_row_state, authorized_events, session=session, as_of=as_of)
     rows_by_ID['O6'] = o6_result
     if o6_result['latched']:
         # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
@@ -454,7 +559,7 @@ def evaluate(
         next_row_state['O6'] = {}
 
     # O7 - dead man's switch (canonical format per Q6)
-    o7_result = rows_ops.evaluate_O7(validated_inputs, prior_row_state, authorized_events, as_of=as_of)
+    o7_result = rows_ops.evaluate_O7(validated_inputs, prior_row_state, authorized_events, as_of=as_of, session=session)
     rows_by_ID['O7'] = o7_result
     if o7_result['latched']:
         # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
@@ -469,7 +574,7 @@ def evaluate(
     rows_by_ID['O8'] = o8_result
 
     # O9 - unauthorized parameter change (canonical format per Q6)
-    o9_result = rows_ops.evaluate_O9(validated_inputs, prior_row_state, authorized_events)
+    o9_result = rows_ops.evaluate_O9(validated_inputs, prior_row_state, authorized_events, session=session, as_of=as_of)
     rows_by_ID['O9'] = o9_result
     if o9_result['latched']:
         # Preserve original trip_session if already latched (§4.4 rule 3: persistence)
@@ -550,19 +655,32 @@ def evaluate(
                     'fund': fund
                 }
 
-        # Re-aggregate V1/V2/V3 if absent latched funds were carried into outputs
+        # Preserve V4 state and active restrictions for funds omitted from current inputs (A08)
+        if 'V4' in prior_row_state:
+            if 'V4' not in next_row_state:
+                next_row_state['V4'] = {}
+            for fund in sorted(prior_row_state['V4'].keys()):
+                v4_fund_state = prior_row_state['V4'][fund]
+                if fund not in fund_symbols:
+                    if fund not in next_row_state['V4']:
+                        next_row_state['V4'][fund] = copy.deepcopy(v4_fund_state)
+                    if isinstance(v4_fund_state, dict) and v4_fund_state.get('clearing_counter') is not None:
+                        v4_outputs[fund] = {
+                            'state': 'NO-NEW-RISK',
+                            'would_have_tripped': True,
+                            'kind': 'interlock',
+                            'latched': False,
+                            'reason': 'volatility_below_2x_but_not_yet_cleared',
+                            'fund': fund,
+                            'outputs': {'clearing_counter': v4_fund_state['clearing_counter']}
+                        }
+
+        # Re-aggregate V1/V2/V3/V4 if absent restricted funds were carried into outputs
         if prior_latched_funds:
             rows_by_ID['V1'] = aggregate_fund_row(v1_outputs)
             rows_by_ID['V2'] = aggregate_fund_row(v2_outputs)
             rows_by_ID['V3'] = aggregate_fund_row(v3_outputs)
-
-        # Preserve V4 state for funds not evaluated
-        if 'V4' in prior_row_state:
-            if 'V4' not in next_row_state:
-                next_row_state['V4'] = {}
-            for fund, v4_fund_state in prior_row_state['V4'].items():
-                if fund not in fund_symbols and fund not in next_row_state['V4']:
-                    next_row_state['V4'][fund] = v4_fund_state
+            rows_by_ID['V4'] = aggregate_fund_row(v4_outputs)
 
         # Preserve V5 state for funds not evaluated
         if 'V5' in prior_row_state:
@@ -642,9 +760,9 @@ def evaluate(
 
             effective_state_by_scope[scope] = effective_state
 
-    # G6 (F1-A10): Bind spec_version, engine_hash, and shadow safety assertions to output bundle
+    # G6 (F1-A10 / §5.3): Bind spec_version, canonical engine_hash, and shadow safety assertions
     next_row_state['spec_version'] = spec_version
-    next_row_state['engine_hash'] = engine_hash
+    next_row_state['engine_hash'] = canonical_engine_hash
     next_row_state['enforcement_mode'] = 'shadow_would_have_tripped'
     next_row_state['loss_breakers_armed'] = False
 
@@ -669,8 +787,9 @@ def aggregate_fund_row(
             'reason': 'none'
         }
 
-    # Get a sample to determine kind
-    sample = next(iter(fund_outputs.values()))
+    # Order-independent deterministic key traversal (canonical order across dict permutations)
+    ordered_keys = sorted(fund_outputs.keys()) if symbol_scoped else sorted(fund_outputs.keys(), key=_fund_sort_key)
+    sample = fund_outputs[ordered_keys[0]]
     kind = sample['kind']
 
     # Aggregate: take most restrictive state (Fix 2: single-token reason)
@@ -681,7 +800,8 @@ def aggregate_fund_row(
     reasons = []
     affected_funds = []
 
-    for symbol, result in fund_outputs.items():
+    for symbol in ordered_keys:
+        result = fund_outputs[symbol]
         state = result['state']
         if precedence.index(state) < precedence.index(most_restrictive):
             most_restrictive = state
@@ -697,26 +817,19 @@ def aggregate_fund_row(
     if not reasons:
         reason = 'none'
     elif len(reasons) == 1:
-        # Single fund tripped: append fund suffix ONLY if multiple funds exist in scenario (Fix 3)
         symbol, base_reason = reasons[0]
-        # Fund-specific reasons get suffix only when multiple funds exist (e.g., split where both funds exist but only one trips)
-        # No suffix when only one fund exists in the scenario (e.g., SUC-01)
         needs_suffix = (len(fund_outputs) > 1 and
                        base_reason in ['pending_corporate_action', 'pending_corporate_action_carried'])
         reason = f'{base_reason}_{symbol}' if needs_suffix else base_reason
     else:
-        # Multiple funds tripped: check if all have same reason
         unique_reasons = set(r for _, r in reasons)
         if len(unique_reasons) == 1:
-            # All same reason: use the single reason token (strip any fund suffix)
             reason = next(iter(unique_reasons))
-            # Strip fund suffix if present (e.g., unresolved_fail_closed_TQQQ → unresolved_fail_closed)
-            for symbol in fund_outputs.keys():
+            for symbol in ordered_keys:
                 if reason.endswith(f'_{symbol}'):
                     reason = reason[:-len(f'_{symbol}')]
                     break
         else:
-            # Different reasons: composite (rare)
             reason = ', '.join(f"{sym}:{r}" for sym, r in reasons)
 
     # Build aggregate output
@@ -728,21 +841,21 @@ def aggregate_fund_row(
         'reason': reason
     }
 
-    # Include per-fund outputs (V4 counter at top level per Q1, not wrapped per fund)
+    # Include per-fund outputs in deterministic order
     if 'outputs' in sample:
-        # For single-fund scenarios (V4 counter), emit outputs at top level
-        # Use len(fund_outputs) not len(affected_funds) - applies to both tripping and clearing
-        if len(fund_outputs) == 1:
-            single_fund = next(iter(fund_outputs.keys()))
-            aggregate['outputs'] = fund_outputs[single_fund].get('outputs', {})
+        if len(ordered_keys) == 1:
+            single_fund = ordered_keys[0]
+            aggregate['outputs'] = copy.deepcopy(fund_outputs[single_fund].get('outputs', {}))
         else:
-            # Multiple funds: wrap per-fund
-            aggregate['outputs'] = {symbol: result.get('outputs', {}) for symbol, result in fund_outputs.items()}
+            aggregate['outputs'] = {
+                symbol: copy.deepcopy(fund_outputs[symbol].get('outputs', {}))
+                for symbol in ordered_keys
+            }
 
     # For fund/symbol-scoped rows, include affected funds/symbols
     if emit_scope_keys:
-        if len(fund_outputs) == 1:
-            single_key = next(iter(fund_outputs.keys()))
+        if len(ordered_keys) == 1:
+            single_key = ordered_keys[0]
             single_result = fund_outputs[single_key]
             if symbol_scoped:
                 aggregate['symbol'] = single_result.get('symbol', single_key)
@@ -761,16 +874,13 @@ def aggregate_fund_row(
                     aggregate['funds'] = affected_funds
 
     # G1.3: Preserve declared successor evidence fields (deviation, original_order_id)
-    # For single-fund cases, copy extra fields from the fund result
-    if len(fund_outputs) == 1:
-        single_fund = next(iter(fund_outputs.keys()))
+    if len(ordered_keys) == 1:
+        single_fund = ordered_keys[0]
         single_result = fund_outputs[single_fund]
 
-        # V1 deviation (tracking deviation on trip)
         if 'deviation' in single_result:
             aggregate['deviation'] = single_result['deviation']
 
-        # O4 original_order_id (order identity)
         if 'original_order_id' in single_result:
             aggregate['original_order_id'] = single_result['original_order_id']
 
@@ -778,11 +888,7 @@ def aggregate_fund_row(
 
 
 def aggregate_diagnostic_row(fund_outputs: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
-    """Aggregate diagnostic rows (V5, V6) with structured row-level outputs (Fix 2).
-
-    For diagnostic rows, return single row-level reason token and single structured outputs object,
-    NOT per-fund composites. Per §5.1: one row output with the row's own outputs structure.
-    """
+    """Aggregate diagnostic rows (V5, V6) in a deterministic, dict-order-independent manner."""
     if not fund_outputs:
         return {
             'state': 'NORMAL',
@@ -792,35 +898,42 @@ def aggregate_diagnostic_row(fund_outputs: Dict[str, Dict[str, Any]]) -> Dict[st
             'reason': 'none'
         }
 
-    # Get a sample to determine structure
-    sample = next(iter(fund_outputs.values()))
-    kind = sample['kind']
-
-    # For diagnostic rows, use the FIRST fund's outputs as the row-level outputs
-    # (all funds should have same structure; coordinator says to unify)
-    first_result = sample
-
-    # Aggregate state: most restrictive
+    ordered_keys = sorted(fund_outputs.keys(), key=_fund_sort_key)
     precedence = ['HALT', 'ORDER-UNKNOWN', 'DE-RISK', 'NO-NEW-RISK', 'NORMAL']
-    most_restrictive = 'NORMAL'
-    any_tripped = False
+    disposition_rank = {
+        'UNRESOLVED-FAIL-CLOSED': 0,
+        'beyond_tolerance': 1,
+        'missing_data': 2,
+        'invalid_data': 2,
+        'benign': 3,
+    }
 
-    for symbol, result in fund_outputs.items():
-        state = result['state']
-        if precedence.index(state) < precedence.index(most_restrictive):
-            most_restrictive = state
-        if result['would_have_tripped']:
-            any_tripped = True
+    def _diagnostic_severity(sym: str) -> tuple:
+        res = fund_outputs[sym]
+        outs = res.get('outputs', {})
+        disp = outs.get('disposition', 'benign')
+        return (
+            precedence.index(res['state']),
+            0 if res.get('would_have_tripped') else 1,
+            0 if outs.get('escalated_to_v1') else 1,
+            0 if outs.get('notify') else 1,
+            0 if outs.get('exceeded') else 1,
+            disposition_rank.get(disp, 4),
+            0 if res.get('reason', 'none') != 'none' else 1,
+            -(outs.get('consecutive_sessions_beyond_tolerance') or 0),
+            _fund_sort_key(sym),
+        )
 
-    # Determine single reason token: take first non-'none' reason, or 'none'
-    reason = 'none'
-    for symbol, result in fund_outputs.items():
-        if result['reason'] != 'none':
-            # Strip any fund suffix that may have been added (we want clean token)
-            reason = result['reason'].replace(f'_{symbol}', '')
-            break
+    worst_sym = min(ordered_keys, key=_diagnostic_severity)
+    worst_result = fund_outputs[worst_sym]
+    kind = worst_result['kind']
 
-    # Build aggregate output with single row-level outputs structure
+    most_restrictive = worst_result['state']
+    any_tripped = any(fund_outputs[s]['would_have_tripped'] for s in ordered_keys)
+
+    raw_reason = worst_result.get('reason', 'none')
+    reason = raw_reason[:-len(f'_{worst_sym}')] if raw_reason.endswith(f'_{worst_sym}') else raw_reason
+
     aggregate = {
         'state': most_restrictive,
         'would_have_tripped': any_tripped,
@@ -829,13 +942,22 @@ def aggregate_diagnostic_row(fund_outputs: Dict[str, Dict[str, Any]]) -> Dict[st
         'reason': reason
     }
 
-    # Include structured outputs if present (single row-level outputs, not per-fund)
-    if 'outputs' in first_result:
-        aggregate['outputs'] = first_result['outputs']
+    if 'outputs' in worst_result:
+        agg_outputs = copy.deepcopy(worst_result['outputs'])
+        if 'notify' in agg_outputs:
+            agg_outputs['notify'] = any(
+                bool(fund_outputs[s].get('outputs', {}).get('notify'))
+                for s in ordered_keys
+            )
+        if 'exceeded' in agg_outputs:
+            agg_outputs['exceeded'] = any(
+                bool(fund_outputs[s].get('outputs', {}).get('exceeded'))
+                for s in ordered_keys
+            )
+        aggregate['outputs'] = agg_outputs
 
-    # Preserve singular 'fund' for single-fund diagnostic rows (e.g. SUC-08)
-    if len(fund_outputs) == 1:
-        single_fund = next(iter(fund_outputs.keys()))
-        aggregate['fund'] = first_result.get('fund', single_fund)
+    if len(ordered_keys) == 1:
+        single_fund = ordered_keys[0]
+        aggregate['fund'] = fund_outputs[single_fund].get('fund', single_fund)
 
     return aggregate

@@ -8,6 +8,7 @@ from datetime import date
 from typing import Any, Dict, Optional
 from . import state as st
 from . import canonical_state as cst
+from .canonical import finite_float
 
 
 # Tier loss budgets (D) per spec §4.3 and spec.json
@@ -200,7 +201,9 @@ def evaluate_L1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
 
 def evaluate_L2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
-                authorized_events: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+                authorized_events: Optional[Dict[str, Any]],
+                session: Optional[str] = None,
+                as_of: Optional[str] = None) -> Dict[str, Any]:
     """L2: Drawdown reaches 2D/3 → NO-NEW-RISK.
 
     Kind: breaker
@@ -211,15 +214,10 @@ def evaluate_L2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # Check for prior latch from canonical format (SUC-12)
     prior_latch = cst.get_l2_latch(prior_state)
     if prior_latch:
-        # Check for authorized re-arm
-        rearm = False
-        if authorized_events:
-            # Handle both list and dict formats
-            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
-            for event in events_list:
-                if event.get('type') == 'rearm' and (event.get('row') == 'L2' or event.get('row_id') == 'L2'):
-                    rearm = True
-                    break
+        rearm = cst.matches_account_rearm(
+            authorized_events, 'L2', session=session, as_of=as_of,
+            require_date=(session is not None or as_of is not None),
+        ) is not None
 
         if rearm:
             # Q4 short-circuit: re-arm wins, return authorized_rearm WITHOUT re-evaluating
@@ -319,7 +317,8 @@ def evaluate_L2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
 def evaluate_L3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 authorized_events: Optional[Dict[str, Any]],
-                session: Optional[str] = None) -> Dict[str, Any]:
+                session: Optional[str] = None,
+                as_of: Optional[str] = None) -> Dict[str, Any]:
     """L3: Drawdown reaches D → DE-RISK to zero, then locked flat.
 
     Kind: breaker
@@ -330,29 +329,31 @@ def evaluate_L3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # Check for prior latch from canonical format
     prior_latch = cst.get_l3_latch(prior_state)
     if prior_latch:
-        # Check for authorized re-arm
         rearm = False
-        cooling_off_days_remaining = 30  # Default; rearm event provides days_since_trip
+        cooling_off_days_remaining = 30
 
-        if authorized_events:
-            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
-            for event in events_list:
-                if event.get('type') == 'rearm' and (event.get('row') == 'L3' or event.get('row_id') == 'L3'):
-                    rearm = True
-                    if 'days_since_trip' in event:
-                        days_elapsed = int(event['days_since_trip'])
-                    elif session and prior_latch.get('trip_session'):
-                        try:
-                            days_elapsed = (date.fromisoformat(session) - date.fromisoformat(prior_latch['trip_session'])).days
-                        except ValueError:
-                            days_elapsed = 0
-                    else:
-                        days_elapsed = 0
-                    if days_elapsed >= 30:
-                        cooling_off_days_remaining = 0
-                    else:
-                        cooling_off_days_remaining = 30 - max(0, days_elapsed)
-                    break
+        cur_date_str = (
+            as_of[:10] if isinstance(as_of, str) and len(as_of) >= 10
+            else session
+        )
+        trip_date_str = prior_latch.get('trip_session') or prior_latch.get('trip_date')
+        days_elapsed = 0
+        if cur_date_str and trip_date_str:
+            try:
+                days_elapsed = (date.fromisoformat(cur_date_str) - date.fromisoformat(trip_date_str)).days
+            except ValueError:
+                days_elapsed = 0
+
+        matched_event = cst.matches_account_rearm(
+            authorized_events, 'L3', session=session, as_of=as_of, require_date=False
+        )
+        if matched_event is not None:
+            rearm = True
+            # Compute elapsed days strictly from persisted trip_session & current date (never caller days_since_trip)
+            if days_elapsed >= 30:
+                cooling_off_days_remaining = 0
+            else:
+                cooling_off_days_remaining = 30 - max(0, days_elapsed)
 
         if rearm and cooling_off_days_remaining == 0:
             # Q4 short-circuit after 30-day cooling-off: clear active lock, preserve loss record
@@ -383,30 +384,12 @@ def evaluate_L3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             }
         }
 
-    # Evaluate trigger
-    bankroll = inputs.get('bankroll')
-    high_water_mark = inputs.get('high_water_mark')
+    bankroll = finite_float(inputs.get('bankroll'))
+    high_water_mark = finite_float(inputs.get('high_water_mark'))
     tier = inputs.get('tier')
 
-    # Fail closed on missing inputs
-    if bankroll is None or high_water_mark is None or tier is None:
-        return {
-            'state': 'DE-RISK',
-            'would_have_tripped': True,
-            'kind': 'breaker',
-            'latched': True,
-            'reason': 'missing_input',
-            'outputs': {
-                'cooling_off_days_remaining': 30,
-                'locked_flat': True,
-                'loss_record_cleared': False
-            }
-        }
-
-    try:
-        bankroll = float(bankroll)
-        high_water_mark = float(high_water_mark)
-    except (TypeError, ValueError):
+    # Fail closed on missing or non-finite inputs
+    if bankroll is None or high_water_mark is None or bankroll < 0.0 or high_water_mark <= 0.0 or tier is None:
         return {
             'state': 'DE-RISK',
             'would_have_tripped': True,
@@ -473,7 +456,8 @@ def evaluate_L3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
 def evaluate_L4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 authorized_events: Optional[Dict[str, Any]],
-                session: Optional[str] = None) -> Dict[str, Any]:
+                session: Optional[str] = None,
+                as_of: Optional[str] = None) -> Dict[str, Any]:
     """L4: One-session loss reaches D/10 → NO-NEW-RISK.
 
     Kind: breaker
@@ -484,19 +468,20 @@ def evaluate_L4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     # Check for prior latch from canonical format
     prior_latch = cst.get_account_latch(prior_state, 'L4')
     if prior_latch:
-        # Check for authorized re-arm
         rearm = False
-        if authorized_events:
-            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
-            for event in events_list:
-                if event.get('type') == 'rearm' and (event.get('row') == 'L4' or event.get('row_id') == 'L4'):
-                    # Must be next session or later
-                    if 'sessions_since_trip' in event:
-                        if event.get('sessions_since_trip', 0) >= 1:
-                            rearm = True
-                    elif session and prior_latch.get('trip_session') and session > prior_latch['trip_session']:
-                        rearm = True
-                    break
+        matched_event = cst.matches_account_rearm(
+            authorized_events, 'L4', session=session, as_of=as_of,
+            require_date=(session is not None or as_of is not None),
+        )
+        if matched_event is not None:
+            # Next session minimum computed strictly from persisted trip_session (never caller sessions_since_trip)
+            cur_date = (
+                as_of[:10] if isinstance(as_of, str) and len(as_of) >= 10
+                else session
+            )
+            trip_sess = prior_latch.get('trip_session')
+            if cur_date and trip_sess and cur_date > trip_sess:
+                rearm = True
 
         if rearm:
             return {
@@ -517,22 +502,11 @@ def evaluate_L4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         }
 
     # Evaluate trigger
-    one_session_loss = inputs.get('one_session_loss')
+    one_session_loss = finite_float(inputs.get('one_session_loss'))
     tier = inputs.get('tier')
 
-    # Fail closed on missing inputs
-    if one_session_loss is None or tier is None:
-        return {
-            'state': 'NO-NEW-RISK',
-            'would_have_tripped': True,
-            'kind': 'breaker',
-            'latched': True,
-            'reason': 'missing_input'
-        }
-
-    try:
-        one_session_loss = float(one_session_loss)
-    except (TypeError, ValueError):
+    # Fail closed on missing, NaN, inf, bool, negative, or invalid tier
+    if one_session_loss is None or one_session_loss < 0.0 or tier is None:
         return {
             'state': 'NO-NEW-RISK',
             'would_have_tripped': True,
@@ -577,75 +551,67 @@ def evaluate_L4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
 
 def evaluate_L5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
-                authorized_events: Optional[Dict[str, Any]], session: str) -> Dict[str, Any]:
+                authorized_events: Optional[Dict[str, Any]], session: str,
+                as_of: Optional[str] = None) -> Dict[str, Any]:
     """L5: Market-wide trading halt Level 1 or 2 → NO-NEW-RISK for rest of session.
 
     Kind: interlock
     Scope: account
     State contribution: NO-NEW-RISK
-    Clearing: Clears after one clean session (canonical per Q6)
+    Clearing: Persists through remainder of trading session; clears on subsequent clean session (canonical per Q6)
     """
-    # Check for prior active state from canonical format
-    fresh_session_count = cst.get_l5_fresh_count(prior_state)
-    prior_latch = cst.get_account_latch(prior_state, 'L5')
+    prior_l5 = cst.get_l5_state(prior_state)
+    cur_date = (
+        as_of[:10] if isinstance(as_of, str) and len(as_of) >= 10
+        else session
+    )
 
-    if prior_latch:
-        # Interlock clearing: one clean session needed
-        if fresh_session_count >= 1:
-            # Clear
-            return {
-                'state': 'NORMAL',
-                'would_have_tripped': False,
-                'kind': 'interlock',
-                'latched': False,
-                'reason': 'none'
-            }
-        # Still active
+    market_halt_level = inputs.get('market_halt_level')
+    triggered = (not isinstance(market_halt_level, bool)) and market_halt_level in (1, 2)
+
+    if triggered:
         return {
             'state': 'NO-NEW-RISK',
             'would_have_tripped': True,
             'kind': 'interlock',
             'latched': False,
-            'reason': 'clearing_period'
+            'reason': 'market_halt_level_1_or_2'
         }
 
-    # Evaluate trigger
-    market_halt_level = inputs.get('market_halt_level')
+    if prior_l5['active']:
+        # Same trading session as L5 trip -> remains NO-NEW-RISK for rest of session
+        if prior_l5['trip_session'] is not None and prior_l5['trip_session'] == cur_date:
+            return {
+                'state': 'NO-NEW-RISK',
+                'would_have_tripped': True,
+                'kind': 'interlock',
+                'latched': False,
+                'reason': 'clearing_period'
+            }
+        # Legacy synthetic latched L5 without trip_session clears after one clean session
+        if prior_l5['trip_session'] is None and prior_l5['fresh_session_count'] < 1:
+            return {
+                'state': 'NO-NEW-RISK',
+                'would_have_tripped': True,
+                'kind': 'interlock',
+                'latched': False,
+                'reason': 'clearing_period'
+            }
 
-    # null market_halt_level = no halt (benign)
-    if market_halt_level is None:
-        return {
-            'state': 'NORMAL',
-            'would_have_tripped': False,
-            'kind': 'interlock',
-            'latched': False,
-            'reason': 'none'
-        }
-
-    # Check trigger (Level 1 or 2)
-    triggered = market_halt_level in [1, 2]
-
-    if not triggered:
-        return {
-            'state': 'NORMAL',
-            'would_have_tripped': False,
-            'kind': 'interlock',
-            'latched': False,
-            'reason': 'none'
-        }
-
-    # Trip
     return {
-        'state': 'NO-NEW-RISK',
-        'would_have_tripped': True,
+        'state': 'NORMAL',
+        'would_have_tripped': False,
         'kind': 'interlock',
         'latched': False,
-        'reason': 'market_halt_level_1_or_2'
+        'reason': 'none'
     }
 
 
 def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
-                authorized_events: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+                authorized_events: Optional[Dict[str, Any]],
+                session: Optional[str] = None,
+                as_of: Optional[str] = None,
+                o3_failed: bool = False) -> Dict[str, Any]:
     """L6: Market-wide Level 3 halt OR one-session fall ≥10% in either index → HALT.
 
     Kind: breaker
@@ -653,17 +619,15 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     State contribution: HALT
     Clearing: Owner re-arms after reconciliation (canonical per Q6)
     """
-    # Check for prior latch from canonical format
     prior_latch = cst.get_account_latch(prior_state, 'L6')
     if prior_latch:
-        # Check for authorized re-arm
-        rearm = False
-        if authorized_events:
-            events_list = authorized_events if isinstance(authorized_events, list) else authorized_events.get('account', [])
-            for event in events_list:
-                if event.get('type') == 'rearm' and (event.get('row') == 'L6' or event.get('row_id') == 'L6'):
-                    rearm = True
-                    break
+        rearm = (
+            (not o3_failed) and
+            cst.matches_account_rearm(
+                authorized_events, 'L6', session=session, as_of=as_of,
+                require_date=(session is not None or as_of is not None),
+            ) is not None
+        )
 
         if rearm:
             return {
@@ -674,7 +638,6 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'reason': 'authorized_rearm'
             }
 
-        # Stay latched
         return {
             'state': 'HALT',
             'would_have_tripped': True,
@@ -687,43 +650,52 @@ def evaluate_L6(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     market_halt_level = inputs.get('market_halt_level')
     index_returns = inputs.get('index_one_session_returns')
 
-    # Event-trigger rows don't fail closed on missing inputs (Fix 4):
-    # They require affirmative trigger evidence; O1 carries the data-integrity trip
-    # null market_halt_level = no halt (benign)
-    # null index_returns = no index data, thus no affirmative evidence of 10% fall (benign)
+    level_3_halt = (not isinstance(market_halt_level, bool)) and market_halt_level == 3
 
-    # Check Level 3 halt (null = no halt, benign)
-    level_3_halt = market_halt_level == 3 if market_halt_level is not None else False
-
-    # Check 10% fall in either index (only if index_returns present)
+    # Check ALL indices in index_one_session_returns; never abort past an invalid earlier entry
     index_fall = False
+    invalid_index_data = False
     if index_returns is not None:
-        try:
-            for index, ret in index_returns.items():
-                if ret is not None and float(ret) <= -0.10:
+        if not isinstance(index_returns, dict):
+            invalid_index_data = True
+        else:
+            for index in sorted(index_returns.keys()):
+                ret = index_returns[index]
+                r_val = finite_float(ret)
+                if r_val is None:
+                    invalid_index_data = True
+                elif r_val <= -0.10:
                     index_fall = True
-                    break
-        except (TypeError, ValueError):
-            # Malformed data - treat as no affirmative evidence
-            index_fall = False
 
-    triggered = level_3_halt or index_fall
-
-    if not triggered:
+    if level_3_halt:
         return {
-            'state': 'NORMAL',
-            'would_have_tripped': False,
+            'state': 'HALT',
+            'would_have_tripped': True,
             'kind': 'breaker',
-            'latched': False,
-            'reason': 'none'
+            'latched': True,
+            'reason': 'level_3_halt'
+        }
+    if index_fall:
+        return {
+            'state': 'HALT',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': True,
+            'reason': 'index_fall_10pct'
+        }
+    if invalid_index_data:
+        return {
+            'state': 'HALT',
+            'would_have_tripped': True,
+            'kind': 'breaker',
+            'latched': True,
+            'reason': 'invalid_input'
         }
 
-    # Trip and latch
-    reason = 'level_3_halt' if level_3_halt else 'index_fall_10pct'
     return {
-        'state': 'HALT',
-        'would_have_tripped': True,
+        'state': 'NORMAL',
+        'would_have_tripped': False,
         'kind': 'breaker',
-        'latched': True,
-        'reason': reason
+        'latched': False,
+        'reason': 'none'
     }

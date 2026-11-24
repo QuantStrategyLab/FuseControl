@@ -163,20 +163,22 @@ class TestEngineHash(unittest.TestCase):
 
 
 class TestBoundOutputBundle(unittest.TestCase):
-    """G6 (F1-A10): Output bundle binds spec_version, engine_hash, and shadow posture."""
+    """G6 (F1-A10): Output bundle binds spec_version, canonical engine_hash, and shadow posture."""
 
-    def test_evaluator_output_carries_bound_metadata_and_changes_on_hash_change(self):
+    def test_evaluator_output_carries_authentic_bound_metadata(self):
         import json
         vi = json.loads(
             (repo_root / "goldens" / "scenarios.json").read_text(encoding="utf-8")
         )["scenarios"]["normal"]["inputs"]["validated_inputs"]
 
-        res1 = engine.evaluate(
-            "fuse-eval-spec/v1", "hash_alpha_111", "registered_policy_hash_v1",
+        real_hash = engine.compute_engine_hash()
+        res_real = engine.evaluate(
+            "fuse-eval-spec/v1", real_hash, "registered_policy_hash_v1",
             "2026-01-05", "2026-01-05T16:00:00Z", "shadow", vi, {}, []
         )
-        res2 = engine.evaluate(
-            "fuse-eval-spec/v1", "hash_beta_222", "registered_policy_hash_v1",
+        # Spoofed non-digest label must NOT be echoed; real canonical engine_hash is bound instead
+        res_spoof = engine.evaluate(
+            "fuse-eval-spec/v1", "spoofed_alpha_111", "registered_policy_hash_v1",
             "2026-01-05", "2026-01-05T16:00:00Z", "shadow", vi, {}, []
         )
 
@@ -192,18 +194,23 @@ class TestBoundOutputBundle(unittest.TestCase):
                     keys |= collect_keys(item)
             return keys
 
-        keys1 = collect_keys(list(res1))
+        keys1 = collect_keys(list(res_real))
         for field in ("spec_version", "engine_hash", "enforcement_mode", "loss_breakers_armed"):
             self.assertIn(field, keys1, f"Missing bound field {field} in evaluator output")
 
-        self.assertEqual(res1[2]["spec_version"], "fuse-eval-spec/v1")
-        self.assertEqual(res1[2]["engine_hash"], "hash_alpha_111")
-        self.assertEqual(res1[2]["enforcement_mode"], "shadow_would_have_tripped")
-        self.assertIs(res1[2]["loss_breakers_armed"], False)
+        self.assertEqual(res_real[2]["spec_version"], "fuse-eval-spec/v1")
+        self.assertEqual(res_real[2]["engine_hash"], real_hash)
+        self.assertEqual(res_spoof[2]["engine_hash"], real_hash)
+        self.assertNotEqual(res_spoof[2]["engine_hash"], "spoofed_alpha_111")
+        self.assertEqual(res_real[2]["enforcement_mode"], "shadow_would_have_tripped")
+        self.assertIs(res_real[2]["loss_breakers_armed"], False)
 
-        # Hash-change probe: changing engine_hash MUST change output triple
-        self.assertNotEqual(res1, res2)
-        self.assertEqual(res2[2]["engine_hash"], "hash_beta_222")
+        # Mismatched 64-hex pinned digest must raise ValueError per §5.3
+        with self.assertRaises(ValueError):
+            engine.evaluate(
+                "fuse-eval-spec/v1", "0" * 64, "registered_policy_hash_v1",
+                "2026-01-05", "2026-01-05T16:00:00Z", "shadow", vi, {}, []
+            )
 
     def test_required_successor_evidence_fields_present(self):
         import json

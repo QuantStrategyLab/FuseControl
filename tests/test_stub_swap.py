@@ -270,6 +270,23 @@ class TestStubSwap(unittest.TestCase):
         self.assertEqual(actual_ids, expected_ids,
                         f"Engine must return exactly {expected_ids}")
 
+    def test_stub_and_engine_align_on_timed_out_bil_order(self):
+        """A10: Timed-out BIL pending order yields matching O4.symbols & symbol:BIL scope on stub and engine."""
+        vi_inputs = copy.deepcopy(self.common_inputs)
+        vi_inputs['validated_inputs']['pending_orders'] = {
+            'BIL': {'order_id': 'ord_bil_1', 'status': 'pending', 'timeout': True}
+        }
+        stub_rows, stub_scopes, _ = stub.evaluate(**vi_inputs)
+        engine_rows, engine_scopes, _ = engine.evaluate(**vi_inputs)
+        self.assertIn('symbol:BIL', stub_scopes)
+        self.assertIn('symbol:BIL', engine_scopes)
+        self.assertEqual(stub_rows['O4'].get('symbols'), ['BIL'])
+        self.assertEqual(engine_rows['O4'].get('symbols'), ['BIL'])
+        ok_rows, diffs_rows = deep_shape_equal(stub_rows, engine_rows, 'rows_by_ID')
+        self.assertTrue(ok_rows, f"rows shape mismatch: {diffs_rows}")
+        ok_scopes, diffs_scopes = deep_shape_equal(stub_scopes, engine_scopes, 'effective_state_by_scope')
+        self.assertTrue(ok_scopes, f"scopes shape mismatch: {diffs_scopes}")
+
 
 if __name__ == "__main__":
     unittest.main()

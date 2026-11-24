@@ -478,6 +478,7 @@ def main():
 
     with open(output_path, 'w') as f:
         json.dump(golden_table, f, indent=2)
+        f.write('\n')
 
     print(f"Wrote golden table to {output_path}")
     return 0
