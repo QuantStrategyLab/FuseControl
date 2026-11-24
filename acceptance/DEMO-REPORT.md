@@ -5,16 +5,16 @@
 - **Golden freeze version:** `fuse-eval-spec/v2` (`1da74ca5...`, owner-approved v2 refreeze `2026-11-24`, unchanged relative to `710758c`)
 - **Writer:** Sonnet
 - **Demonstration epoch:** `FUSE-DESIGN-2026-11-21-v1`
-- **Verified code / fixture / tool / test head:** `b4dc687f7397b08d8a0c1f206bf99a488a0823ed` (`b4dc687`, preceded by `c5a6c19`, `2f23e71`, `02ba196`, `5a10391`, `62892c1`, `8909372`, `87e9e70`, `ce51c92`, `a684584`, `98f15b7`, `0d092dd`, `4f8f482`, `e9639f5`, `57c813b`, `882df2a`, `c39f4d0`, `0c9eb43`, `d816cca`, `72d5020`, `de50e4f`, `5ad8072`, `440373c`, `3a14e18`, `f9b6b3a`, `841b7cb`, `e3a7aba`, `18f8cdd`, `3277881`, `ef79aee`, `b1e2ec6`, `9335f26`, `710758c`, `d27f51a`, `b3084d7`; followed by this bundle/docs commit)
+- **Verified code / fixture / tool / test head:** `d21980d7d6678ed108ba4da83689a7ae4d2aa1c2` (`d21980d`, preceded by `affa79b`, `b4dc687`, `c5a6c19`, `2f23e71`, `02ba196`, `5a10391`, `62892c1`, `8909372`, `87e9e70`, `ce51c92`, `a684584`, `98f15b7`, `0d092dd`, `4f8f482`, `e9639f5`, `57c813b`, `882df2a`, `c39f4d0`, `0c9eb43`, `d816cca`, `72d5020`, `de50e4f`, `5ad8072`, `440373c`, `3a14e18`, `f9b6b3a`, `841b7cb`, `e3a7aba`, `18f8cdd`, `3277881`, `ef79aee`, `b1e2ec6`, `9335f26`, `710758c`, `d27f51a`, `b3084d7`; followed by this bundle/docs commit)
 
 ## Status
 
-**LOCAL HALT-LEVEL & O5-DIRECTION REMEDIATION VERIFIED ON `b4dc687` (v2 `goldens/` FREEZE PRESERVED AT 0 DIFF BYTES; REMOTE CI / PR #3 `F1-A14` PENDING PUSH)**
+**LOCAL PRIOR-STATE, V3-EVENT, O4-TERMINAL & IMPORT-TIME PYCACHE SECURITY REMEDIATION VERIFIED ON `d21980d` (v2 `goldens/` FREEZE PRESERVED AT 0 DIFF BYTES; REMOTE CI / PR #3 `F1-A14` PENDING PUSH)**
 
 - Base: **264/264** ✓ strict raw dict equality + type equality (`True != 1`) AND **264/264** full independent §4.1 scope maps inside formal `run_matrix.run_base_cells`
 - Tier (formal runner): **132/132 EXECUTED** ✓ full-key strict dict + type equality (`compare_base_outcome_exact` catches extra keys & `bool`/`int` mismatches; R5 real tier caps `0.40/0.60/0.80 × bankroll`, `tier_change` covers `balanced`+`aggressive`, `-1` J1-cap mutation `110 pass / 22 fail` detected)
 - Successor: **13/13** ✓ (every declared key in `expected` enforced; canonical-extra-only output/state enforcement rejects spoofed keys; summary integer vs float `6 != 6.0` enforced; `SUC-08` runs all `70` sequential sessions via live state; `SUC-11` runs `2` real calls; `SUC-06/5` runs `12` calls; `SUC-07/3` runs `7` calls)
-- Unit tests: **161 tests OK** (`unittest`: `Ran 161 tests` OK; `pytest`: **161 passed, 18 subtests passed**) ✓
+- Unit tests: **162 tests OK** (`unittest` `-B` & non-`-B`: `Ran 162 tests` OK; `pytest` `-B` & non-`-B`: **162 passed, 18 subtests passed**) ✓
 - ID-set gate (`tools/check_id_set.py`): **PASS** (`spec=24, engine=24, expected=24`) ✓
 - Spec lint (`tools/lint_spec.py`): **PASS** ✓
 - Exposure/policy invariant gate (`tools/check_exposure_invariants.py`): **168/168 bundles PASS** ✓ (`symbol` field included in target scope, per-symbol V7 scoping avoids clamping unrestricted `SOXL`, negative `joint_exposure` fail-closed headroom `0.0` handled cleanly)
@@ -26,11 +26,11 @@
   2. `O1` `missing_required_source_*` intra-session clearing vs frozen `SUC-05` Step 7 (`goldens/successor-cases.json` chains Steps 1–7 on single session `2026-01-05` with minimal `['source_records', 'tier']` inputs expecting `NORMAL` at Step 7): all real operational calls (`stale_or_missing_input`) retain same-session `clearing_period` (`NO-NEW-RISK`); only non-operational minimal `SUC-05` `missing_required_source_*` preserves Step 7 parity.
 - Remote CI / PR #3 (`F1-A14`): **PENDING** (local branch unpushed; exact-head CI, `ai-review`, and R2 governance labels pending push)
 
-## Artifact Hashes (Head `b4dc687` + Unchanged v2 Refreeze)
+## Artifact Hashes (Head `d21980d` + Unchanged v2 Refreeze)
 
-- **Engine hash (8 strictly whitelisted framed `.py` files + strict `rglob('*')` `__pycache__/<stem>.cpython-<digits>.pyc` guard):** `b78002b6567267025afb019aef6edf976e6c5b131d6299a5c375863d323042b2`
-- **Bundle hash:** `c5950e45e1620406cffe29e61e0f162d24582acccc67680c9c8fbf386c6367fc`
-- **`acceptance/result-bundle.json` SHA-256 (973 bytes, trailing LF):** `62ca5f787a15de11642cae186f7eb59d38c26dbe3b3c7e83a3531071e2ef5120`
+- **Engine hash (8 strictly whitelisted framed `.py` files + pre-import `__pycache__/*.pyc` bytecode verification):** `12e9b502367a4993d0c36e75ac5c8d24acaee2d1247c5b594796d5adda04ca45`
+- **Bundle hash:** `78fed9dfc9b0b0a618fce6bb5a956063135f34845545e6a5154a32e119354cc9`
+- **`acceptance/result-bundle.json` SHA-256 (973 bytes, trailing LF):** `ca3af33909c2fd5c26364458406de710197dd87dc8c9f1234adef0c1f60cbd42`
 - **Original freeze (`f60986a`):** `efb8737ac11342b09297f2e7393741dffef4cf47cb88068364fd9ee836279b50`
 - **Adjudication freeze v1 (`86be6d7`):** `499641a2185131bccc49f93c1784eab3fd226336d6ac0edc66a1d983df1d89f1`
 - **Owner-approved v2 refreeze (at `d27f51a` / `710758c`, 0 bytes modified in R3–R14 remediation):**
@@ -41,7 +41,14 @@
   - `goldens/DERIVATION.md` (v2 addendum): `eaa8034df0271cbeca9297a77c76ca3c6b4bd0968dd433ed7082af28c80a4682`
   - **Combined v2 freeze:** `1da74ca508161ba6d9a424101321381a9f5156d8cb2c84c03be2fd2fe3f22a74`
 
-## Remote PR #3 `@codex` Halt-Level & Active Order Direction Remediation (`b4dc687` & this docs/bundle commit)
+## Remote PR #3 `@codex` Prior-State, V3-Event, O4-Terminal & Pycache Security Remediation (`d21980d` & this docs/bundle commit)
+
+- **Reject corrupt non-`None`, non-`dict` `prior_row_state` (`src/fuse_engine/evaluator.py`)**: Preserves `prior_row_state is None` as intentional empty `{}` while raising `ValueError` on non-`None`, non-`dict` persisted state instead of silently wiping durable latches to `{}`.
+- **`V3` fail closed on malformed/unrecognized `fund_event` (`src/fuse_engine/rows_vehicle.py`)**: Rejects non-`None` malformed or unrecognized `fund_event` values with latched `DE-RISK / invalid_input`, blocking exposure raises cleanly while keeping all `goldens/` (`fund_event=None`) unchanged.
+- **`O4` terminal-status check before creating timeout locks (`src/fuse_engine/rows_ops.py`)**: Checks recognized definitive terminal statuses (`filled`, `cancelled`, `canceled`, `rejected`, `expired`) for identified orders before creating a new `ORDER-UNKNOWN` timeout restriction, eliminating `ORDER-UNKNOWN` <-> `NORMAL` oscillation on identical payloads while keeping active `prior_pending` order-ID identity guards intact.
+- **Import-time directory & `__pycache__/*.pyc` bytecode integrity verification (`src/fuse_engine/__init__.py`, `src/fuse_engine/evaluator.py`, `tools/run_matrix.py`)**: Runs `_verify_and_hash_engine_dir()` in both `__init__.py` (before importing `evaluator`) and `evaluator.py` (before importing row submodules), validating magic header, cache tag, PEP 552 `source_hash` or size, `co_filename`, and compiled `code` object equality for every `__pycache__/*.pyc` so tampered bytecode fails closed before execution while both `-B` and non-`-B` test runs pass cleanly.
+
+## Remote PR #3 `@codex` Halt-Level & Active Order Direction Remediation (`b4dc687` & `affa79b`)
 
 - **`L5`/`L6` fail closed on invalid `market_halt_level` (`src/fuse_engine/rows_loss.py`, `src/fuse_engine/evaluator.py`)**: Validates `market_halt_level` via `_parse_market_halt_level()` so only `None` or exact `int` in `{0, 1, 2, 3}` (excluding `bool`, `str` such as `'3'`/`'unavailable'`, out-of-range ints `-1`/`4`, and `float` such as `1.5`/`NaN`) is accepted; invalid values fail `L5` closed as `NO-NEW-RISK / invalid_input` (preserving same-session active `L5` trips and withholding clean-session increment) and fail `L6` closed as latched `HALT / invalid_input` while keeping all `goldens/` scenarios (`market_halt_level=None`) at 0 diff bytes.
 - **`O5` mandatory active-order direction (`src/fuse_engine/rows_ops.py`)**: Enforces `(order_present and side is None)` -> `violations.append('not_long_only')`, rejecting active orders that omit or null all direction aliases (`o5_side`, `side`, `order_side`).
