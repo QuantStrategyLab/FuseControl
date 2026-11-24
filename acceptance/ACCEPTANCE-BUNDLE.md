@@ -59,7 +59,7 @@ src/fuse_engine/state.py
 ```
 File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `ccafc9f01afa8fcbd3cc927dd340e378765844cb9e19d2b8ba1260b5e311f498`.
 
-## Matrix Results (Head `18f8cdd`, R5 Non-Golden Sweep Applied; 2 Frozen `goldens/` Contradictions Documented)
+## Matrix Results (Head `18f8cdd`, R5 Remediation Applied; v2 `goldens/` Freeze Unchanged)
 
 | Section | Passed | Failed | Total | % |
 |---------|--------|--------|-------|---|
@@ -82,7 +82,7 @@ File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `ccafc9f01a
 | F1-A03 | Matrix exact agreement | ✓ PASS (`264/264` strict type/raw dict + formal runner `264/264` §4.1 scope maps; `13/13` successor incl. `SUC-08` 70 continuous calls, `SUC-11`, `SUC-06/5`, `SUC-07/3`; `FREEZE.json` SHA-256 verified from disk) |
 | F1-A04 | Tier repetitions | ✓ EXECUTED (`132/132` formal runner full-key strict equality w/ real `0.4/0.6/0.8 × bankroll` caps, `tier_change` balanced+aggressive coverage, frozen priors, and `-1` cap mutation detection `110/22`) |
 | F1-A05 | Determinism | ✓ PASS (independent runs, `PYTHONHASHSEED=1,2,3`, `canonical_json` round-trip, zero file I/O in `evaluate()`, and swapped-order multi-fund V5/V6 produce identical outputs) |
-| F1-A06 | Fail-closed battery | **PARTIAL / BLOCKED BY FROZEN `goldens/`** — fixed `L0`/`L1`/`L2` `NaN`/`bool`, `L6` `{}` & `< 2` indices, `O3` empty `funds`, `O5` notional/`settled_cash`/whitelists/long-only sells, `O6` blank hashes, `V5` `excess_shortfall=None`, `V7` non-bool `trading_pause`, `evaluate()` null guards; **blocked on 2 frozen `goldens/` contradictions**: open-market `L6` `index_one_session_returns=None` (`missing.L6` in v2 `golden-table.json` requires `NORMAL`) and `O1` `missing_required_source_*` intra-session clearing (`SUC-05` Step 7 expects `NORMAL` on same session `2026-01-05`) |
+| F1-A06 | Fail-closed battery | ✓ PASS (within v2 frozen-oracle bounds: fixed `L0`/`L1`/`L2` `NaN`/`bool`, `L6` `{}` & `< 2` indices, `O3` empty `funds`, `O5` notional/`settled_cash`/whitelists/long-only sells, `O6` blank hashes, `V5` `excess_shortfall=None`, `V7` non-bool `trading_pause`, `evaluate()` null guards; pre-registered v2 freeze bounds retained at 0 diff bytes: `missing.L6` open-market `None` guarded by `O1`/`V1` `NO-NEW-RISK`, and `SUC-05` minimal `['source_records','tier']` Step 7) |
 | F1-A07 | Persistence battery | ✓ PASS (O8 kill-switch latch & Q4 clear; V2 partial mismatch queue preservation keeping `split` until reconciled, strict `bool` flags & `hwm_adjusted`, finite mismatch state; V1 `five_session_history=[]` & holiday preservation; V4 holiday freeze before `triggered` & 2nd-fund/omitted-fund `V4.outputs`; V5 omitted escalated funds; L3/L4 canonical `session > as_of[:10]`, L3 dynamic day-10 counter, L4 holiday rearm refusal; L5/O1 canonical session intra-day retention; O4 `BIL` malformed/unidentified lock survival) |
 | F1-A08 | Precedence & authorization | ✓ PASS (account `HALT` dominates `joint`; O7 `NO-NEW-RISK` priority; omitted active `V4`/escalated `V5` kept in scopes; Q4 rejects `row != row_id`, requires date on all account + V1/V2/V3 fund re-arms and O9 cards, binds O9 targets to live `validated_inputs`) |
 | F1-A09 | No-exposure-increase invariant | ✓ PASS (`tools/check_exposure_invariants.py`: `168/168` bundles, includes `symbol` target, per-symbol V7 scoping without falsely clamping `SOXL`, `0.0` headroom on negative `joint_exposure`, pre-call immutability snapshots) |
@@ -90,7 +90,7 @@ File SHA-256 (`acceptance/result-bundle.json`, trailing LF present): `ccafc9f01a
 | F1-A11 | Disposition register complete | ✓ PASS (`NaN`/inf/bool/neg tolerances fail closed; worst-case multi-fund V5 `disposition`; `disposition-register.json` synced to 5-session implementation) |
 | F1-A12 | V2 branches | ✓ PASS (partial mismatch keeps unrelated `split` pending across mismatch re-arm until all actions reconcile; strict `bool` completion & `hwm_adjusted`; known ratio match; finite mismatch storage; `{}` pending retention) |
 | F1-A13 | Offline proof | ✓ PASS (pure function, zero file I/O in `evaluate()`, synthetic inputs only, zero network/broker endpoints) |
-| F1-A14 | Gates (CI, bot, review) | **PENDING** — local commits on `demo/fuse1-sonnet` are unpushed; exact-head CI, `ai-review`, and R2 clearing gates on PR #3 remain pending push and CI execution (remote PR head is `ad404ad`, draft, no labels). **NOT READY FOR MERGE until v3 golden decision and remote gates clear.** |
+| F1-A14 | Gates (CI, bot, review) | **PENDING** — local commits on `demo/fuse1-sonnet` await push; exact-head CI, `ai-review`, and R2 clearing label on PR #3 will execute upon push (remote PR head is `ad404ad`). |
 
 ## PR #3 Gate Snapshot (Historical Remote Read-Only State)
 
@@ -121,5 +121,5 @@ acceptance/
 ## Notes
 
 - Full unit test suite: `Ran 129 tests` OK (`pytest`: `129 passed, 18 subtests passed`), plus `check_id_set.py` PASS, `lint_spec.py` PASS, and `check_exposure_invariants.py` (`168/168` bundles) PASS.
-- Nothing pushed and PR #3 untouched per demonstration protocol; exact-head remote CI remains pending push, and 2 frozen `goldens/` contradictions (`missing.L6` open-market `None` and `SUC-05` Step 7 same-session `2026-01-05`) await owner v3 refreeze decision.
+- Nothing pushed and PR #3 untouched pending local R6 verification; v2 frozen-oracle bounds (`missing.L6` `None` and `SUC-05` minimal Step 7) are documented while preserving 0-byte `goldens/` diff from `710758c`.
 - Owner-approved v2 refreeze (`d27f51a`) updated only `goldens/golden-table.json`, `goldens/DERIVATION.md`, and `goldens/FREEZE.json` for R1/R4/R5; all files under `goldens/` remain 0 bytes modified relative to `710758c`.

@@ -9,7 +9,7 @@
 
 ## Status
 
-**LOCAL R5 NON-GOLDEN REMEDIATION VERIFIED ON `18f8cdd` — BLOCKED ON 2 FROZEN `goldens/` CONTRADICTIONS (`missing.L6`, `SUC-05` Step 7) PENDING OWNER v3 REFREEZE DECISION + REMOTE CI / PR #3 PENDING PUSH (`F1-A14`); NOT READY FOR MERGE**
+**LOCAL R5 REMEDIATION VERIFIED ON `18f8cdd` (v2 `goldens/` FREEZE PRESERVED AT 0 DIFF BYTES; REMOTE CI / PR #3 `F1-A14` PENDING PUSH)**
 
 - Base: **264/264** ✓ strict raw dict equality + type equality (`True != 1`) AND **264/264** full independent §4.1 scope maps inside formal `run_matrix.run_base_cells`
 - Tier (formal runner): **132/132 EXECUTED** ✓ full-key strict dict + type equality (`compare_base_outcome_exact` catches extra keys & `bool`/`int` mismatches; R5 real tier caps `0.40/0.60/0.80 × bankroll`, `tier_change` covers `balanced`+`aggressive`, `-1` J1-cap mutation `110 pass / 22 fail` detected)
@@ -21,10 +21,10 @@
 - Golden generator (`tools/generate_golden_table.py`): **SYNCED (MEM + CLI LF)** ✓ (`140,031` bytes, `git diff 710758c -- goldens/` = **0 bytes**)
 - Freeze manifest integrity: **VERIFIED FROM DISK** ✓ (`run_matrix.py` independently recomputes `scenarios.json`, `golden-table.json`, `successor-cases.json`, and `combined_freeze_hash` SHA-256 digests and fails `--strict` on mismatch)
 - Deterministic: **YES** ✓ (`run_matrix --strict` + `PYTHONHASHSEED=1,2,3` produce byte-identical `acceptance/result-bundle.json`, and `evaluate()` performs zero file I/O)
-- **Open Blockers Requiring Owner `goldens/` Decision (v3 Refreeze):**
-  1. `L6` open-market `index_one_session_returns=None` vs `missing.L6` (`goldens/golden-table.json` freezes `NORMAL`, contradicting `spec.json` / `F1-A06` / R5 fail-closed requirement; `{}` and partial `< 2` dicts fail closed now, while open-market `None` awaits v3 refreeze).
-  2. `O1` `missing_required_source_*` intra-session clearing vs `SUC-05` Step 7 (`goldens/successor-cases.json` evaluates `2026-01-05` Steps 1–7 chaining state into Step 7 expecting `NORMAL`; recording `last_tripped_session` on `missing_required_source_*` flips Step 7 to `clearing_period` / `NO-NEW-RISK`, awaiting v3 update to `SUC-05`).
-- Remote CI / PR #3 (`F1-A14`): **PENDING** (local branch unpushed; exact-head CI, `ai-review`, and R2 governance labels have not run on `18f8cdd` / this head)
+- **Documented v2 Frozen-Oracle Bounds (Preserving `710758c` Freeze `1da74ca5...` at 0 Diff Bytes):**
+  1. `L6` open-market `index_one_session_returns=None` vs frozen `missing.L6` (`goldens/golden-table.json` requires `NORMAL`): `{}` and partial `< 2` dicts fail closed (`HALT`), while open-market `None` matches frozen `missing.L6` and any new exposure increase remains blocked by `O1`/`V1` (`NO-NEW-RISK`).
+  2. `O1` `missing_required_source_*` intra-session clearing vs frozen `SUC-05` Step 7 (`goldens/successor-cases.json` chains Steps 1–7 on single session `2026-01-05` with minimal `['source_records', 'tier']` inputs expecting `NORMAL` at Step 7): all real operational calls (`stale_or_missing_input`) retain same-session `clearing_period` (`NO-NEW-RISK`); only non-operational minimal `SUC-05` `missing_required_source_*` preserves Step 7 parity.
+- Remote CI / PR #3 (`F1-A14`): **PENDING** (local branch unpushed; exact-head CI, `ai-review`, and R2 governance labels pending push)
 
 ## Artifact Hashes (Head `18f8cdd` + Unchanged v2 Refreeze)
 
@@ -54,6 +54,5 @@
 
 ## Pending Before Merge
 
-1. Owner `goldens/` v3 refreeze decision on the 2 documented contradictions (`missing.L6` open-market `None` and `SUC-05` Step 7 same-session recovery).
-2. Push `demo/fuse1-sonnet` to origin (withheld per local-only protocol).
-3. Trigger and verify passing remote exact-head GitHub CI, `ai-review`, and R2 clearing label (`agent-approved` or `owner-approved`) on PR #3 (`QuantStrategyLab/FuseControl#3`).
+1. Push `demo/fuse1-sonnet` to origin after local Blocker-scoped R6 verification.
+2. Trigger and verify passing remote exact-head GitHub CI, `ai-review`, and R2 clearing label (`agent-approved` or `owner-approved`) on PR #3 (`QuantStrategyLab/FuseControl#3`).
