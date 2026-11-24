@@ -279,7 +279,7 @@ def evaluate(
     # V7 is symbol-scoped interlock (not diagnostic)
     rows_by_ID['V5'] = aggregate_diagnostic_row(v5_outputs)
     rows_by_ID['V6'] = aggregate_diagnostic_row(v6_outputs)
-    rows_by_ID['V7'] = aggregate_fund_row(v7_outputs, symbol_scoped=True)
+    rows_by_ID['V7'] = aggregate_fund_row(v7_outputs, symbol_scoped=True, emit_scope_keys=False)
 
     # V2, V4, V5 state now written inline using canonical accessors per Q6
 
@@ -337,7 +337,7 @@ def evaluate(
             order_id = o4_result['original_order_id']
             status = 'unknown'
             cst.set_o4_pending_order(next_row_state, symbol, order_id, status)
-        elif o4_result['reason'] == 'order_filled':
+        elif o4_result['reason'] in ('original_order_terminal_status_received', 'order_filled'):
             # Clear resolved order
             cst.clear_o4_pending_order(next_row_state, symbol)
 
@@ -483,7 +483,11 @@ def evaluate(
     return (rows_by_ID, effective_state_by_scope, next_row_state)
 
 
-def aggregate_fund_row(fund_outputs: Dict[str, Dict[str, Any]], symbol_scoped: bool = False) -> Dict[str, Any]:
+def aggregate_fund_row(
+    fund_outputs: Dict[str, Dict[str, Any]],
+    symbol_scoped: bool = False,
+    emit_scope_keys: bool = True
+) -> Dict[str, Any]:
     """Aggregate per-fund row outputs into a single row output.
 
     For fund-scoped rows, returns the most restrictive state across all funds.
@@ -568,15 +572,25 @@ def aggregate_fund_row(fund_outputs: Dict[str, Dict[str, Any]], symbol_scoped: b
             aggregate['outputs'] = {symbol: result.get('outputs', {}) for symbol, result in fund_outputs.items()}
 
     # For fund/symbol-scoped rows, include affected funds/symbols
-    if affected_funds:
-        if symbol_scoped:
-            aggregate['symbols'] = affected_funds
-        else:
-            # Use singular 'fund' for single-fund case, plural 'funds' for multiple
-            if len(affected_funds) == 1:
-                aggregate['fund'] = affected_funds[0]
+    if emit_scope_keys:
+        if len(fund_outputs) == 1:
+            single_key = next(iter(fund_outputs.keys()))
+            single_result = fund_outputs[single_key]
+            if symbol_scoped:
+                aggregate['symbol'] = single_result.get('symbol', single_key)
+                if affected_funds:
+                    aggregate['symbols'] = affected_funds
             else:
-                aggregate['funds'] = affected_funds
+                aggregate['fund'] = single_result.get('fund', single_key)
+        elif affected_funds:
+            if symbol_scoped:
+                aggregate['symbols'] = affected_funds
+            else:
+                already_suffixed = any(reason.endswith(f'_{s}') for s in affected_funds)
+                if len(affected_funds) == 1 and not already_suffixed:
+                    aggregate['fund'] = affected_funds[0]
+                elif len(affected_funds) > 1:
+                    aggregate['funds'] = affected_funds
 
     # G1.3: Preserve declared successor evidence fields (deviation, original_order_id)
     # For single-fund cases, copy extra fields from the fund result
@@ -588,12 +602,9 @@ def aggregate_fund_row(fund_outputs: Dict[str, Dict[str, Any]], symbol_scoped: b
         if 'deviation' in single_result:
             aggregate['deviation'] = single_result['deviation']
 
-        # O4 original_order_id and symbol (order identity)
+        # O4 original_order_id (order identity)
         if 'original_order_id' in single_result:
             aggregate['original_order_id'] = single_result['original_order_id']
-        if 'symbol' in single_result and not symbol_scoped:
-            # For non-symbol-scoped, preserve individual symbol
-            aggregate['symbol'] = single_result['symbol']
 
     return aggregate
 
@@ -653,5 +664,10 @@ def aggregate_diagnostic_row(fund_outputs: Dict[str, Dict[str, Any]]) -> Dict[st
     # Include structured outputs if present (single row-level outputs, not per-fund)
     if 'outputs' in first_result:
         aggregate['outputs'] = first_result['outputs']
+
+    # Preserve singular 'fund' for single-fund diagnostic rows (e.g. SUC-08)
+    if len(fund_outputs) == 1:
+        single_fund = next(iter(fund_outputs.keys()))
+        aggregate['fund'] = first_result.get('fund', single_fund)
 
     return aggregate

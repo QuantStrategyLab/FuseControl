@@ -6,16 +6,21 @@ compares actual vs expected outcomes, writes result bundle with counts and canon
 """
 
 import argparse
+import copy
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+# Add src and repo root to path
+_REPO_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(_REPO_ROOT / 'src'))
+sys.path.insert(0, str(_REPO_ROOT))
 
 from fuse_engine import evaluate
+from fuse_engine.canonical import canonical_json as engine_canonical_json
 
 
 def load_json(path: Path) -> Dict[str, Any]:
@@ -60,10 +65,13 @@ def compare_outcome(actual: Dict[str, Any], expected: Dict[str, Any]) -> Tuple[b
         if actual_counter != expected_counter:
             diffs.append(f"  clearing_counter: actual={actual_counter} (from outputs) != expected={expected_counter} (top-level)")
 
-    # NOTE: Top-level 'fund', 'symbol', 'original_order_id', 'deviation', 'rejection_count_this_session'
-    # in expected outputs are DOCUMENTATION fields in the goldens, not actual engine outputs per §5.1.
-    # They are listed in DIAGNOSIS "Further defects - outputs hidden by projections" as known gaps
-    # but are NOT part of the evaluator contract. Do not check them here.
+    # G1.3: Enforce declared top-level successor evidence fields
+    for field in ['fund', 'symbol', 'original_order_id', 'deviation', 'rejection_count_this_session']:
+        if field in expected:
+            if field not in actual:
+                diffs.append(f"  {field}: missing in actual (expected={expected[field]})")
+            elif actual[field] != expected[field]:
+                diffs.append(f"  {field}: actual={actual[field]} != expected={expected[field]}")
 
     # Outputs if present (excluding clearing_counter which is mapped above)
     if 'outputs' in expected:
@@ -76,6 +84,34 @@ def compare_outcome(actual: Dict[str, Any], expected: Dict[str, Any]) -> Tuple[b
                 diffs.append(f"  outputs.{key}: actual={actual_outputs[key]} != expected={expected_outputs[key]}")
 
     return (len(diffs) == 0, diffs)
+
+
+def compare_base_outcome_exact(actual: Dict[str, Any], expected: Dict[str, Any], row_id: str) -> Tuple[bool, List[str]]:
+    """Compare base cell outcome with full dictionary equality (G1.1).
+
+    Enforces exact dict equality for every row. For O5, reconciles the known
+    frozen discrepancy where golden-table.json base cells omit
+    'rejection_count_this_session' while successor-cases.json (SUC-03/04) requires it.
+    """
+    if actual == expected:
+        return (True, [])
+
+    if row_id == 'O5' and 'rejection_count_this_session' not in expected and 'rejection_count_this_session' in actual:
+        projected = {k: v for k, v in actual.items() if k != 'rejection_count_this_session'}
+        if projected == expected:
+            return (True, [])
+
+    diffs = []
+    missing_keys = sorted(set(expected.keys()) - set(actual.keys()))
+    extra_keys = sorted(set(actual.keys()) - set(expected.keys()))
+    if missing_keys:
+        diffs.append(f"  missing keys: {missing_keys}")
+    if extra_keys:
+        diffs.append(f"  extra keys: {extra_keys}")
+    for key in sorted(set(actual.keys()) & set(expected.keys())):
+        if actual[key] != expected[key]:
+            diffs.append(f"  {key}: actual={actual[key]} != expected={expected[key]}")
+    return (False, diffs)
 
 
 def compare_effective_state(actual: Dict[str, str], expected: Dict[str, str]) -> Tuple[bool, List[str]]:
@@ -113,11 +149,12 @@ def compare_next_row_state(actual: Dict[str, Any], expected: Dict[str, Any]) -> 
         expected_row_state = expected[row_id]
         actual_row_state = actual.get(row_id)
 
-        # Empty row map check: {"L2":{}} means cleared state.
-        # Actual may return None or {} for cleared rows - both acceptable.
+        # Strict empty row map check (G1.3): {"L2":{}} requires present empty dict {},
+        # NEVER absent state (None).
         if expected_row_state == {}:
-            if actual_row_state not in (None, {}):
-                diffs.append(f"  next_row_state.{row_id}: expected empty/cleared ({{}} or None), got {actual_row_state}")
+            if row_id not in actual or actual[row_id] != {}:
+                actual_repr = '<absent>' if row_id not in actual else actual[row_id]
+                diffs.append(f"  next_row_state.{row_id}: expected explicit empty map {{}}, got {actual_repr}")
         else:
             # Non-empty: check expected fields (actual may have extra fields like last_session)
             if actual_row_state is None:
@@ -247,8 +284,8 @@ def run_base_cells(scenarios: Dict[str, Any], golden_table: Dict[str, Any], engi
         scenario = scenarios['scenarios'][scenario_name]
         actual_outcome, actual_effective_state = execute_cell(scenario, row_id, engine_hash)
 
-        # Compare outcome
-        outcome_match, outcome_diffs = compare_outcome(actual_outcome, golden_cell['outcome'])
+        # Compare outcome (G1.1: strict dict equality modulo documented O5 base projection)
+        outcome_match, outcome_diffs = compare_base_outcome_exact(actual_outcome, golden_cell['outcome'], row_id)
 
         # Compare effective state (only if present in golden)
         state_match = True
@@ -368,10 +405,189 @@ def run_tier_repetitions(scenarios: Dict[str, Any], golden_table: Dict[str, Any]
     return results
 
 
+def _deep_shape_equal(obj1: Any, obj2: Any, path: str = 'root') -> Tuple[bool, List[str]]:
+    """Compare recursive dict/list shape (keys and exact value types)."""
+    diffs: List[str] = []
+    if type(obj1) is not type(obj2):
+        diffs.append(f"{path}: type mismatch ({type(obj1).__name__} vs {type(obj2).__name__})")
+        return False, diffs
+    if isinstance(obj1, dict):
+        k1, k2 = set(obj1.keys()), set(obj2.keys())
+        if k1 != k2:
+            missing = k2 - k1
+            extra = k1 - k2
+            if missing:
+                diffs.append(f"{path}: missing keys {sorted(missing)}")
+            if extra:
+                diffs.append(f"{path}: extra keys {sorted(extra)}")
+            return False, diffs
+        ok = True
+        for k in sorted(k1):
+            sub_ok, sub_diffs = _deep_shape_equal(obj1[k], obj2[k], f"{path}.{k}")
+            if not sub_ok:
+                ok = False
+                diffs.extend(sub_diffs)
+        return ok, diffs
+    if isinstance(obj1, list):
+        if len(obj1) != len(obj2):
+            diffs.append(f"{path}: list length mismatch ({len(obj1)} vs {len(obj2)})")
+            return False, diffs
+        ok = True
+        for idx, (a, b) in enumerate(zip(obj1, obj2)):
+            sub_ok, sub_diffs = _deep_shape_equal(a, b, f"{path}[{idx}]")
+            if not sub_ok:
+                ok = False
+                diffs.extend(sub_diffs)
+        return ok, diffs
+    return True, []
+
+
+def _execute_suc11_deep_shape(engine_hash: str) -> Tuple[bool, List[str]]:
+    """Execute SUC-11 deep-shape fixture via real evaluate() calls (G1.2)."""
+    diffs: List[str] = []
+    common_validated = {
+        'tier': 'balanced',
+        'bankroll': 100000.0,
+        'high_water_mark': 100000.0,
+        'joint_exposure': 25000.0,
+        'proposed_exposure': 5000.0,
+        'max_loss_cap': 50000.0,
+        'tier_joint_cap': 50000.0,
+        'tier_loss_budget_D': 0.30,
+        'one_session_loss': 0.0,
+        'market_halt_level': None,
+        'index_one_session_returns': {'SPX': 0.005, 'NDX': 0.008},
+        'session_calendar_status': 'open',
+        'exchange_status': 'open',
+        'positions_cash': 50000.0,
+        'broker_cash': 50000.0,
+        'reconciliation_tolerance': 100.0,
+        'loaded_policy_hash': 'synthetic-policy',
+        'registered_policy_hash': 'synthetic-policy',
+        'funds': {
+            'TQQQ': {
+                'fund_return': 0.024,
+                'index_return': 0.008,
+                'modelled_fee': 0.0001,
+                'modelled_financing': 0.0001,
+                'forecast_volatility': 0.21,
+                'long_run_volatility': 0.24,
+                'shortfall_observed': 0.008,
+                'shortfall_predicted': 0.003,
+                'v5_tolerance': 0.003,
+                'v6_cost_per_unit_exposure': 0.015,
+                'v6_threshold': 0.01,
+                'quote_staleness': 0.5,
+                'spread_width': 0.0005,
+                'v7_spread_width': None,
+                'trading_pause': False,
+                'session_time': 'regular',
+                'ledger_value': 50000.0,
+                'broker_value': 50000.0,
+            }
+        }
+    }
+    prior_v4 = {'V4': {'TQQQ': {'clearing_counter': 5, 'last_session_below_threshold': '2026-01-05'}}}
+    prior_v5 = {'V5': {'TQQQ': {'consecutive_beyond_tolerance': 20, 'escalated': False, 'last_session': '2026-01-05'}}}
+    combined_prior = {**prior_v4, **prior_v5}
+
+    rows, scopes, next_state = evaluate(
+        spec_version='fuse-eval-spec/v1',
+        engine_hash=engine_hash,
+        policy_hash='synthetic-policy',
+        session='2026-01-06',
+        as_of='2026-01-06T16:00:00Z',
+        mode='shadow',
+        validated_inputs=common_validated,
+        prior_row_state=combined_prior,
+        authorized_events={}
+    )
+
+    shape_ok, shape_errs = validate_row_shape(rows)
+    if not shape_ok:
+        diffs.extend([f"SUC-11 row shape error: {e}" for e in shape_errs])
+
+    # Check V4 unwrapped clearing_counter
+    v4_out = rows.get('V4', {}).get('outputs', {})
+    if v4_out.get('clearing_counter') != 6 or 'TQQQ' in v4_out:
+        diffs.append(f"SUC-11 V4 outputs shape unexpected: {v4_out}")
+
+    # Check V5 diagnostic outputs keys and types
+    v5_out = rows.get('V5', {}).get('outputs', {})
+    for key, expected_type in [
+        ('excess_shortfall', float),
+        ('consecutive_sessions_beyond_tolerance', int),
+        ('escalated_to_v1', bool),
+        ('disposition', str),
+    ]:
+        if key not in v5_out or type(v5_out[key]) is not expected_type:
+            diffs.append(f"SUC-11 V5.outputs.{key} expected {expected_type.__name__}, got {v5_out.get(key)!r}")
+
+    # Check V6 diagnostic outputs keys and types
+    v6_out = rows.get('V6', {}).get('outputs', {})
+    for key, expected_type in [
+        ('cost_per_unit_exposure', float),
+        ('threshold', float),
+        ('exceeded', bool),
+        ('notify', bool),
+    ]:
+        if key not in v6_out or type(v6_out[key]) is not expected_type:
+            diffs.append(f"SUC-11 V6.outputs.{key} expected {expected_type.__name__}, got {v6_out.get(key)!r}")
+
+    # Second evaluate() call with two funds (matches stub shape check on multi-fund)
+    two_fund_inputs = copy.deepcopy(common_validated)
+    two_fund_inputs['funds']['SOXL'] = copy.deepcopy(common_validated['funds']['TQQQ'])
+    two_fund_inputs['funds']['TQQQ']['v5_tolerance'] = None
+    two_fund_inputs['funds']['SOXL']['v5_tolerance'] = None
+    two_fund_inputs['funds']['TQQQ'].pop('v6_cost_per_unit_exposure', None)
+    two_fund_inputs['funds']['TQQQ'].pop('v6_threshold', None)
+    two_fund_inputs['funds']['SOXL'].pop('v6_cost_per_unit_exposure', None)
+    two_fund_inputs['funds']['SOXL'].pop('v6_threshold', None)
+    two_rows, two_scopes, _ = evaluate(
+        spec_version='fuse-eval-spec/v1',
+        engine_hash=engine_hash,
+        policy_hash='synthetic-policy',
+        session='2026-01-06',
+        as_of='2026-01-06T16:00:00Z',
+        mode='shadow',
+        validated_inputs=two_fund_inputs,
+        prior_row_state={},
+        authorized_events={}
+    )
+    from fixtures import stub_adapter
+    stub_rows, stub_scopes, _ = stub_adapter.evaluate(
+        'fuse-eval-spec/v1', engine_hash, 'synthetic-policy', '2026-01-06', '2026-01-06T16:00:00Z',
+        'shadow', two_fund_inputs, {}, {}
+    )
+    rows_match, rows_diffs = _deep_shape_equal(two_rows, stub_rows, 'rows_by_ID')
+    if not rows_match:
+        diffs.extend([f"SUC-11 stub shape mismatch: {d}" for d in rows_diffs])
+    scopes_match, scopes_diffs = _deep_shape_equal(two_scopes, stub_scopes, 'effective_state_by_scope')
+    if not scopes_match:
+        diffs.extend([f"SUC-11 scope shape mismatch: {d}" for d in scopes_diffs])
+
+    # Negative control: inject nested type mismatch in V5.outputs.consecutive_sessions_beyond_tolerance
+    mutated_rows = copy.deepcopy(rows)
+    mutated_rows['V5']['outputs']['consecutive_sessions_beyond_tolerance'] = str(
+        mutated_rows['V5']['outputs']['consecutive_sessions_beyond_tolerance']
+    )
+    neg_equal, neg_diffs = _deep_shape_equal(rows, mutated_rows, 'rows_by_ID')
+    if neg_equal or not any('consecutive_sessions_beyond_tolerance' in d for d in neg_diffs):
+        diffs.append("SUC-11 negative control failed: nested V5 type mutation not detected")
+
+    return (len(diffs) == 0, diffs)
+
+
+def _extract_summary_sessions(note: str, year_month: str = '2026-01') -> List[str]:
+    """Extract ordered YYYY-MM-DD session dates from summary step note."""
+    days = re.findall(r'\b(\d{1,2})\b', note.split('January')[-1].split('of 2026')[0])
+    return [f"{year_month}-{int(d):02d}" for d in days]
+
+
 def run_successor_cases(successor_cases: Dict[str, Any], engine_hash: str) -> Dict[str, Any]:
     """Run successor-state continuity cases.
 
-    Each case has multiple steps that execute in sequence, threading
+    Each case has multiple steps that execute in sequence, threading real
     next_row_state from one step into the next step's prior_row_state.
 
     Returns results dict with counts and failures.
@@ -386,24 +602,117 @@ def run_successor_cases(successor_cases: Dict[str, Any], engine_hash: str) -> Di
     }
 
     for case_id, case in cases.items():
-        # G1.2: Remove flag skip - SUC-11 must execute via real evaluator calls
-        # (Astra finding: zero evaluator calls for SUC-11)
+        # G1.2: SUC-11 executes deep-shape verification via real evaluate() calls
+        if case_id == 'SUC-11' or (case.get('phase_3_implementation') and not case.get('steps')):
+            ok, suc11_diffs = _execute_suc11_deep_shape(engine_hash)
+            if ok:
+                results['passed'] += 1
+            else:
+                results['failed'] += 1
+                results['failures'].append({'case': case_id, 'diffs': suc11_diffs})
+            continue
 
         steps = case.get('steps', [])
         case_failed = False
         case_diffs = []
 
-        # Thread state through steps
-        prior_state = {}
-        for step_data in steps:
+        # Thread real next_row_state across steps
+        prior_state: Dict[str, Any] = {}
+        last_validated_inputs: Dict[str, Any] = {}
+        for idx, step_data in enumerate(steps):
             step_num = step_data.get('step')
 
-            # Skip summary steps (they have no inputs/expected_outputs)
+            # G1.4: Execute summary multi-session gap steps (SUC-06/5 and SUC-07/3)
             if 'inputs' not in step_data:
+                summary_sessions = _extract_summary_sessions(step_data.get('note', ''))
+                if not summary_sessions or not last_validated_inputs:
+                    case_failed = True
+                    case_diffs.append(f"Step {step_num} unexecutable summary step")
+                    break
+
+                if 'summary_counter_values' in step_data:
+                    expected_counts = step_data['summary_counter_values']
+                    if len(summary_sessions) != len(expected_counts):
+                        case_failed = True
+                        case_diffs.append(f"Step {step_num} session/counter count mismatch")
+                        break
+                    for sess, exp_cnt in zip(summary_sessions, expected_counts):
+                        rows_by_ID, _, next_row_state = evaluate(
+                            spec_version='fuse-eval-spec/v1',
+                            engine_hash=engine_hash,
+                            policy_hash='test_policy_hash',
+                            session=sess,
+                            as_of=f"{sess}T16:00:00Z",
+                            mode='shadow',
+                            validated_inputs=last_validated_inputs,
+                            prior_row_state=prior_state,
+                            authorized_events=[]
+                        )
+                        actual_cnt = rows_by_ID.get('V4', {}).get('outputs', {}).get('clearing_counter')
+                        if actual_cnt != exp_cnt:
+                            case_failed = True
+                            case_diffs.append(f"Step {step_num} ({sess}) V4 clearing_counter={actual_cnt} != {exp_cnt}")
+                            break
+                        prior_state = next_row_state
+                    if not case_failed:
+                        end_cnt = prior_state.get('V4', {}).get('TQQQ', {}).get('clearing_counter')
+                        if end_cnt != step_data.get('counter_at_step_end'):
+                            case_failed = True
+                            case_diffs.append(f"Step {step_num} counter_at_step_end={end_cnt} != {step_data.get('counter_at_step_end')}")
+                elif 'expected_clearing_counter' in step_data:
+                    final_sess = step_data.get('final_session')
+                    if summary_sessions[-1] != final_sess:
+                        case_failed = True
+                        case_diffs.append(f"Step {step_num} final_session {summary_sessions[-1]} != {final_sess}")
+                        break
+                    last_rows: Dict[str, Any] = {}
+                    for sess in summary_sessions:
+                        last_rows, _, next_row_state = evaluate(
+                            spec_version='fuse-eval-spec/v1',
+                            engine_hash=engine_hash,
+                            policy_hash='test_policy_hash',
+                            session=sess,
+                            as_of=f"{sess}T16:00:00Z",
+                            mode='shadow',
+                            validated_inputs=last_validated_inputs,
+                            prior_row_state=prior_state,
+                            authorized_events=[]
+                        )
+                        prior_state = next_row_state
+                    v4_final = last_rows.get('V4', {})
+                    if v4_final.get('state') != step_data.get('expected_state'):
+                        case_failed = True
+                        case_diffs.append(f"Step {step_num} final V4 state={v4_final.get('state')} != {step_data.get('expected_state')}")
+                    if v4_final.get('outputs', {}).get('clearing_counter') != step_data.get('expected_clearing_counter'):
+                        case_failed = True
+                        case_diffs.append(
+                            f"Step {step_num} final V4 clearing_counter={v4_final.get('outputs', {}).get('clearing_counter')} != {step_data.get('expected_clearing_counter')}"
+                        )
+                    if prior_state.get('V4') != {}:
+                        case_failed = True
+                        case_diffs.append(f"Step {step_num} expected cleared V4={{}}, got {prior_state.get('V4')!r}")
+                else:
+                    case_failed = True
+                    case_diffs.append(f"Step {step_num} missing inputs and unrecognized summary schema")
                 continue
 
             step_inputs = step_data['inputs']
             expected_outputs = step_data.get('expected_outputs', {})
+            last_validated_inputs = step_inputs['validated_inputs']
+
+            # Determine prior_row_state:
+            # - Step 1 starts from its declared initial prior_row_state (usually {} or SUC-07 seed)
+            # - SUC-08 steps 2 and 4 are explicit jump-ahead checkpoints (sessions 2..38 / 41..69 omitted)
+            # - All consecutive steps strictly thread real next_row_state (serializing across restart)
+            frozen_prior = step_inputs.get('prior_row_state')
+            is_jump_checkpoint = (case_id == 'SUC-08' and step_num in (2, 4))
+            if idx == 0 or is_jump_checkpoint:
+                step_prior = frozen_prior if frozen_prior is not None else prior_state
+            else:
+                if frozen_prior and frozen_prior.get('serialization_round_trip'):
+                    step_prior = json.loads(engine_canonical_json(prior_state))
+                else:
+                    step_prior = prior_state
 
             # Build evaluation inputs
             eval_inputs = {
@@ -414,7 +723,7 @@ def run_successor_cases(successor_cases: Dict[str, Any], engine_hash: str) -> Di
                 'as_of': step_inputs.get('as_of', f"{step_inputs['session']}T16:00:00Z"),
                 'mode': 'shadow',
                 'validated_inputs': step_inputs['validated_inputs'],
-                'prior_row_state': step_inputs.get('prior_row_state', prior_state),
+                'prior_row_state': step_prior,
                 'authorized_events': step_inputs.get('authorized_events', [])
             }
 
@@ -460,8 +769,8 @@ def run_successor_cases(successor_cases: Dict[str, Any], engine_hash: str) -> Di
                     case_failed = True
                     case_diffs.append(f"Step {step_num} next_row_state mismatch:\n" + "\n".join(state_diffs))
 
-            # Thread state to next step
-            prior_state = step_data.get('next_row_state', next_row_state)
+            # Thread real next_row_state (never frozen projection)
+            prior_state = next_row_state
 
         if case_failed:
             results['failed'] += 1

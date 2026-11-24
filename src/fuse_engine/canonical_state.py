@@ -116,11 +116,14 @@ def set_v4_state(next_state: Dict, fund: str, counter: int, last_session: Option
 
 
 def clear_v4_state(next_state: Dict, fund: str) -> None:
-    """Remove V4 fund entry (after clearing at count 10)."""
-    if 'V4' in next_state and fund in next_state['V4']:
+    """Remove V4 fund entry (after clearing at count 10).
+
+    Per golden target-state projections, V4 is serialized as {} when empty, not absent.
+    """
+    if 'V4' not in next_state:
+        next_state['V4'] = {}
+    if fund in next_state['V4']:
         del next_state['V4'][fund]
-        if not next_state['V4']:
-            del next_state['V4']
 
 
 # V5 canonical state accessors
@@ -204,11 +207,14 @@ def set_o4_pending_order(next_state: Dict, symbol: str, order_id: str, status: s
 
 
 def clear_o4_pending_order(next_state: Dict, symbol: str) -> None:
-    """Clear O4 pending order for a symbol (after resolution)."""
-    if 'O4' in next_state and symbol in next_state['O4']:
+    """Clear O4 pending order for a symbol (after resolution).
+
+    Per golden target-state projections, O4 is serialized as {} when empty, not absent.
+    """
+    if 'O4' not in next_state:
+        next_state['O4'] = {}
+    if symbol in next_state['O4']:
         del next_state['O4'][symbol]
-        if not next_state['O4']:
-            del next_state['O4']
 
 
 # L2 canonical state accessors

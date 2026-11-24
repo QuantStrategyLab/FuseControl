@@ -145,14 +145,13 @@ def evaluate(
         }
     }
 
-    # V7 - symbol-scoped interlock (unresolved spread width trips with symbols list)
+    # V7 - symbol-scoped interlock (unresolved spread width trips without extra symbols key)
     rows_by_ID['V7'] = {
         'state': 'NORMAL',
         'would_have_tripped': True,
         'kind': 'interlock',
         'latched': False,
-        'reason': 'unresolved_fail_closed',
-        'symbols': fund_symbols  # Include symbols when tripped
+        'reason': 'unresolved_fail_closed'
     }
 
     # Operations rows (O1-O9) - account scope
