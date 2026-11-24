@@ -420,6 +420,10 @@ def run_all_batteries() -> Tuple[int, List[str]]:
     v_ret['funds']['TQQQ'].pop('fund_return')
     controls.append(('fc.v1_missing_return', v_ret, ('V1', 'NO-NEW-RISK')))
 
+    v_idx = copy.deepcopy(normal_vi)
+    v_idx['funds']['TQQQ']['index_return'] = None
+    controls.append(('fc.v1_missing_index_return', v_idx, ('V1', 'NO-NEW-RISK')))
+
     v_4f = copy.deepcopy(normal_vi)
     for k in ('bankroll', 'high_water_mark', 'joint_exposure', 'max_loss_cap'):
         v_4f.pop(k)

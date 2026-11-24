@@ -217,10 +217,13 @@ class TestTierOracles(unittest.TestCase):
         self.assertEqual(passed, 110)
         self.assertEqual(failed, 22)
 
-    def test_frozen_tier_goldens_disagree_on_42_cells_under_documented_caps(self):
-        """Documented 40k/80k caps disagree with 42/132 frozen golden-table.json tier_repetitions."""
+    def test_frozen_tier_goldens_match_discriminating_caps_and_tier_change_balanced(self):
+        """R5: v2 tier_repetitions (132/132) match 40k/60k/80k caps, cover balanced tier_change, and detect -1 cap mutation."""
         disagreements = 0
+        tc_tiers = set()
         for _, cell in self.golden_table['tier_repetitions'].items():
+            if cell['scenario'] == 'tier_change':
+                tc_tiers.add(cell['tier'])
             sinp = self.scenarios['scenarios'][cell['scenario']]['inputs']
             tier = cell['tier']
             vi = copy.deepcopy(sinp['validated_inputs'])
@@ -236,7 +239,25 @@ class TestTierOracles(unittest.TestCase):
             )
             if rows[cell['row_id']] != cell['outcome']:
                 disagreements += 1
-        self.assertEqual(disagreements, 42)
+        self.assertEqual(disagreements, 0)
+        self.assertEqual(tc_tiers, {'balanced', 'aggressive'})
+
+        # Verify formal run_matrix.run_tier_repetitions detects -1 J1 cap mutation (110 pass / 22 fail)
+        orig_eval = run_matrix.evaluate
+
+        def mutated_j1_eval(*args, **kwargs):
+            rows, eff, st = orig_eval(*args, **kwargs)
+            rows_mut = copy.deepcopy(rows)
+            rows_mut['J1']['outputs']['cap'] -= 1.0
+            return rows_mut, eff, st
+
+        run_matrix.evaluate = mutated_j1_eval
+        try:
+            mut_res = run_matrix.run_tier_repetitions(self.scenarios, self.golden_table, self.engine_hash)
+        finally:
+            run_matrix.evaluate = orig_eval
+        self.assertEqual(mut_res['passed'], 110)
+        self.assertEqual(mut_res['failed'], 22)
 
     def test_run_tier_repetitions_honours_frozen_priors(self):
         """run_matrix.run_tier_repetitions passes non-empty frozen restart & tier_change priors."""

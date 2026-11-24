@@ -398,7 +398,8 @@
         "would_have_tripped": true,
         "kind": "breaker",
         "latched": false,
-        "reason": "unresolved_fail_closed"
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
       },
       "effective_state_by_scope": {
         "account": "NORMAL",
@@ -766,7 +767,8 @@
         "would_have_tripped": true,
         "kind": "breaker",
         "latched": false,
-        "reason": "unresolved_fail_closed"
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
       }
     },
     "deposit.O6": {
@@ -1086,7 +1088,8 @@
         "would_have_tripped": true,
         "kind": "breaker",
         "latched": false,
-        "reason": "unresolved_fail_closed"
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
       }
     },
     "withdrawal.O6": {
@@ -1406,7 +1409,8 @@
         "would_have_tripped": true,
         "kind": "breaker",
         "latched": false,
-        "reason": "unresolved_fail_closed"
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
       }
     },
     "split.O6": {
@@ -1726,7 +1730,8 @@
         "would_have_tripped": true,
         "kind": "breaker",
         "latched": false,
-        "reason": "unresolved_fail_closed"
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
       }
     },
     "reverse_split.O6": {
@@ -2046,7 +2051,8 @@
         "would_have_tripped": true,
         "kind": "breaker",
         "latched": false,
-        "reason": "unresolved_fail_closed"
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
       }
     },
     "stale.O6": {
@@ -2218,11 +2224,15 @@
       "row_id": "V1",
       "tier": "balanced",
       "outcome": {
-        "state": "NORMAL",
-        "would_have_tripped": false,
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
         "kind": "breaker",
         "latched": false,
-        "reason": "none"
+        "reason": "missing_input",
+        "funds": [
+          "TQQQ",
+          "SOXL"
+        ]
       }
     },
     "missing.V2": {
@@ -2366,7 +2376,8 @@
         "would_have_tripped": true,
         "kind": "breaker",
         "latched": false,
-        "reason": "unresolved_fail_closed"
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
       }
     },
     "missing.O6": {
@@ -2686,7 +2697,8 @@
         "would_have_tripped": true,
         "kind": "breaker",
         "latched": false,
-        "reason": "unresolved_fail_closed"
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
       }
     },
     "restart.O6": {
@@ -3006,7 +3018,8 @@
         "would_have_tripped": true,
         "kind": "breaker",
         "latched": false,
-        "reason": "unresolved_fail_closed"
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
       }
     },
     "tier_change.O6": {
@@ -3326,7 +3339,8 @@
         "would_have_tripped": true,
         "kind": "breaker",
         "latched": false,
-        "reason": "unresolved_fail_closed"
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
       }
     },
     "holiday.O6": {
@@ -3646,7 +3660,8 @@
         "would_have_tripped": true,
         "kind": "breaker",
         "latched": false,
-        "reason": "unresolved_fail_closed"
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
       }
     },
     "half_day.O6": {
@@ -3723,14 +3738,14 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "breached",
         "outputs": {
-          "cap": 60000.0,
-          "cap_breached": false,
-          "increases_blocked": false
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
         }
       }
     },
@@ -3745,7 +3760,7 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "cap": 60000.0,
+          "cap": 80000.0,
           "cap_breached": false,
           "increases_blocked": false
         }
@@ -3871,15 +3886,15 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "joint_cap_exceeded",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
-          "above_cap": false,
-          "above_trim_threshold": false
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
         }
       }
     },
@@ -3894,8 +3909,8 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
+          "headroom": 35000.0,
+          "cap": 80000.0,
           "above_cap": false,
           "above_trim_threshold": false
         }
@@ -3907,14 +3922,14 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "breached",
         "outputs": {
-          "cap": 66000.0,
-          "cap_breached": false,
-          "increases_blocked": false
+          "cap": 44000.0,
+          "cap_breached": true,
+          "increases_blocked": true
         }
       }
     },
@@ -3929,7 +3944,7 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "cap": 66000.0,
+          "cap": 88000.0,
           "cap_breached": false,
           "increases_blocked": false
         }
@@ -4055,15 +4070,15 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "joint_cap_exceeded",
         "outputs": {
-          "headroom": 16500.0,
-          "cap": 66000.0,
-          "above_cap": false,
-          "above_trim_threshold": false
+          "headroom": -5500.0,
+          "cap": 44000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
         }
       }
     },
@@ -4078,8 +4093,8 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "headroom": 16500.0,
-          "cap": 66000.0,
+          "headroom": 38500.0,
+          "cap": 88000.0,
           "above_cap": false,
           "above_trim_threshold": false
         }
@@ -4091,14 +4106,14 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "breached",
         "outputs": {
-          "cap": 57000.0,
-          "cap_breached": false,
-          "increases_blocked": false
+          "cap": 38000.0,
+          "cap_breached": true,
+          "increases_blocked": true
         }
       }
     },
@@ -4113,7 +4128,7 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "cap": 57000.0,
+          "cap": 76000.0,
           "cap_breached": false,
           "increases_blocked": false
         }
@@ -4239,15 +4254,15 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "joint_cap_exceeded",
         "outputs": {
-          "headroom": 14250.0,
-          "cap": 57000.0,
-          "above_cap": false,
-          "above_trim_threshold": false
+          "headroom": -4750.0,
+          "cap": 38000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
         }
       }
     },
@@ -4262,8 +4277,8 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "headroom": 14250.0,
-          "cap": 57000.0,
+          "headroom": 33250.0,
+          "cap": 76000.0,
           "above_cap": false,
           "above_trim_threshold": false
         }
@@ -4275,14 +4290,14 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "breached",
         "outputs": {
-          "cap": 60000.0,
-          "cap_breached": false,
-          "increases_blocked": false
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
         }
       }
     },
@@ -4297,7 +4312,7 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "cap": 60000.0,
+          "cap": 80000.0,
           "cap_breached": false,
           "increases_blocked": false
         }
@@ -4423,15 +4438,15 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "joint_cap_exceeded",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
-          "above_cap": false,
-          "above_trim_threshold": false
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
         }
       }
     },
@@ -4446,8 +4461,8 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
+          "headroom": 35000.0,
+          "cap": 80000.0,
           "above_cap": false,
           "above_trim_threshold": false
         }
@@ -4459,14 +4474,14 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "breached",
         "outputs": {
-          "cap": 60000.0,
-          "cap_breached": false,
-          "increases_blocked": false
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
         }
       }
     },
@@ -4481,7 +4496,7 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "cap": 60000.0,
+          "cap": 80000.0,
           "cap_breached": false,
           "increases_blocked": false
         }
@@ -4607,15 +4622,15 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "joint_cap_exceeded",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
-          "above_cap": false,
-          "above_trim_threshold": false
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
         }
       }
     },
@@ -4630,8 +4645,8 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
+          "headroom": 35000.0,
+          "cap": 80000.0,
           "above_cap": false,
           "above_trim_threshold": false
         }
@@ -4643,14 +4658,14 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "breached",
         "outputs": {
-          "cap": 60000.0,
-          "cap_breached": false,
-          "increases_blocked": false
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
         }
       }
     },
@@ -4665,7 +4680,7 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "cap": 60000.0,
+          "cap": 80000.0,
           "cap_breached": false,
           "increases_blocked": false
         }
@@ -4791,15 +4806,15 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "joint_cap_exceeded",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
-          "above_cap": false,
-          "above_trim_threshold": false
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
         }
       }
     },
@@ -4814,8 +4829,8 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
+          "headroom": 35000.0,
+          "cap": 80000.0,
           "above_cap": false,
           "above_trim_threshold": false
         }
@@ -4827,14 +4842,14 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "breached",
         "outputs": {
-          "cap": 60000.0,
-          "cap_breached": false,
-          "increases_blocked": false
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
         }
       }
     },
@@ -4849,7 +4864,7 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "cap": 60000.0,
+          "cap": 80000.0,
           "cap_breached": false,
           "increases_blocked": false
         }
@@ -4975,15 +4990,15 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "joint_cap_exceeded",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
-          "above_cap": false,
-          "above_trim_threshold": false
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
         }
       }
     },
@@ -4998,8 +5013,8 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
+          "headroom": 35000.0,
+          "cap": 80000.0,
           "above_cap": false,
           "above_trim_threshold": false
         }
@@ -5011,14 +5026,14 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "breached",
         "outputs": {
-          "cap": 60000.0,
-          "cap_breached": false,
-          "increases_blocked": false
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
         }
       }
     },
@@ -5033,7 +5048,7 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "cap": 60000.0,
+          "cap": 80000.0,
           "cap_breached": false,
           "increases_blocked": false
         }
@@ -5159,15 +5174,15 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "joint_cap_exceeded",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
-          "above_cap": false,
-          "above_trim_threshold": false
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
         }
       }
     },
@@ -5182,17 +5197,17 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
+          "headroom": 35000.0,
+          "cap": 80000.0,
           "above_cap": false,
           "above_trim_threshold": false
         }
       }
     },
-    "tier_change.L0.conservative": {
+    "tier_change.L0.balanced": {
       "scenario": "tier_change",
       "row_id": "L0",
-      "tier": "conservative",
+      "tier": "balanced",
       "outcome": {
         "state": "NORMAL",
         "would_have_tripped": false,
@@ -5200,9 +5215,9 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "cap": 40000.0,
-          "cap_breached": true,
-          "increases_blocked": true
+          "cap": 60000.0,
+          "cap_breached": false,
+          "increases_blocked": false
         }
       }
     },
@@ -5217,16 +5232,16 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "cap": 40000.0,
-          "cap_breached": true,
-          "increases_blocked": true
+          "cap": 80000.0,
+          "cap_breached": false,
+          "increases_blocked": false
         }
       }
     },
-    "tier_change.L1.conservative": {
+    "tier_change.L1.balanced": {
       "scenario": "tier_change",
       "row_id": "L1",
-      "tier": "conservative",
+      "tier": "balanced",
       "outcome": {
         "state": "NORMAL",
         "would_have_tripped": false,
@@ -5255,10 +5270,10 @@
         }
       }
     },
-    "tier_change.L2.conservative": {
+    "tier_change.L2.balanced": {
       "scenario": "tier_change",
       "row_id": "L2",
-      "tier": "conservative",
+      "tier": "balanced",
       "outcome": {
         "state": "NORMAL",
         "would_have_tripped": false,
@@ -5279,10 +5294,10 @@
         "reason": "none"
       }
     },
-    "tier_change.L3.conservative": {
+    "tier_change.L3.balanced": {
       "scenario": "tier_change",
       "row_id": "L3",
-      "tier": "conservative",
+      "tier": "balanced",
       "outcome": {
         "state": "NORMAL",
         "would_have_tripped": false,
@@ -5313,10 +5328,10 @@
         }
       }
     },
-    "tier_change.L4.conservative": {
+    "tier_change.L4.balanced": {
       "scenario": "tier_change",
       "row_id": "L4",
-      "tier": "conservative",
+      "tier": "balanced",
       "outcome": {
         "state": "NORMAL",
         "would_have_tripped": false,
@@ -5337,10 +5352,10 @@
         "reason": "none"
       }
     },
-    "tier_change.J1.conservative": {
+    "tier_change.J1.balanced": {
       "scenario": "tier_change",
       "row_id": "J1",
-      "tier": "conservative",
+      "tier": "balanced",
       "outcome": {
         "state": "NORMAL",
         "would_have_tripped": false,
@@ -5348,10 +5363,10 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "headroom": 0,
-          "cap": 40000.0,
-          "above_cap": true,
-          "above_trim_threshold": true
+          "headroom": 15000.0,
+          "cap": 60000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
         }
       }
     },
@@ -5366,10 +5381,10 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "headroom": 0,
-          "cap": 40000.0,
-          "above_cap": true,
-          "above_trim_threshold": true
+          "headroom": 35000.0,
+          "cap": 80000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
         }
       }
     },
@@ -5379,14 +5394,14 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "breached",
         "outputs": {
-          "cap": 60000.0,
-          "cap_breached": false,
-          "increases_blocked": false
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
         }
       }
     },
@@ -5401,7 +5416,7 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "cap": 60000.0,
+          "cap": 80000.0,
           "cap_breached": false,
           "increases_blocked": false
         }
@@ -5527,15 +5542,15 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "joint_cap_exceeded",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
-          "above_cap": false,
-          "above_trim_threshold": false
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
         }
       }
     },
@@ -5550,8 +5565,8 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
+          "headroom": 35000.0,
+          "cap": 80000.0,
           "above_cap": false,
           "above_trim_threshold": false
         }
@@ -5563,14 +5578,14 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "breached",
         "outputs": {
-          "cap": 60000.0,
-          "cap_breached": false,
-          "increases_blocked": false
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
         }
       }
     },
@@ -5585,7 +5600,7 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "cap": 60000.0,
+          "cap": 80000.0,
           "cap_breached": false,
           "increases_blocked": false
         }
@@ -5711,15 +5726,15 @@
       "tier": "conservative",
       "outcome": {
         "state": "NORMAL",
-        "would_have_tripped": false,
+        "would_have_tripped": true,
         "kind": "limit",
         "latched": false,
-        "reason": "none",
+        "reason": "joint_cap_exceeded",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
-          "above_cap": false,
-          "above_trim_threshold": false
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
         }
       }
     },
@@ -5734,8 +5749,8 @@
         "latched": false,
         "reason": "none",
         "outputs": {
-          "headroom": 15000.0,
-          "cap": 60000.0,
+          "headroom": 35000.0,
+          "cap": 80000.0,
           "above_cap": false,
           "above_trim_threshold": false
         }

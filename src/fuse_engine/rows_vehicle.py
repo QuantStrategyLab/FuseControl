@@ -103,22 +103,6 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     modelled_fee = _is_valid_finite_number(raw_fee)
     modelled_financing = _is_valid_finite_number(raw_financing)
 
-    # Preserve missing.V1 golden semantics when ONLY index_return is explicitly None
-    # on a 1-session window (O1 carries missing index_returns), while failing closed
-    # on missing fund_return, fee, financing, non-finite NaN/inf, or 5-session window.
-    if raw_index_return is None and sessions_window != 5 and fund_return is not None and modelled_fee is not None and modelled_financing is not None:
-        res = {
-            'state': 'NORMAL',
-            'would_have_tripped': False,
-            'kind': 'breaker',
-            'latched': False,
-            'reason': 'none',
-            'fund': fund
-        }
-        if prior_history:
-            res['_session_returns'] = [dict(item) for item in prior_history]
-        return res
-
     if (fund_return is None or index_return is None or
             modelled_fee is None or modelled_financing is None):
         res = {

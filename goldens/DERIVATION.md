@@ -231,5 +231,13 @@ This encoding satisfies rulings V5/V7/O5 "fail-closed but have real semantics."
 
 Golden table authored in checkpoint W2, **before** engine runs the full matrix for the first time (§6.2 temporal separation). Derivation from §4 text alone, citing spec lines per outcome above. Engine outputs not read during derivation (§6.2 rule 3). Any matrix mismatch adjudicated against specification text; a golden may be corrected only with written spec citation showing the golden misread the spec (§6.2 rule 4).
 
+## v2 Refreeze Addendum (Owner-Approved 2026-11-24)
+
+Three specification contradictions against the frozen v1 `golden-table.json` were resolved under explicit owner approval (2026-11-24) via v2 refreeze:
+
+1. **R1 (`missing.V1` fail-closed requirement):** Per BRIEF-FUSE-1 §4.3 Table B (`V1` `required_inputs`: `fund_return`, `index_return`, `modelled_fee`, `modelled_financing`) and §4.4 rule ("Every failure mode fails closed"), open-market evaluation of `missing.V1` (where `index_return` is `null` for both `TQQQ` and `SOXL`) must trip `V1` to `NO-NEW-RISK` with `would_have_tripped: true`, `latched: false`, `reason: "missing_input"` rather than returning benign `NORMAL`. Updated `base_cells["missing.V1"]` in `goldens/golden-table.json` and removed the `missing.V1` exemption in `rows_vehicle.py`.
+2. **R4 (Base `O5` `rejection_count_this_session` schema parity):** Per BRIEF-FUSE-1 §4.5, Mechanism B2 (`SUC-03`/`SUC-04`), and adjudication Q6, `O5` emits `rejection_count_this_session: 1` on its first session rejection. Added `rejection_count_this_session: 1` to all 11 base `O5` cells in `goldens/golden-table.json` so all 264 base cells satisfy strict dict equality without harness field projection.
+3. **R5 (`tier_repetitions` discriminating caps & `tier_change` balanced coverage):** Per BRIEF-FUSE-1 §4.3 Table A/C, §6.1, and `DERIVATION.md` Tier Sensitivity above, `tier_repetitions` must exercise each scenario's two non-base tiers using real tier-proportional caps (`0.40 / 0.60 / 0.80 × bankroll` = `40,000 / 60,000 / 80,000` on 100k baseline, `44,000 / 66,000 / 88,000` on 110k deposit, `38,000 / 57,000 / 76,000` on 95k withdrawal) instead of reusing the base scenario cap, and `tier_change` (base tier `conservative`) repeats `balanced` and `aggressive` instead of duplicating `conservative`.
+
 ---
 **End of Derivation Notes**

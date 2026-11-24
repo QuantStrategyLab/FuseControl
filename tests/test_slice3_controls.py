@@ -651,6 +651,19 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
         self.assertTrue(rows['V1']['would_have_tripped'])
         self.assertEqual(rows['V1']['reason'], 'missing_input')
 
+    def test_v1_missing_index_return_refuses(self):
+        """R1: V1 must fail closed when index_return is missing even on a 1-session open window."""
+        import copy
+        vi = copy.deepcopy(self.normal_vi)
+        vi['funds'] = {'TQQQ': copy.deepcopy(self.normal_vi['funds']['TQQQ'])}
+        vi['funds']['TQQQ']['index_return'] = None
+        rows, eff, _ = self._eval(vi)
+        self.assertEqual(rows['V1']['state'], 'NO-NEW-RISK')
+        self.assertTrue(rows['V1']['would_have_tripped'])
+        self.assertFalse(rows['V1']['latched'])
+        self.assertEqual(rows['V1']['reason'], 'missing_input')
+        self.assertEqual(eff['fund:TQQQ'], 'NO-NEW-RISK')
+
     def test_v4_nan_forecast_volatility_refuses(self):
         import copy
         vi = copy.deepcopy(self.normal_vi)

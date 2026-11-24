@@ -102,10 +102,10 @@ class TestFullComparator(unittest.TestCase):
         cls.spec = json.loads((REPO_ROOT / 'spec' / 'spec.json').read_text(encoding='utf-8'))
         cls.engine_hash = run_matrix.compute_engine_hash()
 
-    def test_v7_and_v2_exact_raw_row_dicts_and_o5_reconciled(self):
-        """V7 (11) and V2 (2) match frozen dicts byte-for-byte; only O5 differs raw by rejection_count."""
+    def test_all_264_cells_strict_raw_row_dict_equality(self):
+        """R4: All 264 base cells match v2 golden dicts byte-for-byte without O5 field projection."""
         raw_equal = 0
-        reconciled_equal = 0
+        comparator_equal = 0
         raw_diffs = []
 
         for cell_key, cell in self.golden_table['base_cells'].items():
@@ -121,12 +121,15 @@ class TestFullComparator(unittest.TestCase):
 
             ok, _ = run_matrix.compare_base_outcome_exact(actual_row, cell['outcome'], row_id)
             if ok:
-                reconciled_equal += 1
+                comparator_equal += 1
 
-        self.assertEqual(raw_equal, 253, f"Expected 253/264 raw dict matches (only 11 O5 cells differ), got {raw_equal}")
-        for cell_key, actual_row, expected_row in raw_diffs:
-            self.assertTrue(cell_key.endswith('.O5'), f"Unexpected raw diff on {cell_key}: {actual_row} vs {expected_row}")
-        self.assertEqual(reconciled_equal, 264)
+        self.assertEqual(raw_equal, 264, f"Expected 264/264 strict raw dict matches, got {raw_equal}; diffs={raw_diffs[:3]}")
+        self.assertEqual(comparator_equal, 264)
+        # Negative control: missing rejection_count_this_session on O5 must now be rejected
+        o5_actual = {'state': 'NORMAL', 'would_have_tripped': True, 'kind': 'breaker', 'latched': False, 'reason': 'unresolved_fail_closed', 'rejection_count_this_session': 1}
+        o5_missing = {k: v for k, v in o5_actual.items() if k != 'rejection_count_this_session'}
+        ok_o5, _ = run_matrix.compare_base_outcome_exact(o5_actual, o5_missing, 'O5')
+        self.assertFalse(ok_o5, "Strict comparator must reject missing O5.rejection_count_this_session")
 
     def test_240_non_tier_change_cells_both_row_and_scope_equal(self):
         """All 240 non-tier_change cells pass both row-dict equality and independent scope-map equality."""

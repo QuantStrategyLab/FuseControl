@@ -88,19 +88,9 @@ def compare_outcome(actual: Dict[str, Any], expected: Dict[str, Any]) -> Tuple[b
 
 
 def compare_base_outcome_exact(actual: Dict[str, Any], expected: Dict[str, Any], row_id: str) -> Tuple[bool, List[str]]:
-    """Compare base cell outcome with full dictionary equality (G1.1).
-
-    Enforces exact dict equality for every row. For O5, reconciles the known
-    frozen discrepancy where golden-table.json base cells omit
-    'rejection_count_this_session' while successor-cases.json (SUC-03/04) requires it.
-    """
+    """Compare base cell outcome with strict full dictionary equality (R4)."""
     if actual == expected:
         return (True, [])
-
-    if row_id == 'O5' and 'rejection_count_this_session' not in expected and 'rejection_count_this_session' in actual:
-        projected = {k: v for k, v in actual.items() if k != 'rejection_count_this_session'}
-        if projected == expected:
-            return (True, [])
 
     diffs = []
     missing_keys = sorted(set(expected.keys()) - set(actual.keys()))
@@ -285,7 +275,7 @@ def run_base_cells(scenarios: Dict[str, Any], golden_table: Dict[str, Any], engi
         scenario = scenarios['scenarios'][scenario_name]
         actual_outcome, actual_effective_state = execute_cell(scenario, row_id, engine_hash)
 
-        # Compare outcome (G1.1: strict dict equality modulo documented O5 base projection)
+        # Compare outcome (R4: strict full dict equality across all 264 base cells)
         outcome_match, outcome_diffs = compare_base_outcome_exact(actual_outcome, golden_cell['outcome'], row_id)
 
         # Compare effective state (only if present in golden)
@@ -353,14 +343,13 @@ def run_tier_repetitions(scenarios: Dict[str, Any], golden_table: Dict[str, Any]
         scenario_inputs = scenario['inputs']
         inputs = copy.deepcopy(scenario_inputs['validated_inputs'])
 
-        # Apply tier-specific parameters
+        # Apply tier-specific parameters (R5: true tier caps 0.4/0.6/0.8 × bankroll)
         inputs['tier'] = tier
         tier_param = tier_params[tier]
         inputs['tier_loss_budget_D'] = tier_param['D']
-
-        # Note: Frozen goldens/golden-table.json tier_repetitions kept scenario base caps
-        # (e.g. 60,000 for normal, 40,000 for tier_change); see tests/test_tier_oracles.py
-        # for the discriminating 40,000/60,000/80,000 oracle battery without modifying goldens/.
+        cap = round(inputs['bankroll'] * tier_param['joint_cap_ratio'], 2)
+        inputs['max_loss_cap'] = cap
+        inputs['tier_joint_cap'] = cap
 
         prior_state = copy.deepcopy(scenario_inputs.get('prior_row_state') or {})
         auth_events = copy.deepcopy(scenario_inputs.get('authorized_events') or [])
