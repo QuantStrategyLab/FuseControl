@@ -160,16 +160,20 @@ class TestEngineHash(unittest.TestCase):
 
     def test_engine_hash_framing_and_unexpected_file_rejection(self):
         """Security P2: Moving bytes between engine files changes hash and unexpected/missing .py raises RuntimeError."""
+        import py_compile
         import shutil
+        import struct
+        import subprocess
         import tempfile
 
         src_dir = repo_root / "src" / "fuse_engine"
+        ignore_cache = shutil.ignore_patterns("__pycache__")
         with tempfile.TemporaryDirectory() as td:
             td_path = Path(td)
             dir_a = td_path / "eng_a"
             dir_b = td_path / "eng_b"
-            shutil.copytree(src_dir, dir_a)
-            shutil.copytree(src_dir, dir_b)
+            shutil.copytree(src_dir, dir_a, ignore=ignore_cache)
+            shutil.copytree(src_dir, dir_b, ignore=ignore_cache)
 
             # Move 1 byte from end of canonical.py to start of state.py (identical unframed concatenation)
             c_bytes = (dir_b / "canonical.py").read_bytes()
@@ -184,13 +188,13 @@ class TestEngineHash(unittest.TestCase):
 
             # Unexpected top-level or nested .py file MUST fail closed with RuntimeError
             dir_extra = td_path / "eng_extra"
-            shutil.copytree(src_dir, dir_extra)
+            shutil.copytree(src_dir, dir_extra, ignore=ignore_cache)
             (dir_extra / "rogue.py").write_text("# unexpected\n", encoding="utf-8")
             with self.assertRaises(RuntimeError):
                 engine._compute_canonical_engine_hash_from_dir(dir_extra)
 
             dir_sub = td_path / "eng_sub"
-            shutil.copytree(src_dir, dir_sub)
+            shutil.copytree(src_dir, dir_sub, ignore=ignore_cache)
             (dir_sub / "nested").mkdir()
             (dir_sub / "nested" / "helper.py").write_text("# unexpected\n", encoding="utf-8")
             with self.assertRaises(RuntimeError):
@@ -198,7 +202,7 @@ class TestEngineHash(unittest.TestCase):
 
             # Missing expected .py file MUST also fail closed with RuntimeError
             dir_miss = td_path / "eng_miss"
-            shutil.copytree(src_dir, dir_miss)
+            shutil.copytree(src_dir, dir_miss, ignore=ignore_cache)
             (dir_miss / "state.py").unlink()
             with self.assertRaises(RuntimeError):
                 engine._compute_canonical_engine_hash_from_dir(dir_miss)
@@ -214,12 +218,54 @@ class TestEngineHash(unittest.TestCase):
                 "__pycache__/rows_ops.cpython-314-darwin.so",
             ):
                 dir_bin = td_path / ("bin_" + bad_rel.replace("/", "_").replace(".", "_"))
-                shutil.copytree(src_dir, dir_bin)
+                shutil.copytree(src_dir, dir_bin, ignore=ignore_cache)
                 bad_path = dir_bin / bad_rel
                 bad_path.parent.mkdir(exist_ok=True)
                 bad_path.write_bytes(b"binary-payload")
                 with self.assertRaises(RuntimeError, msg=f"Expected RuntimeError for {bad_rel}"):
                     engine._compute_canonical_engine_hash_from_dir(dir_bin)
+
+            # Genuine Python-generated __pycache__ (non--B run) passes cleanly across fresh and cached imports
+            dir_pyc = td_path / "eng_pyc"
+            pkg_pyc = dir_pyc / "fuse_engine"
+            shutil.copytree(src_dir, pkg_pyc, ignore=ignore_cache)
+            expected_digest = engine.compute_engine_hash()
+            for pass_label in ("fresh", "cached"):
+                proc_ok = subprocess.run(
+                    [sys.executable, "-c", f"import sys; sys.path.insert(0, {str(dir_pyc)!r}); import fuse_engine; print(fuse_engine.evaluator.compute_engine_hash())"],
+                    capture_output=True, text=True, check=True,
+                )
+                self.assertEqual(proc_ok.stdout.strip(), expected_digest, msg=pass_label)
+            self.assertEqual(engine._compute_canonical_engine_hash_from_dir(pkg_pyc), expected_digest)
+
+            # Forged __pycache__/*.pyc with matching co_filename AND spoofed (mtime, size) fails BEFORE importing submodules
+            cache_tag = sys.implementation.cache_tag
+            for target_mod in ("rows_ops", "evaluator"):
+                dir_forged = td_path / f"forged_{target_mod}"
+                pkg_forged = dir_forged / "fuse_engine"
+                shutil.copytree(src_dir, pkg_forged, ignore=ignore_cache)
+                (pkg_forged / "__pycache__").mkdir()
+                evil_py = td_path / f"evil_{target_mod}.py"
+                evil_py.write_text('raise AssertionError("PWNED_FROM_FORGED_PYC")\n', encoding="utf-8")
+                code_forged = compile(evil_py.read_bytes(), str(pkg_forged / f"{target_mod}.py"), "exec", optimize=0)
+                import importlib.util
+                import marshal
+                st_src = (pkg_forged / f"{target_mod}.py").stat()
+                hdr = importlib.util.MAGIC_NUMBER + struct.pack(
+                    "<III", 0, int(st_src.st_mtime) & 0xffffffff, st_src.st_size & 0xffffffff
+                )
+                pyc_path = pkg_forged / "__pycache__" / f"{target_mod}.{cache_tag}.pyc"
+                pyc_path.write_bytes(hdr + marshal.dumps(code_forged))
+
+                with self.assertRaises(RuntimeError, msg=f"Direct hash check must reject forged {target_mod}.pyc"):
+                    engine._compute_canonical_engine_hash_from_dir(pkg_forged)
+                proc_evil = subprocess.run(
+                    [sys.executable, "-c", f"import sys; sys.path.insert(0, {str(dir_forged)!r}); import fuse_engine"],
+                    capture_output=True, text=True,
+                )
+                self.assertNotEqual(proc_evil.returncode, 0)
+                self.assertIn("RuntimeError", proc_evil.stderr)
+                self.assertNotIn("PWNED_FROM_FORGED_PYC", proc_evil.stderr)
 
     def test_row_ids_declared(self):
         """Test that ROW_IDS constant is declared in evaluator."""
@@ -355,6 +401,19 @@ class TestBoundOutputBundle(unittest.TestCase):
                 "fuse-eval-spec/v999", "test-hash", "registered_policy_hash_v1",
                 "2026-01-05", "2026-01-05T16:00:00Z", "shadow", vi, {}, []
             )
+
+        # Intentional None prior_row_state passes; malformed non-None non-dict prior_row_state must fail closed
+        rows_none, _, _ = engine.evaluate(
+            "fuse-eval-spec/v1", "test-hash", "registered_policy_hash_v1",
+            "2026-01-05", "2026-01-05T16:00:00Z", "shadow", vi, None, []
+        )
+        self.assertEqual(len(rows_none), 24)
+        for bad_prior in ("unavailable", ["O6"], 123, True):
+            with self.assertRaises(ValueError, msg=f"Expected ValueError for prior_row_state={bad_prior!r}"):
+                engine.evaluate(
+                    "fuse-eval-spec/v1", "test-hash", "registered_policy_hash_v1",
+                    "2026-01-05", "2026-01-05T16:00:00Z", "shadow", vi, bad_prior, []
+                )
 
 
 if __name__ == "__main__":

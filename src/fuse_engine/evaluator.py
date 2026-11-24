@@ -4,11 +4,14 @@ Implements the §5.1 signature with all 24 rows fully evaluated.
 """
 
 import copy
-import hashlib
-import re
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
+from . import _EXPECTED_ENGINE_FILES, _verify_and_hash_engine_dir
+
+# Re-verify directory & __pycache__ bytecode integrity BEFORE importing any row submodules
+_CANONICAL_ENGINE_HASH = _verify_and_hash_engine_dir(Path(__file__).resolve().parent)
+
 from . import rows_loss
 from . import rows_vehicle
 from . import rows_ops
@@ -17,68 +20,12 @@ from . import canonical_state as cst
 from .canonical import finite_float
 
 
-_EXPECTED_ENGINE_FILES = (
-    '__init__.py',
-    'canonical.py',
-    'canonical_state.py',
-    'evaluator.py',
-    'rows_loss.py',
-    'rows_ops.py',
-    'rows_vehicle.py',
-    'state.py',
-)
-_EXPECTED_ENGINE_STEMS = frozenset(Path(name).stem for name in _EXPECTED_ENGINE_FILES)
-_PYCACHE_RE = re.compile(r'^([A-Za-z0-9_]+)\.cpython-\d+(?:t)?(?:\.opt-[12])?\.pyc$')
-
-
-def _compute_canonical_engine_hash_from_dir(engine_dir: Path) -> str:
-    """Compute length-framed canonical SHA-256 over the strict engine artifact whitelist (§5.3)."""
-    py_files: list[Path] = []
-    rel_py_paths: list[str] = []
-    for entry in sorted(engine_dir.rglob('*'), key=lambda p: p.relative_to(engine_dir).as_posix()):
-        rel = entry.relative_to(engine_dir).as_posix()
-        if entry.is_symlink():
-            raise RuntimeError(f"Unexpected symlink in engine directory: {rel!r}")
-        if entry.is_dir():
-            if rel != '__pycache__':
-                raise RuntimeError(f"Unexpected subdirectory in engine directory: {rel!r}")
-            continue
-        if not entry.is_file():
-            raise RuntimeError(f"Unexpected non-regular file in engine directory: {rel!r}")
-        if entry.parent == engine_dir:
-            if rel not in _EXPECTED_ENGINE_FILES:
-                raise RuntimeError(f"Unexpected artifact in engine directory: {rel!r}")
-            py_files.append(entry)
-            rel_py_paths.append(rel)
-        elif entry.parent == engine_dir / '__pycache__':
-            m = _PYCACHE_RE.match(entry.name)
-            if not m or m.group(1) not in _EXPECTED_ENGINE_STEMS:
-                raise RuntimeError(f"Unexpected __pycache__ artifact in engine directory: {rel!r}")
-        else:
-            raise RuntimeError(f"Unexpected nested artifact in engine directory: {rel!r}")
-
-    if rel_py_paths != list(_EXPECTED_ENGINE_FILES):
-        raise RuntimeError(
-            f"Unexpected engine file set: expected={list(_EXPECTED_ENGINE_FILES)!r}, got={rel_py_paths!r}"
-        )
-
-    hasher = hashlib.sha256()
-    for py_file, rel_path in zip(py_files, rel_py_paths):
-        rel_bytes = rel_path.encode('utf-8')
-        data = py_file.read_bytes()
-        hasher.update(len(rel_bytes).to_bytes(4, 'big'))
-        hasher.update(rel_bytes)
-        hasher.update(len(data).to_bytes(8, 'big'))
-        hasher.update(data)
-    return hasher.hexdigest()
+_compute_canonical_engine_hash_from_dir = _verify_and_hash_engine_dir
 
 
 def _compute_canonical_engine_hash() -> str:
     """Compute canonical SHA-256 of verified src/fuse_engine/*.py source files (§5.3)."""
-    return _compute_canonical_engine_hash_from_dir(Path(__file__).resolve().parent)
-
-
-_CANONICAL_ENGINE_HASH = _compute_canonical_engine_hash()
+    return _verify_and_hash_engine_dir(Path(__file__).resolve().parent)
 
 
 def compute_engine_hash() -> str:
@@ -152,9 +99,13 @@ def evaluate(
             f"engine_hash mismatch: caller={engine_hash}, actual={canonical_engine_hash}"
         )
 
-    # Initialize outputs
-    if prior_row_state is None or not isinstance(prior_row_state, dict):
+    # Reject malformed non-None, non-dict prior_row_state rather than silently resetting latches to {}
+    if prior_row_state is None:
         prior_row_state = {}
+    elif not isinstance(prior_row_state, dict):
+        raise ValueError(
+            f"Invalid prior_row_state: expected dict or None, got {type(prior_row_state).__name__}"
+        )
     if authorized_events is None:
         authorized_events = {}
     if validated_inputs is None or not isinstance(validated_inputs, dict):

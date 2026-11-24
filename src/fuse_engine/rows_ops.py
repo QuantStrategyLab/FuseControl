@@ -455,11 +455,13 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     order_id = pending_order.get('order_id')
     status = pending_order.get('status')
     timed_out = pending_order.get('timeout', False) or pending_order.get('timed_out', False)
+    terminal_statuses = ('filled', 'cancelled', 'canceled', 'rejected', 'expired')
+    has_valid_order_id = isinstance(order_id, str) and bool(order_id.strip())
+    is_terminal = status in terminal_statuses
 
     # B6: If we have a prior pending order, check if this is the same order
     if prior_pending:
         prior_order_id = prior_pending.get('original_order_id')
-        has_valid_order_id = isinstance(order_id, str) and bool(order_id.strip())
         unidentified_prior = isinstance(prior_order_id, str) and prior_order_id.startswith('unidentified_order_')
 
         # Missing/mismatched order_id keeps the original order restricted in ORDER-UNKNOWN
@@ -477,9 +479,6 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
         # Same order - check if we have definitive terminal status
         # B6: Only recognized terminal statuses clear ORDER-UNKNOWN (ignore unvalidated terminal flags)
-        terminal_statuses = ['filled', 'cancelled', 'rejected', 'expired']
-        is_terminal = status in terminal_statuses
-
         if is_terminal:
             # Clears (SUC-09 step 4)
             return {
@@ -493,7 +492,7 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
         # B6: Unrecognized status does NOT clear ORDER-UNKNOWN (SUC-09 step 3)
         # Still waiting for definitive status
-        is_unrecognized = status not in terminal_statuses and status not in ['pending', 'submitted', 'accepted']
+        is_unrecognized = not is_terminal and status not in ['pending', 'submitted', 'accepted']
         reason = 'unrecognized_status_for_original_order' if is_unrecognized else 'awaiting_original_order_status'
         if restart_marker:
             reason = 'awaiting_original_order_status_after_restart'
@@ -506,6 +505,17 @@ def evaluate_O4(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'reason': reason,
             'symbol': symbol,
             'original_order_id': prior_order_id
+        }
+
+    # No prior pending: identified order already reporting definitive terminal status does not enter timeout
+    if has_valid_order_id and is_terminal:
+        return {
+            'state': 'NORMAL',
+            'would_have_tripped': False,
+            'kind': 'interlock_or_breaker',
+            'latched': False,
+            'reason': 'none',
+            'symbol': symbol
         }
 
     # No prior pending - check if current order timed out (SUC-09 step 1)

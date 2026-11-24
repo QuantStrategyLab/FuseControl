@@ -3071,6 +3071,90 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
                     self.assertEqual(eff_d['account'], 'HALT')
                     self.assertEqual(compute_permitted_exposure(vi_dir, r_d, eff_d), 0.0)
 
+    def test_r19_codex_prior_state_v3_malformed_event_and_o4_terminal_before_timeout(self):
+        """R19 Codex: Malformed prior_row_state raises ValueError, malformed fund_event fails DE-RISK, and terminal O4 avoids timeout."""
+        sys.path.insert(0, str(repo_root / 'tools'))
+        from check_exposure_invariants import compute_permitted_exposure
+
+        # 1. None prior_row_state works; non-None non-dict prior_row_state fails closed via ValueError
+        vi_ok = copy.deepcopy(self.normal_vi)
+        vi_ok.update({'proposed_exposure': 45500.0, 'v5_tolerance': 0.01, 'v7_spread_width': 0.02, 'o5_collar': 0.05})
+        vi_ok['funds']['TQQQ']['v5_tolerance'] = 0.01
+        vi_ok['funds']['SOXL']['v5_tolerance'] = 0.01
+        r_none, _, _ = engine.evaluate(
+            'fuse-eval-spec/v1', 'test-hash', 'registered_policy_hash_v1',
+            '2026-01-05', '2026-01-05T16:00:00Z', 'shadow', vi_ok, None, [],
+        )
+        self.assertEqual(r_none['O6']['state'], 'NORMAL')
+        for bad_pr in ('unavailable', ['O6'], 123, True):
+            with self.assertRaises(ValueError, msg=repr(bad_pr)):
+                engine.evaluate(
+                    'fuse-eval-spec/v1', 'test-hash', 'registered_policy_hash_v1',
+                    '2026-01-05', '2026-01-05T16:00:00Z', 'shadow', vi_ok, bad_pr, [],
+                )
+
+        # 2. Malformed/unrecognized fund_event fails V3 closed (DE-RISK, latched) and blocks exposure raises
+        for bad_fe in ('unavailable', {'type': 'liquidation'}, '', 123, True):
+            vi_fe = copy.deepcopy(vi_ok)
+            vi_fe.update({
+                'symbol': 'TQQQ', 'side': 'buy', 'account': 'synthetic_account_1',
+                'order_size': 1, 'unit_price': 50.0, 'o5_reference_price': 50.0,
+                'order_value': 50.0, 'settled_cash': 200.0,
+            })
+            vi_fe['funds']['TQQQ']['fund_event'] = bad_fe
+            r_fe, eff_fe, st_fe = self._eval(vi_fe, session='2026-01-05')
+            self.assertEqual(r_fe['V3']['state'], 'DE-RISK', msg=repr(bad_fe))
+            self.assertTrue(r_fe['V3']['latched'], msg=repr(bad_fe))
+            self.assertEqual(r_fe['V3']['reason'], 'invalid_input', msg=repr(bad_fe))
+            self.assertEqual(eff_fe['fund:TQQQ'], 'DE-RISK', msg=repr(bad_fe))
+            self.assertTrue(st_fe['V3']['TQQQ']['latched'], msg=repr(bad_fe))
+            self.assertEqual(compute_permitted_exposure(vi_fe, r_fe, eff_fe), 45000.0, msg=repr(bad_fe))
+
+            # When all funds carry bad fund_event, permitted exposure drops to 0.0
+            vi_fe_all = copy.deepcopy(vi_fe)
+            vi_fe_all['funds']['SOXL']['fund_event'] = bad_fe
+            r_all, eff_all, _ = self._eval(vi_fe_all, session='2026-01-05')
+            self.assertEqual(compute_permitted_exposure(vi_fe_all, r_all, eff_all), 0.0, msg=repr(bad_fe))
+
+        # 3. O4 order already in recognized terminal status does not oscillate ORDER-UNKNOWN <-> NORMAL when timeout=True
+        for term_status in ('filled', 'cancelled', 'canceled', 'rejected', 'expired'):
+            vi_o4 = copy.deepcopy(vi_ok)
+            vi_o4['pending_orders'] = {'TQQQ': {'order_id': 'synthetic_order_1', 'status': term_status, 'timeout': True}}
+            r_t1, eff_t1, st_t1 = self._eval(vi_o4, session='2026-01-05', prior={})
+            r_t2, eff_t2, st_t2 = self._eval(vi_o4, session='2026-01-05', prior=st_t1)
+            self.assertEqual(r_t1['O4']['state'], 'NORMAL', msg=term_status)
+            self.assertFalse(r_t1['O4']['would_have_tripped'], msg=term_status)
+            self.assertEqual(r_t2['O4']['state'], 'NORMAL', msg=term_status)
+            self.assertNotIn('TQQQ', st_t1.get('O4', {}), msg=term_status)
+            self.assertNotIn('TQQQ', st_t2.get('O4', {}), msg=term_status)
+            self.assertEqual(compute_permitted_exposure(vi_o4, r_t1, eff_t1), 45500.0, msg=term_status)
+            self.assertEqual(compute_permitted_exposure(vi_o4, r_t2, eff_t2), 45500.0, msg=term_status)
+
+        # Without valid order_id, status='filled' + timeout=True still fails closed as unidentified_order
+        vi_o4_noid = copy.deepcopy(vi_ok)
+        vi_o4_noid['pending_orders'] = {'TQQQ': {'status': 'filled', 'timeout': True}}
+        r_noid, eff_noid, st_noid = self._eval(vi_o4_noid, session='2026-01-05')
+        self.assertEqual(r_noid['O4']['state'], 'ORDER-UNKNOWN')
+        self.assertEqual(eff_noid['symbol:TQQQ'], 'ORDER-UNKNOWN')
+        self.assertEqual(st_noid['O4']['TQQQ']['original_order_id'], 'unidentified_order_TQQQ')
+
+        # Active prior O4 order A still rejects terminal status for different order B, and clears on terminal A
+        prior_o4_a = {'O4': {'TQQQ': {'original_order_id': 'order_A', 'status': 'unknown'}}}
+        vi_b = copy.deepcopy(vi_ok)
+        vi_b['pending_orders'] = {'TQQQ': {'order_id': 'order_B', 'status': 'filled', 'timeout': True}}
+        r_b, eff_b, st_b = self._eval(vi_b, session='2026-01-05', prior=prior_o4_a)
+        self.assertEqual(r_b['O4']['state'], 'ORDER-UNKNOWN')
+        self.assertEqual(eff_b['symbol:TQQQ'], 'ORDER-UNKNOWN')
+        self.assertEqual(st_b['O4']['TQQQ']['original_order_id'], 'order_A')
+
+        vi_a = copy.deepcopy(vi_ok)
+        vi_a['pending_orders'] = {'TQQQ': {'order_id': 'order_A', 'status': 'filled', 'timeout': True}}
+        r_a, eff_a, st_a = self._eval(vi_a, session='2026-01-05', prior=st_b)
+        self.assertEqual(r_a['O4']['state'], 'NORMAL')
+        self.assertEqual(r_a['O4']['reason'], 'original_order_terminal_status_received')
+        self.assertEqual(eff_a['symbol:TQQQ'], 'NORMAL')
+        self.assertEqual(st_a.get('O4', {}), {})
+
 
 if __name__ == '__main__':
     unittest.main()

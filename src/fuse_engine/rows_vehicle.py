@@ -570,13 +570,13 @@ def evaluate_V3(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'fund': fund
         }
 
-    # No triggering event
+    # Fail closed on non-null malformed/unrecognized fund_event values
     return {
-        'state': 'NORMAL',
-        'would_have_tripped': False,
+        'state': 'DE-RISK',
+        'would_have_tripped': True,
         'kind': 'breaker',
-        'latched': False,
-        'reason': 'none',
+        'latched': True,
+        'reason': 'invalid_input',
         'fund': fund
     }
 
