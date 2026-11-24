@@ -253,6 +253,7 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     """
     # Check for prior mismatch latch and pending adjustments (canonical format per Q6)
     prior_mismatch = cst.get_v2_latched_mismatch(prior_state, fund)
+    prior_mismatch_action = cst.get_v2_latched_mismatch_action(prior_state, fund)
     prior_pending = cst.get_v2_pending_adjustment(prior_state, fund)
     corporate_action = inputs.get('corporate_action')
     mismatch_cleared = False
@@ -271,8 +272,15 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'fund': fund
             }
             if isinstance(corporate_action, dict) and corporate_action.get('type'):
-                inc_type = corporate_action.get('type')
-                if inc_type != prior_mismatch.get('type') or not corporate_action.get('adjustment_complete'):
+                inc_ident = cst.canonical_ca_identity(corporate_action)
+                if prior_mismatch_action is not None:
+                    is_distinct_action = inc_ident != prior_mismatch_action
+                else:
+                    is_distinct_action = (
+                        corporate_action.get('type') != prior_mismatch.get('type') or
+                        corporate_action.get('ratio') is not None
+                    )
+                if is_distinct_action or not corporate_action.get('adjustment_complete'):
                     res['_v2_enqueue_pending'] = True
             return res
         mismatch_cleared = True
@@ -377,15 +385,14 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 broker_pos is not None and
                 share_count == broker_pos
             )
-            ca_hwm_ok = (
-                'hwm_adjusted' not in corporate_action or
-                (isinstance(corporate_action['hwm_adjusted'], bool) and corporate_action['hwm_adjusted'] is True)
+            def _strict_hwm_present_ok(mapping: Dict[str, Any], key: str) -> bool:
+                return key not in mapping or (isinstance(mapping[key], bool) and mapping[key] is True)
+
+            hwm_ok = (
+                _strict_hwm_present_ok(corporate_action, 'hwm_adjusted') and
+                _strict_hwm_present_ok(inputs, 'hwm_adjusted') and
+                _strict_hwm_present_ok(inputs, '_top_hwm_adjusted')
             )
-            in_hwm_ok = (
-                'hwm_adjusted' not in inputs or
-                (isinstance(inputs['hwm_adjusted'], bool) and inputs['hwm_adjusted'] is True)
-            )
-            hwm_ok = ca_hwm_ok and in_hwm_ok
 
             def _item_matches(item: Dict[str, Any], a_type: Any, c_ratio: Any) -> bool:
                 if item.get('type') != a_type:

@@ -19,9 +19,25 @@ Canonical state keys:
 """
 
 from typing import Any, Dict, Optional
+from .canonical import finite_float
 
 
 # V2 canonical state accessors
+
+
+def canonical_ca_identity(ca_obj: Any) -> Optional[Dict[str, Any]]:
+    """Return normalized corporate-action identity excluding volatile completion flags."""
+    if not isinstance(ca_obj, dict) or not ca_obj.get('type'):
+        return None
+    volatile = {'adjustment_complete', 'exact_reconciliation', 'hwm_adjusted', 'awaiting_reconciliation'}
+    ident: Dict[str, Any] = {}
+    for k in sorted(ca_obj.keys()):
+        if k in volatile:
+            continue
+        v = ca_obj[k]
+        num = finite_float(v)
+        ident[k] = num if num is not None else v
+    return ident
 
 def get_v2_pending_adjustment(prior_state: Optional[Dict], fund: str) -> Optional[Dict]:
     """Get pending adjustment for a fund from V2.pending_adjustments."""
@@ -51,6 +67,10 @@ def clear_v2_pending_adjustment(next_state: Dict, fund: str) -> None:
         del next_state['V2']['pending_adjustments'][fund]
         if not next_state['V2']['pending_adjustments']:
             del next_state['V2']['pending_adjustments']
+    if 'pending_action_identities' in next_state['V2'] and fund in next_state['V2']['pending_action_identities']:
+        del next_state['V2']['pending_action_identities'][fund]
+        if not next_state['V2']['pending_action_identities']:
+            del next_state['V2']['pending_action_identities']
     # Keep empty V2:{} per golden projections
 
 
@@ -62,6 +82,15 @@ def get_v2_latched_mismatch(prior_state: Optional[Dict], fund: str) -> Optional[
     return mismatches.get(fund)
 
 
+def get_v2_latched_mismatch_action(prior_state: Optional[Dict], fund: str) -> Optional[Dict]:
+    """Get normalized corporate-action identity for a latched V2 mismatch."""
+    if not prior_state or 'V2' not in prior_state:
+        return None
+    actions = prior_state['V2'].get('latched_mismatch_actions', {})
+    val = actions.get(fund)
+    return val if isinstance(val, dict) else None
+
+
 def set_v2_latched_mismatch(next_state: Dict, fund: str, mismatch: Dict) -> None:
     """Set latched mismatch in V2.latched_mismatches[fund]."""
     if 'V2' not in next_state:
@@ -69,6 +98,33 @@ def set_v2_latched_mismatch(next_state: Dict, fund: str, mismatch: Dict) -> None
     if 'latched_mismatches' not in next_state['V2']:
         next_state['V2']['latched_mismatches'] = {}
     next_state['V2']['latched_mismatches'][fund] = mismatch
+
+
+def set_v2_latched_mismatch_action(next_state: Dict, fund: str, action_identity: Dict) -> None:
+    """Persist normalized corporate-action identity alongside V2.latched_mismatches[fund]."""
+    if 'V2' not in next_state:
+        next_state['V2'] = {}
+    if 'latched_mismatch_actions' not in next_state['V2']:
+        next_state['V2']['latched_mismatch_actions'] = {}
+    next_state['V2']['latched_mismatch_actions'][fund] = action_identity
+
+
+def get_v2_pending_identities(prior_state: Optional[Dict], fund: str) -> Optional[Dict]:
+    """Get normalized corporate-action identities for pending primary/queued V2 items."""
+    if not prior_state or 'V2' not in prior_state:
+        return None
+    identities = prior_state['V2'].get('pending_action_identities', {})
+    val = identities.get(fund)
+    return val if isinstance(val, dict) else None
+
+
+def set_v2_pending_identities(next_state: Dict, fund: str, identities: Dict) -> None:
+    """Persist normalized corporate-action identities alongside V2.pending_adjustments[fund]."""
+    if 'V2' not in next_state:
+        next_state['V2'] = {}
+    if 'pending_action_identities' not in next_state['V2']:
+        next_state['V2']['pending_action_identities'] = {}
+    next_state['V2']['pending_action_identities'][fund] = identities
 
 
 def clear_v2_latched_mismatch(next_state: Dict, fund: str) -> None:
@@ -82,6 +138,10 @@ def clear_v2_latched_mismatch(next_state: Dict, fund: str) -> None:
         del next_state['V2']['latched_mismatches'][fund]
         if not next_state['V2']['latched_mismatches']:
             del next_state['V2']['latched_mismatches']
+    if 'latched_mismatch_actions' in next_state['V2'] and fund in next_state['V2']['latched_mismatch_actions']:
+        del next_state['V2']['latched_mismatch_actions'][fund]
+        if not next_state['V2']['latched_mismatch_actions']:
+            del next_state['V2']['latched_mismatch_actions']
     # Keep empty V2:{} per golden projections
 
 

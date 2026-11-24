@@ -309,12 +309,10 @@ def evaluate(
             # Q4: clear latch on authorized re-arm - serialize as {"V1":{}}
             cst.clear_v1_latch(next_row_state, symbol)
 
-        # V2 - corporate action (preserve top-level hwm_adjusted presence when fund omits it)
-        v2_inputs = (
-            fund_inputs
-            if ('hwm_adjusted' in fund_inputs or 'hwm_adjusted' not in validated_inputs)
-            else {**fund_inputs, 'hwm_adjusted': validated_inputs.get('hwm_adjusted')}
-        )
+        # V2 - corporate action (validate top-level, fund-level, AND corporate_action hwm_adjusted independently)
+        v2_inputs = dict(fund_inputs)
+        if 'hwm_adjusted' in validated_inputs:
+            v2_inputs['_top_hwm_adjusted'] = validated_inputs['hwm_adjusted']
         v2_result = rows_vehicle.evaluate_V2(
             v2_inputs, prior_row_state, authorized_events, symbol,
             session=session, as_of=as_of,
@@ -327,7 +325,7 @@ def evaluate(
 
         # B1: Store V2 latches and finite-sanitized mismatch details (SUC-02) - canonical format per Q6
         if v2_result['latched']:
-            # For new reconciliation_mismatch, store finite mismatch details
+            # For new reconciliation_mismatch, store finite mismatch details + action identity
             if v2_result['reason'] == 'reconciliation_mismatch':
                 corporate_action = fund_inputs.get('corporate_action', {})
                 lv_clean = finite_float(fund_inputs.get('ledger_value'))
@@ -340,11 +338,17 @@ def evaluate(
                     'mismatch': mismatch_amt
                 }
                 cst.set_v2_latched_mismatch(next_row_state, symbol, mismatch_details)
-            # For persisting latch (latched_prior_mismatch), carry forward details
+                ca_ident = cst.canonical_ca_identity(corporate_action)
+                if ca_ident is not None:
+                    cst.set_v2_latched_mismatch_action(next_row_state, symbol, ca_ident)
+            # For persisting latch (latched_prior_mismatch), carry forward details + action identity
             elif v2_result['reason'] == 'latched_prior_mismatch':
                 prior_mismatch = cst.get_v2_latched_mismatch(prior_row_state, symbol)
                 if prior_mismatch:
                     cst.set_v2_latched_mismatch(next_row_state, symbol, prior_mismatch)
+                prior_mismatch_action = cst.get_v2_latched_mismatch_action(prior_row_state, symbol)
+                if prior_mismatch_action:
+                    cst.set_v2_latched_mismatch_action(next_row_state, symbol, prior_mismatch_action)
         else:
             # Clear mismatch latch on Q4 re-arm even if carried pending actions remain
             if v2_result['reason'] == 'authorized_rearm' or v2_clear_mismatch_only:
@@ -352,6 +356,7 @@ def evaluate(
 
         # Update pending state (B1 canonical format per Q6; never drop unrelated queued/primary items)
         prior_pending = cst.get_v2_pending_adjustment(prior_row_state, symbol)
+        prior_identities = cst.get_v2_pending_identities(prior_row_state, symbol)
 
         def _drop_pending_target(pending_obj: Dict[str, Any], target: Any) -> Optional[Dict[str, Any]]:
             updated = copy.deepcopy(pending_obj)
@@ -380,63 +385,139 @@ def evaluate(
                 return updated
             return updated
 
-        def _merge_pending_action(existing_pending: Optional[Dict[str, Any]], ca_obj: Any) -> Optional[Dict[str, Any]]:
+        def _drop_identity_target(ident_obj: Optional[Dict[str, Any]], target: Any) -> Optional[Dict[str, Any]]:
+            if not isinstance(ident_obj, dict):
+                return None
+            updated_id = copy.deepcopy(ident_obj)
+            q_ids = list(updated_id.get('queued') or [])
+            if target == 'primary':
+                if not q_ids:
+                    return None
+                promoted_id = q_ids.pop(0)
+                res_id: Dict[str, Any] = {'primary': promoted_id}
+                if q_ids:
+                    res_id['queued'] = q_ids
+                return res_id
+            if isinstance(target, tuple) and target[0] == 'queued':
+                idx_to_pop = target[1]
+                if 0 <= idx_to_pop < len(q_ids):
+                    q_ids.pop(idx_to_pop)
+                if q_ids:
+                    updated_id['queued'] = q_ids
+                else:
+                    updated_id.pop('queued', None)
+                return updated_id
+            return updated_id
+
+        def _merge_pending_action(
+            existing_pending: Optional[Dict[str, Any]],
+            existing_idents: Optional[Dict[str, Any]],
+            ca_obj: Any,
+        ) -> tuple:
+            inc_ident = cst.canonical_ca_identity(ca_obj)
             if existing_pending:
                 merged = copy.deepcopy(existing_pending)
+                merged_idents = copy.deepcopy(existing_idents) if isinstance(existing_idents, dict) else {}
                 if isinstance(ca_obj, dict) and ca_obj.get('type'):
                     inc_type = ca_obj.get('type')
                     inc_ratio = ca_obj.get('ratio')
-                    matches_primary = (inc_type == merged.get('type') and inc_ratio == merged.get('ratio'))
-                    q_list = list(merged.get('queued_actions') or [])
-                    matches_queued = any(
-                        isinstance(q, dict) and q.get('type') == inc_type and q.get('ratio') == inc_ratio
-                        for q in q_list
+                    inc_ratio_num = finite_float(inc_ratio)
+                    prim_ratio_num = finite_float(merged.get('ratio'))
+                    ratio_matches_prim = (
+                        inc_ratio_num == prim_ratio_num
+                        if (inc_ratio_num is not None or prim_ratio_num is not None)
+                        else inc_ratio == merged.get('ratio')
                     )
+                    if isinstance(merged_idents.get('primary'), dict) and inc_ident is not None:
+                        matches_primary = (inc_ident == merged_idents['primary'])
+                    else:
+                        matches_primary = (inc_type == merged.get('type') and ratio_matches_prim)
+                    q_list = list(merged.get('queued_actions') or [])
+                    q_ids = list(merged_idents.get('queued') or [])
+                    matches_queued = False
+                    for idx_q, q in enumerate(q_list):
+                        if not isinstance(q, dict):
+                            continue
+                        if idx_q < len(q_ids) and isinstance(q_ids[idx_q], dict) and inc_ident is not None:
+                            if inc_ident == q_ids[idx_q]:
+                                matches_queued = True
+                                break
+                        else:
+                            q_r_num = finite_float(q.get('ratio'))
+                            r_eq = (
+                                inc_ratio_num == q_r_num
+                                if (inc_ratio_num is not None or q_r_num is not None)
+                                else inc_ratio == q.get('ratio')
+                            )
+                            if q.get('type') == inc_type and r_eq:
+                                matches_queued = True
+                                break
                     if not matches_primary and not matches_queued:
                         q_list.append({'type': inc_type, 'ratio': inc_ratio})
                         merged['queued_actions'] = q_list
-                return merged
+                        if inc_ident is not None:
+                            while len(q_ids) < len(q_list) - 1:
+                                q_ids.append(None)
+                            q_ids.append(inc_ident)
+                            merged_idents['queued'] = q_ids
+                return merged, (merged_idents if merged_idents else None)
             if isinstance(ca_obj, dict) and ca_obj.get('type'):
-                return {
+                pending_obj = {
                     'type': ca_obj.get('type'),
                     'ratio': ca_obj.get('ratio'),
                     'awaiting_reconciliation': True
                 }
-            return None
+                idents_obj = {'primary': inc_ident} if inc_ident is not None else None
+                return pending_obj, idents_obj
+            return None, None
 
         corporate_action = fund_inputs.get('corporate_action')
         if v2_result['reason'] == 'reconciliation_mismatch':
             if prior_pending:
                 if v2_mismatch_target is not None:
                     remaining_pending = _drop_pending_target(prior_pending, v2_mismatch_target)
+                    remaining_idents = _drop_identity_target(prior_identities, v2_mismatch_target)
                     if remaining_pending is not None:
                         cst.set_v2_pending_adjustment(next_row_state, symbol, remaining_pending)
+                        if remaining_idents is not None:
+                            cst.set_v2_pending_identities(next_row_state, symbol, remaining_idents)
                     else:
                         cst.clear_v2_pending_adjustment(next_row_state, symbol)
                 else:
                     cst.set_v2_pending_adjustment(next_row_state, symbol, copy.deepcopy(prior_pending))
+                    if prior_identities is not None:
+                        cst.set_v2_pending_identities(next_row_state, symbol, copy.deepcopy(prior_identities))
         elif v2_result['reason'] in ['pending_corporate_action', 'pending_corporate_action_carried']:
             if v2_reconcile_target is not None and prior_pending:
                 remaining_pending = _drop_pending_target(prior_pending, v2_reconcile_target)
+                remaining_idents = _drop_identity_target(prior_identities, v2_reconcile_target)
                 if remaining_pending is not None:
                     cst.set_v2_pending_adjustment(next_row_state, symbol, remaining_pending)
+                    if remaining_idents is not None:
+                        cst.set_v2_pending_identities(next_row_state, symbol, remaining_idents)
                 else:
                     cst.clear_v2_pending_adjustment(next_row_state, symbol)
             else:
-                merged_pending = _merge_pending_action(prior_pending, corporate_action)
+                merged_pending, merged_idents = _merge_pending_action(prior_pending, prior_identities, corporate_action)
                 if merged_pending is not None:
                     cst.set_v2_pending_adjustment(next_row_state, symbol, merged_pending)
+                    if merged_idents is not None:
+                        cst.set_v2_pending_identities(next_row_state, symbol, merged_idents)
         elif v2_result['reason'] in ('exact_reconciliation_auto_clear', 'authorized_rearm'):
             # Clear pending on exact reconciliation or authorized re-arm (only when no pending remained)
             cst.clear_v2_pending_adjustment(next_row_state, symbol)
         elif v2_enqueue_pending:
             # Distinct/new corporate action announced while mismatch latch is active -> keep pending queue
-            merged_pending = _merge_pending_action(prior_pending, corporate_action)
+            merged_pending, merged_idents = _merge_pending_action(prior_pending, prior_identities, corporate_action)
             if merged_pending is not None:
                 cst.set_v2_pending_adjustment(next_row_state, symbol, merged_pending)
+                if merged_idents is not None:
+                    cst.set_v2_pending_identities(next_row_state, symbol, merged_idents)
         else:
             if prior_pending:
                 cst.set_v2_pending_adjustment(next_row_state, symbol, copy.deepcopy(prior_pending))
+                if prior_identities is not None:
+                    cst.set_v2_pending_identities(next_row_state, symbol, copy.deepcopy(prior_identities))
 
         # V3 - fund event (canonical format per Q6)
         v3_result = rows_vehicle.evaluate_V3(

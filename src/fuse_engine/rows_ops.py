@@ -82,11 +82,17 @@ def evaluate_O1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         ))
     )
 
+    cal_status = inputs.get('session_calendar_status') if 'session_calendar_status' in inputs else inputs.get('calendar_state')
+    exch_status = inputs.get('exchange_status')
+    closed_tokens = ('holiday', 'closed', 'market_closed')
+    open_explicit = (cal_status == 'open' or exch_status == 'open')
     is_closed = (
-        inputs.get('market_closed') is True or
-        inputs.get('session_calendar_status') in ('holiday', 'closed', 'market_closed') or
-        inputs.get('exchange_status') in ('holiday', 'closed', 'market_closed')
+        cal_status in closed_tokens or
+        exch_status in closed_tokens or
+        (inputs.get('market_closed') is True and cal_status is None and exch_status is None)
     )
+    if open_explicit and not (cal_status in closed_tokens or exch_status in closed_tokens):
+        is_closed = False
 
     if has_operational_payload:
         required_values = ['bankroll', 'high_water_mark', 'joint_exposure', 'max_loss_cap']
@@ -104,7 +110,8 @@ def evaluate_O1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
         if not is_closed and (
             'index_one_session_returns' in inputs or
-            inputs.get('session_calendar_status') == 'open'
+            cal_status == 'open' or
+            exch_status == 'open'
         ):
             idx_rets = inputs.get('index_one_session_returns')
             if (
@@ -567,11 +574,29 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     if symbol is not None and (not isinstance(whitelist, list) or symbol not in whitelist):
         violations.append('symbol_not_whitelisted')
 
+    # Inspect ALL supplied qty aliases; fail closed on conflicting or invalid quantities
+    qty_entries = [
+        (qty_key, inputs[qty_key])
+        for qty_key in ('o5_order_size', 'order_size', 'o5_order_qty', 'order_qty', 'qty')
+        if qty_key in inputs and inputs[qty_key] is not None
+    ]
     order_size = None
-    for qty_key in ('o5_order_size', 'order_size', 'o5_order_qty', 'order_qty', 'qty'):
-        if inputs.get(qty_key) is not None:
-            order_size = inputs.get(qty_key)
-            break
+    ambiguous_order_size = False
+    if qty_entries:
+        parsed_qtys = []
+        for _, raw_q in qty_entries:
+            q_num = finite_float(raw_q)
+            if q_num is None:
+                ambiguous_order_size = True
+                break
+            parsed_qtys.append(q_num)
+        if not ambiguous_order_size:
+            if len(set(parsed_qtys)) > 1:
+                ambiguous_order_size = True
+            else:
+                order_size = qty_entries[0][1]
+    if ambiguous_order_size:
+        violations.append('invalid_order_size')
 
     # Side & notional inputs (extract before account whitelist check so explicit order checks never bypass null account)
     side = inputs.get('o5_side') if 'o5_side' in inputs else inputs.get('side')
@@ -584,7 +609,7 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         )
     ref_price = inputs.get('o5_reference_price')
 
-    # Account whitelist: fail closed on null/non-list whitelist, validate both account & o5_account,
+    # Account whitelist: fail closed on null/empty/non-list whitelist, validate both account & o5_account,
     # and require valid account/whitelist when an explicit order check is present
     raw_account = inputs.get('account')
     raw_o5_account = inputs.get('o5_account')
@@ -596,7 +621,7 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     else:
         account_whitelist = None
 
-    order_present = any(
+    order_present = ambiguous_order_size or any(
         val is not None
         for val in (side, order_size, raw_order_value, symbol, unit_price, ref_price)
     )
@@ -605,19 +630,23 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         ('o5_account_whitelist' in inputs and inputs['o5_account_whitelist'] is None) or
         (account_whitelist is not None and not isinstance(account_whitelist, list))
     )
+    invalid_whitelist = (
+        not isinstance(account_whitelist, list) or
+        not any(isinstance(a, str) and a.strip() for a in account_whitelist)
+    )
     explicit_null_account = (
         ('account' in inputs and raw_account is None) or
         ('o5_account' in inputs and raw_o5_account is None)
     )
     if (
         (accounts_to_check and (
-            not isinstance(account_whitelist, list) or
+            invalid_whitelist or
             any(a not in account_whitelist for a in accounts_to_check)
         )) or
         explicit_null_whitelist or
         (order_present and (
             explicit_null_account or
-            (not accounts_to_check and account_whitelist is None)
+            invalid_whitelist
         ))
     ):
         violations.append('account_not_whitelisted')
@@ -628,7 +657,7 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         if side == 'buy':
             pass
         elif side == 'sell':
-            sell_qty = finite_float(order_size)
+            sell_qty = finite_float(order_size) if not ambiguous_order_size else None
             funds_map = inputs.get('funds')
             sym_data = funds_map.get(symbol) if (isinstance(funds_map, dict) and symbol is not None) else None
             held_raw = None
@@ -661,6 +690,7 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             derived_notional = osize_val * uprice_val
 
     settled_cash = inputs['settled_cash'] if 'settled_cash' in inputs else inputs.get('o5_settled_cash')
+    explicit_buy = (side == 'buy') or (side is None and (order_size is not None or ambiguous_order_size))
 
     if side != 'sell':
         if notional_invalid:
@@ -679,6 +709,9 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 sc = finite_float(settled_cash)
                 if eff_order_val is None or sc is None or sc < 0.0 or eff_order_val > sc:
                     violations.append('exceeds_settled_cash')
+        elif explicit_buy:
+            # Unbounded buy notional (missing both order_value and finite price) fails closed
+            violations.append('exceeds_settled_cash')
 
     # Maximum order size
     max_order_size = inputs.get('o5_max_order_size')
@@ -1070,16 +1103,31 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             return False, None
         return _parse_event_scope(event)
 
+    def _extract_tier_target(obj: Any) -> Optional[str]:
+        if not isinstance(obj, dict):
+            return None
+        for k in ('to', 'new', 'target', 'new_tier'):
+            v = obj.get(k)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+        return None
+
     tier_authorized = True
     if tier_change_event:
-        target_tier = tier_change_event.get('to')
+        target_tier = _extract_tier_target(tier_change_event)
         live_tier = inputs.get('tier')
-        tier_live_ok = target_tier is None or live_tier is None or live_tier == target_tier
+        from_tier = tier_change_event.get('from') if isinstance(tier_change_event, dict) else None
+        tier_live_ok = (
+            isinstance(target_tier, str) and
+            isinstance(live_tier, str) and
+            live_tier.strip() == target_tier
+        )
         tier_authorized = tier_live_ok and any(
             _tier_card_scope_date_ok(event) and
             event.get('type') == 'tier_change_card' and
-            event.get('from') == tier_change_event.get('from') and
-            event.get('to') == target_tier
+            event.get('from') is not None and
+            event.get('from') == from_tier and
+            _extract_tier_target(event) == target_tier
             for event in events_list
         )
 
@@ -1173,10 +1221,10 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
 
     account_only_fields = {
         'max_loss_cap', 'tier_joint_cap', 'tier', 'high_water_mark',
-        'h_value', 'H', 'tier_loss_budget_D', 'o5_collar',
+        'h_value', 'H', 'tier_loss_budget_D', 'o5_collar', 'reconciliation_tolerance',
     }
     overridable_policy_fields = {
-        'v7_spread_width', 'v5_tolerance', 'v6_threshold', 'reconciliation_tolerance',
+        'v7_spread_width', 'v5_tolerance', 'v6_threshold',
     }
     known_o9_policy_fields = account_only_fields | overridable_policy_fields
 
@@ -1208,7 +1256,11 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 if funds_map and target_scope not in funds_map:
                     return False
                 fund_dict = funds_map.get(target_scope)
-                if isinstance(fund_dict, dict) and field_name in fund_dict:
+                if field_name == 'v6_threshold':
+                    if not isinstance(fund_dict, dict) or field_name not in fund_dict:
+                        return False
+                    live_val = fund_dict[field_name]
+                elif isinstance(fund_dict, dict) and field_name in fund_dict:
                     live_val = fund_dict[field_name]
                 elif field_name in inputs:
                     live_val = inputs[field_name]
@@ -1221,6 +1273,15 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 if not _values_match(live_val, target_val):
                     return False
             else:
+                if field_name == 'v6_threshold':
+                    if not funds_map:
+                        return False
+                    if not all(
+                        isinstance(f_data, dict) and field_name in f_data and _values_match(f_data[field_name], target_val)
+                        for f_data in funds_map.values()
+                    ):
+                        return False
+                    continue
                 if field_name in inputs:
                     live_val = inputs[field_name]
                     if not _values_match(live_val, target_val):
@@ -1230,13 +1291,13 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                     if not _values_match(live_val, target_val):
                         return False
                 elif field_name in overridable_policy_fields:
-                    found_any_override = False
-                    for f_data in funds_map.values():
-                        if isinstance(f_data, dict) and field_name in f_data:
-                            found_any_override = True
-                            if not _values_match(f_data[field_name], target_val):
-                                return False
-                    if not found_any_override:
+                    # Without a top-level value, EVERY configured fund must explicitly match target_val
+                    if not funds_map:
+                        return False
+                    if not all(
+                        isinstance(f_data, dict) and field_name in f_data and _values_match(f_data[field_name], target_val)
+                        for f_data in funds_map.values()
+                    ):
                         return False
                 elif field_name in known_o9_policy_fields:
                     return False
