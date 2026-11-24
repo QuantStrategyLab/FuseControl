@@ -215,25 +215,22 @@ def evaluate_V1(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     }
 
 
-def _find_v2_pending_target(prior_pending: Optional[Dict[str, Any]], a_type: Any, c_ratio: Any) -> Any:
-    """Identify whether incoming corporate action targets primary or a queued pending entry."""
-    if not prior_pending or not a_type:
+def _find_v2_pending_target(
+    prior_pending: Optional[Dict[str, Any]],
+    prior_idents: Optional[Dict[str, Any]],
+    corporate_action: Any,
+) -> Any:
+    """Identify whether incoming corporate action matches primary or a queued pending entry by exact identity."""
+    if not prior_pending or not isinstance(corporate_action, dict) or not corporate_action.get('type'):
         return None
-    if prior_pending.get('type') == a_type:
-        p_ratio = prior_pending.get('ratio')
-        if p_ratio is None or c_ratio is None or _is_valid_finite_number(c_ratio) == _is_valid_finite_number(p_ratio):
-            return 'primary'
-    queued_actions = prior_pending.get('queued_actions') or []
-    for idx, q in enumerate(queued_actions):
-        if isinstance(q, dict) and q.get('type') == a_type:
-            p_ratio = q.get('ratio')
-            if p_ratio is None or c_ratio is None or _is_valid_finite_number(c_ratio) == _is_valid_finite_number(p_ratio):
-                return ('queued', idx)
-    # Fallback: match by type only if a mismatching ratio failed reconciliation on primary/queued
-    if prior_pending.get('type') == a_type:
+    primary_ident = prior_idents.get('primary') if isinstance(prior_idents, dict) else None
+    if cst.ca_identity_matches(primary_ident, prior_pending, corporate_action):
         return 'primary'
+    queued_actions = prior_pending.get('queued_actions') or []
+    queued_idents = prior_idents.get('queued') if isinstance(prior_idents, dict) else None
     for idx, q in enumerate(queued_actions):
-        if isinstance(q, dict) and q.get('type') == a_type:
+        q_ident = queued_idents[idx] if (isinstance(queued_idents, list) and idx < len(queued_idents)) else None
+        if cst.ca_identity_matches(q_ident, q, corporate_action):
             return ('queued', idx)
     return None
 
@@ -255,6 +252,7 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     prior_mismatch = cst.get_v2_latched_mismatch(prior_state, fund)
     prior_mismatch_action = cst.get_v2_latched_mismatch_action(prior_state, fund)
     prior_pending = cst.get_v2_pending_adjustment(prior_state, fund)
+    prior_pending_idents = cst.get_v2_pending_identities(prior_state, fund)
     corporate_action = inputs.get('corporate_action')
     mismatch_cleared = False
     if prior_mismatch:
@@ -348,7 +346,7 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             return res
 
         curr_ratio = corporate_action.get('ratio')
-        mismatch_target = _find_v2_pending_target(prior_pending, action_type, curr_ratio)
+        mismatch_target = _find_v2_pending_target(prior_pending, prior_pending_idents, corporate_action)
 
         raw_adj_complete = corporate_action.get('adjustment_complete', False)
         raw_exact_rec = corporate_action.get('exact_reconciliation', False)
@@ -394,24 +392,12 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 _strict_hwm_present_ok(inputs, '_top_hwm_adjusted')
             )
 
-            def _item_matches(item: Dict[str, Any], a_type: Any, c_ratio: Any) -> bool:
-                if item.get('type') != a_type:
-                    return False
-                p_ratio = item.get('ratio')
-                if p_ratio is None:
-                    return True
-                p_ratio_num = _is_valid_finite_number(p_ratio)
-                c_ratio_num = _is_valid_finite_number(c_ratio)
-                return (
-                    p_ratio_num is not None and
-                    c_ratio_num is not None and
-                    c_ratio_num == p_ratio_num
-                )
-
             if exact_reconciliation and amounts_match and hwm_ok:
                 if prior_pending:
                     queued_actions = prior_pending.get('queued_actions') or []
-                    if _item_matches(prior_pending, action_type, curr_ratio):
+                    queued_idents = prior_pending_idents.get('queued') if isinstance(prior_pending_idents, dict) else None
+                    primary_ident = prior_pending_idents.get('primary') if isinstance(prior_pending_idents, dict) else None
+                    if cst.ca_identity_matches(primary_ident, prior_pending, corporate_action):
                         if not queued_actions:
                             return {
                                 'state': 'NORMAL',
@@ -434,8 +420,14 @@ def evaluate_V2(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                             res['_v2_clear_mismatch_only'] = True
                         return res
                     matched_q_idx = next(
-                        (idx for idx, q in enumerate(queued_actions)
-                         if isinstance(q, dict) and _item_matches(q, action_type, curr_ratio)),
+                        (
+                            idx for idx, q in enumerate(queued_actions)
+                            if cst.ca_identity_matches(
+                                queued_idents[idx] if (isinstance(queued_idents, list) and idx < len(queued_idents)) else None,
+                                q,
+                                corporate_action,
+                            )
+                        ),
                         None
                     )
                     if matched_q_idx is not None:

@@ -1940,6 +1940,160 @@ class TestG3FailClosedAndV1FiveSession(unittest.TestCase):
             self.assertEqual(eff['account'], 'NO-NEW-RISK')
             self.assertEqual(compute_permitted_exposure(vi, rows, eff), 45000.0)
 
+    def test_r8_o5_rearm_plus_bad_order_and_side_conflict_and_zero_order_value(self):
+        """R8 #1-#2: O5 Q4 rearm still evaluates same-session orders; rejects conflicting side aliases & order_value=0 on order_size>0 buy."""
+        sys.path.insert(0, str(repo_root / 'tools'))
+        from check_exposure_invariants import compute_permitted_exposure
+
+        # Latch O5 with 3 violations
+        vi_trip = copy.deepcopy(self.normal_vi)
+        vi_trip.update({'o5_collar': 0.05, 'side': 'short'})
+        st_o5 = {}
+        for _ in range(3):
+            _, _, st_o5 = self._eval(vi_trip, session='2026-01-05', prior=st_o5)
+        self.assertTrue(st_o5['O5']['latched'])
+
+        # 1. Rearm + same-session bad order (qty conflict, unbounded buy, empty whitelist) still trips O5 & clamps exposure
+        rearm_ev = [{'type': 'rearm', 'row_id': 'O5', 'session': '2026-01-06', 'scope': 'account'}]
+        for bad_kw in (
+            {'side': 'buy', 'symbol': 'TQQQ', 'order_size': 2, 'o5_order_size': 0, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'settled_cash': 0.0},
+            {'side': 'buy', 'symbol': 'TQQQ', 'order_size': 2, 'settled_cash': 0.0},
+            {'side': 'buy', 'symbol': 'TQQQ', 'order_size': 2, 'unit_price': 50.0, 'o5_reference_price': 50.0, 'settled_cash': 200.0, 'account_whitelist': []},
+        ):
+            vi_r = copy.deepcopy(self.normal_vi)
+            vi_r.update({'last_heartbeat': '2026-01-06T15:59:30Z', 'o5_collar': 0.05, 'proposed_exposure': 50000.0, 'v7_spread_width': 0.02, **bad_kw})
+            vi_r['funds']['TQQQ']['v5_tolerance'] = 0.01
+            vi_r['funds']['SOXL']['v5_tolerance'] = 0.01
+            r, eff, _ = self._eval(vi_r, session='2026-01-06', prior=st_o5, events=rearm_ev)
+            self.assertTrue(r['O5']['would_have_tripped'])
+            self.assertEqual(r['O5']['rejection_count_this_session'], 1)
+            self.assertEqual(compute_permitted_exposure(vi_r, r, eff), 45000.0)
+
+        # 2a. Conflicting side='buy' + o5_side='sell' cannot skip settled_cash check
+        vi_sc = copy.deepcopy(self.normal_vi)
+        vi_sc.update({
+            'o5_collar': 0.05, 'side': 'buy', 'o5_side': 'sell', 'symbol': 'TQQQ',
+            'order_size': 2, 'settled_cash': 0.0, 'proposed_exposure': 50000.0, 'v7_spread_width': 0.02,
+        })
+        vi_sc['funds']['TQQQ']['v5_tolerance'] = 0.01
+        vi_sc['funds']['SOXL']['v5_tolerance'] = 0.01
+        r_sc, eff_sc, _ = self._eval(vi_sc)
+        self.assertTrue(r_sc['O5']['would_have_tripped'])
+        self.assertEqual(compute_permitted_exposure(vi_sc, r_sc, eff_sc), 45000.0)
+
+        # 2b. Explicit buy with order_size>0 and deceptive order_value=0 fails closed
+        vi_zov = copy.deepcopy(self.normal_vi)
+        vi_zov.update({
+            'o5_collar': 0.05, 'side': 'buy', 'symbol': 'TQQQ',
+            'order_size': 2, 'order_value': 0, 'settled_cash': 0.0,
+            'proposed_exposure': 50000.0, 'v7_spread_width': 0.02,
+        })
+        vi_zov['funds']['TQQQ']['v5_tolerance'] = 0.01
+        vi_zov['funds']['SOXL']['v5_tolerance'] = 0.01
+        r_zov, eff_zov, _ = self._eval(vi_zov)
+        self.assertTrue(r_zov['O5']['would_have_tripped'])
+        self.assertEqual(compute_permitted_exposure(vi_zov, r_zov, eff_zov), 45000.0)
+
+    def test_r8_v2_replay_mismatch_preserves_queue_and_distinguishes_effective_date(self):
+        """R8 #3: Replaying split(ratio=2) mismatch does not clear queued split(ratio=3); different effective_date splits stay isolated."""
+        # Case A: ratio=2 mismatch -> ratio=3 queued -> rearm -> replay ratio=2 mismatch -> rearm stays HALT!
+        vi1 = copy.deepcopy(self.normal_vi)
+        vi1['funds']['TQQQ']['corporate_action'] = {'type': 'split', 'ratio': 2, 'adjustment_complete': True, 'exact_reconciliation': False}
+        _, _, st1 = self._eval(vi1, session='2026-01-05')
+
+        vi2 = copy.deepcopy(self.normal_vi)
+        vi2['last_heartbeat'] = '2026-01-06T15:59:30Z'
+        vi2['funds']['TQQQ']['corporate_action'] = {'type': 'split', 'ratio': 3, 'adjustment_complete': True, 'exact_reconciliation': False}
+        _, _, st2 = self._eval(vi2, session='2026-01-06', prior=st1)
+
+        vi3 = copy.deepcopy(self.normal_vi)
+        vi3['last_heartbeat'] = '2026-01-07T15:59:30Z'
+        _, _, st3 = self._eval(vi3, session='2026-01-07', prior=st2, events=[{'type': 'rearm', 'row': 'V2', 'fund': 'TQQQ', 'session': '2026-01-07'}])
+        self.assertEqual(st3['V2']['pending_adjustments']['TQQQ']['ratio'], 3)
+
+        vi4 = copy.deepcopy(self.normal_vi)
+        vi4['last_heartbeat'] = '2026-01-08T15:59:30Z'
+        vi4['funds']['TQQQ']['corporate_action'] = {'type': 'split', 'ratio': 2, 'adjustment_complete': True, 'exact_reconciliation': False}
+        r4, _, st4 = self._eval(vi4, session='2026-01-08', prior=st3)
+        self.assertEqual(r4['V2']['state'], 'HALT')
+        self.assertEqual(st4['V2']['pending_adjustments']['TQQQ']['ratio'], 3)
+
+        vi5 = copy.deepcopy(self.normal_vi)
+        vi5['last_heartbeat'] = '2026-01-09T15:59:30Z'
+        r5, eff5, st5 = self._eval(vi5, session='2026-01-09', prior=st4, events=[{'type': 'rearm', 'row': 'V2', 'fund': 'TQQQ', 'session': '2026-01-09'}])
+        self.assertEqual(r5['V2']['state'], 'HALT')
+        self.assertEqual(eff5['fund:TQQQ'], 'HALT')
+        self.assertEqual(st5['V2']['pending_adjustments']['TQQQ']['ratio'], 3)
+
+        # Case B: Two splits with same ratio=2 but different effective_date cannot cross-clear
+        vi_ed1 = copy.deepcopy(self.normal_vi)
+        vi_ed1['funds']['TQQQ']['corporate_action'] = {
+            'type': 'split', 'ratio': 2, 'effective_date': '2026-01-08', 'adjustment_complete': False, 'exact_reconciliation': False,
+        }
+        _, _, st_ed1 = self._eval(vi_ed1, session='2026-01-05')
+
+        vi_ed_old = copy.deepcopy(self.normal_vi)
+        vi_ed_old['last_heartbeat'] = '2026-01-06T15:59:30Z'
+        vi_ed_old['funds']['TQQQ']['corporate_action'] = {
+            'type': 'split', 'ratio': 2, 'effective_date': '2026-01-05', 'adjustment_complete': True, 'exact_reconciliation': True, 'hwm_adjusted': True,
+        }
+        r_ed, eff_ed, st_ed2 = self._eval(vi_ed_old, session='2026-01-06', prior=st_ed1)
+        self.assertEqual(r_ed['V2']['state'], 'HALT')
+        self.assertEqual(eff_ed['fund:TQQQ'], 'HALT')
+        self.assertIn('pending_adjustments', st_ed2['V2'])
+
+    def test_r8_o9_rearm_plus_unauthorized_change_and_no_limits_masking(self):
+        """R8 #4-#5: O9 Q4 rearm still evaluates same-session changes; limits dict cannot mask missing consumer inputs."""
+        sys.path.insert(0, str(repo_root / 'tools'))
+        from check_exposure_invariants import compute_permitted_exposure
+
+        # 4. O9 HALT -> Q4 rearm + unauthorized {from: balanced} tier change -> HALT (0 exposure)
+        vi_trip = copy.deepcopy(self.normal_vi)
+        vi_trip['o9_change_descriptors'] = {'param': 'max_loss_cap', 'to': 80000}
+        _, _, st_o9 = self._eval(vi_trip, session='2026-01-05')
+
+        vi_rec = copy.deepcopy(self.normal_vi)
+        vi_rec.update({
+            'last_heartbeat': '2026-01-06T15:59:30Z', 'tier': 'aggressive',
+            'tier_change_event': {'from': 'balanced'}, 'proposed_exposure': 50000.0,
+            'v7_spread_width': 0.02, 'o5_collar': 0.05,
+        })
+        vi_rec['funds']['TQQQ']['v5_tolerance'] = 0.01
+        vi_rec['funds']['SOXL']['v5_tolerance'] = 0.01
+        r_re, eff_re, _ = self._eval(
+            vi_rec, session='2026-01-06', prior=st_o9,
+            events=[
+                {'type': 'rearm', 'row_id': 'O9', 'session': '2026-01-06', 'scope': 'account'},
+                {'type': 'tier_change_card', 'from': 'balanced', 'session': '2026-01-06'},
+            ],
+        )
+        self.assertEqual(r_re['O9']['state'], 'HALT')
+        self.assertEqual(eff_re['account'], 'HALT')
+        self.assertEqual(compute_permitted_exposure(vi_rec, r_re, eff_re), 0.0)
+
+        # 5. inputs['limits'] cannot mask missing SOXL v5_tolerance / v7_spread_width or missing top-level O3 reconciliation_tolerance
+        for p_name, val, prev in (('v5_tolerance', 0.01, 0.005), ('v7_spread_width', 0.02, 0.01)):
+            vi_lim = copy.deepcopy(self.normal_vi)
+            vi_lim.pop(p_name, None)
+            vi_lim['funds']['TQQQ'][p_name] = val
+            vi_lim['limits'] = {p_name: val}
+            vi_lim['o9_change_descriptors'] = {'param': p_name, 'from': prev, 'to': val}
+            r_lim, _, _ = self._eval(
+                vi_lim, session='2026-01-05',
+                events=[{'type': 'parameter_change_card', 'session': '2026-01-05', 'change_descriptors': {'param': p_name, 'from': prev, 'to': val}}],
+            )
+            self.assertEqual(r_lim['O9']['state'], 'HALT')
+
+        vi_rec_lim = copy.deepcopy(self.normal_vi)
+        vi_rec_lim.pop('reconciliation_tolerance', None)
+        vi_rec_lim['limits'] = {'reconciliation_tolerance': 1}
+        vi_rec_lim['o9_change_descriptors'] = {'param': 'reconciliation_tolerance', 'from': 0, 'to': 1}
+        r_rl, _, _ = self._eval(
+            vi_rec_lim, session='2026-01-05',
+            events=[{'type': 'parameter_change_card', 'session': '2026-01-05', 'change_descriptors': {'param': 'reconciliation_tolerance', 'from': 0, 'to': 1}}],
+        )
+        self.assertEqual(r_rl['O9']['state'], 'HALT')
+
 
 if __name__ == '__main__':
     unittest.main()

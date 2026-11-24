@@ -489,7 +489,8 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     prior_count = o5_state['rejection_count']
     last_rejection_session = o5_state['last_rejection_session']
 
-    # Check for prior latch (SUC-04: third rejection)
+    # Check for prior latch (SUC-04: third rejection); clear on Q4 rearm then evaluate current session
+    rearm_cleared = False
     if prior_latched:
         rearm = cst.matches_account_rearm(
             authorized_events, 'O5', session=session, as_of=as_of, require_date=True
@@ -506,15 +507,10 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                 'rejection_count_this_session': prior_count  # Emit per Q6
             }
 
-        # Q4: authorized re-arm clears O5 latch and session counter
-        return {
-            'state': 'NORMAL',
-            'would_have_tripped': False,
-            'kind': 'breaker',
-            'latched': False,
-            'reason': 'authorized_rearm',
-            'rejection_count_this_session': 0
-        }
+        # Q4: authorized re-arm clears O5 latch and counter, then still validates current-session order inputs
+        rearm_cleared = True
+        prior_count = 0
+        last_rejection_session = session
 
     # B2: New session resets a free counter; latch survives
     if last_rejection_session != session:
@@ -598,8 +594,26 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     if ambiguous_order_size:
         violations.append('invalid_order_size')
 
-    # Side & notional inputs (extract before account whitelist check so explicit order checks never bypass null account)
-    side = inputs.get('o5_side') if 'o5_side' in inputs else inputs.get('side')
+    # Side & notional inputs (inspect ALL side aliases; fail closed on conflicting/invalid side)
+    side_entries = [
+        (side_key, inputs[side_key])
+        for side_key in ('o5_side', 'side', 'order_side')
+        if side_key in inputs and inputs[side_key] is not None
+    ]
+    side = None
+    ambiguous_side = False
+    if side_entries:
+        norm_sides = []
+        for _, raw_s in side_entries:
+            if not isinstance(raw_s, str) or not raw_s.strip():
+                ambiguous_side = True
+                break
+            norm_sides.append(raw_s.strip().lower())
+        if not ambiguous_side:
+            if len(set(norm_sides)) > 1:
+                ambiguous_side = True
+            else:
+                side = norm_sides[0]
     raw_order_value = inputs['o5_order_value'] if 'o5_order_value' in inputs else inputs.get('order_value')
     unit_price = inputs.get('o5_order_price')
     if unit_price is None:
@@ -621,7 +635,7 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     else:
         account_whitelist = None
 
-    order_present = ambiguous_order_size or any(
+    order_present = ambiguous_order_size or ambiguous_side or any(
         val is not None
         for val in (side, order_size, raw_order_value, symbol, unit_price, ref_price)
     )
@@ -651,9 +665,11 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     ):
         violations.append('account_not_whitelisted')
 
-    # Long only: allow reducing sells within existing long position; reject shorts & uncovered/oversells
+    # Long only: allow reducing sells within existing long position; reject shorts, ambiguous sides & oversells
     valid_reducing_sell = False
-    if side is not None:
+    if ambiguous_side:
+        violations.append('not_long_only')
+    elif side is not None:
         if side == 'buy':
             pass
         elif side == 'sell':
@@ -690,7 +706,7 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             derived_notional = osize_val * uprice_val
 
     settled_cash = inputs['settled_cash'] if 'settled_cash' in inputs else inputs.get('o5_settled_cash')
-    explicit_buy = (side == 'buy') or (side is None and (order_size is not None or ambiguous_order_size))
+    explicit_buy = ambiguous_side or (side == 'buy') or (side is None and (order_size is not None or ambiguous_order_size))
 
     if side != 'sell':
         if notional_invalid:
@@ -698,6 +714,12 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         elif raw_order_value is not None or derived_notional is not None:
             ov = finite_float(raw_order_value) if raw_order_value is not None else None
             if raw_order_value is not None and (ov is None or ov < 0.0):
+                violations.append('exceeds_settled_cash')
+            elif explicit_buy and ov is not None and (
+                ov <= 0.0 or
+                (derived_notional is not None and ov < derived_notional)
+            ):
+                # Reject zero/negative or understated order_value on explicit buys
                 violations.append('exceeds_settled_cash')
             else:
                 if ov is not None and derived_notional is not None:
@@ -782,7 +804,7 @@ def evaluate_O5(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         'would_have_tripped': False,
         'kind': 'breaker',
         'latched': False,
-        'reason': 'none',
+        'reason': 'authorized_rearm' if rearm_cleared else 'none',
         'rejection_count_this_session': rejection_count
     }
 
@@ -1004,30 +1026,25 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
     State contribution: HALT
     Clearing: Owner re-arms
     """
-    # Check for prior latch (canonical format per Q6)
+    # Check for prior latch (canonical format per Q6); clear on Q4 rearm then evaluate current session
+    rearm_cleared = False
     prior_latch = cst.get_account_latch(prior_state, 'O9')
     if prior_latch:
         rearm = cst.matches_account_rearm(
             authorized_events, 'O9', session=session, as_of=as_of, require_date=True
         ) is not None
 
-        if rearm:
+        if not rearm:
+            # Stay latched
             return {
-                'state': 'NORMAL',
-                'would_have_tripped': False,
+                'state': 'HALT',
+                'would_have_tripped': True,
                 'kind': 'breaker',
-                'latched': False,
-                'reason': 'authorized_rearm'
+                'latched': True,
+                'reason': 'latched_prior_trip'
             }
 
-        # Stay latched
-        return {
-            'state': 'HALT',
-            'would_have_tripped': True,
-            'kind': 'breaker',
-            'latched': True,
-            'reason': 'latched_prior_trip'
-        }
+        rearm_cleared = True
 
     # Check for parameter changes (Fix 4: tier_change detection)
     change_descriptors = inputs.get('o9_change_descriptors')
@@ -1042,7 +1059,7 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
             'would_have_tripped': False,
             'kind': 'breaker',
             'latched': False,
-            'reason': 'none'
+            'reason': 'authorized_rearm' if rearm_cleared else 'none'
         }
 
     # Validate each privileged change kind independently against authorized_events
@@ -1247,7 +1264,6 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         return True
 
     def _targets_match_live_inputs(targets: List[tuple]) -> bool:
-        limits_map = inputs.get('limits') if isinstance(inputs.get('limits'), dict) else {}
         funds_map = inputs.get('funds') if isinstance(inputs.get('funds'), dict) else {}
         for field_name, target_val, target_scope in targets:
             if target_scope is not None:
@@ -1264,8 +1280,6 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                     live_val = fund_dict[field_name]
                 elif field_name in inputs:
                     live_val = inputs[field_name]
-                elif field_name in limits_map:
-                    live_val = limits_map[field_name]
                 elif field_name in known_o9_policy_fields:
                     return False
                 else:
@@ -1284,10 +1298,6 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
                     continue
                 if field_name in inputs:
                     live_val = inputs[field_name]
-                    if not _values_match(live_val, target_val):
-                        return False
-                elif field_name in limits_map:
-                    live_val = limits_map[field_name]
                     if not _values_match(live_val, target_val):
                         return False
                 elif field_name in overridable_policy_fields:
@@ -1349,7 +1359,7 @@ def evaluate_O9(inputs: Dict[str, Any], prior_state: Optional[Dict[str, Any]],
         'would_have_tripped': False,
         'kind': 'breaker',
         'latched': False,
-        'reason': 'none'
+        'reason': 'authorized_rearm' if rearm_cleared else 'none'
     }
 
 

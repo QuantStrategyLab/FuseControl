@@ -39,6 +39,30 @@ def canonical_ca_identity(ca_obj: Any) -> Optional[Dict[str, Any]]:
         ident[k] = num if num is not None else v
     return ident
 
+
+def ca_identity_matches(
+    stored_ident: Optional[Dict[str, Any]],
+    fallback_item: Optional[Dict[str, Any]],
+    incoming_ca: Any,
+) -> bool:
+    """Match an incoming corporate action strictly against stored canonical identity (or fallback item)."""
+    inc_ident = canonical_ca_identity(incoming_ca)
+    if inc_ident is None:
+        return False
+    if isinstance(stored_ident, dict) and stored_ident.get('type'):
+        return inc_ident == stored_ident
+    if not isinstance(fallback_item, dict):
+        return False
+    if fallback_item.get('type') != inc_ident.get('type'):
+        return False
+    p_ratio = fallback_item.get('ratio')
+    c_ratio = inc_ident.get('ratio')
+    if p_ratio is None:
+        return c_ratio is None
+    p_num = finite_float(p_ratio)
+    c_num = finite_float(c_ratio)
+    return p_num is not None and c_num is not None and p_num == c_num
+
 def get_v2_pending_adjustment(prior_state: Optional[Dict], fund: str) -> Optional[Dict]:
     """Get pending adjustment for a fund from V2.pending_adjustments."""
     if not prior_state or 'V2' not in prior_state:
