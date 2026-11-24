@@ -1,0 +1,5760 @@
+{
+  "description": "Frozen golden table per BRIEF-FUSE-1 \u00a76, derived from \u00a74 specification",
+  "derivation_method": "cell-by-cell application of trigger/action/kind/clearing semantics to scenario inputs",
+  "independence": "derived from specification text alone, NOT from engine outputs",
+  "base_cells": {
+    "normal.L0": {
+      "scenario": "normal",
+      "row_id": "L0",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 60000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.L1": {
+      "scenario": "normal",
+      "row_id": "L1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.L2": {
+      "scenario": "normal",
+      "row_id": "L2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.L3": {
+      "scenario": "normal",
+      "row_id": "L3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.L4": {
+      "scenario": "normal",
+      "row_id": "L4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.L5": {
+      "scenario": "normal",
+      "row_id": "L5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.L6": {
+      "scenario": "normal",
+      "row_id": "L6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.V1": {
+      "scenario": "normal",
+      "row_id": "V1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.V2": {
+      "scenario": "normal",
+      "row_id": "V2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.V3": {
+      "scenario": "normal",
+      "row_id": "V3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.V4": {
+      "scenario": "normal",
+      "row_id": "V4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.V5": {
+      "scenario": "normal",
+      "row_id": "V5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "outputs": {
+          "excess_shortfall": null,
+          "consecutive_sessions_beyond_tolerance": 0,
+          "escalated_to_v1": false,
+          "disposition": "UNRESOLVED-FAIL-CLOSED"
+        }
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.V6": {
+      "scenario": "normal",
+      "row_id": "V6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cost_per_unit_exposure": null,
+          "threshold": null,
+          "exceeded": false,
+          "notify": false
+        }
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.V7": {
+      "scenario": "normal",
+      "row_id": "V7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "unresolved_fail_closed"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.O1": {
+      "scenario": "normal",
+      "row_id": "O1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.O2": {
+      "scenario": "normal",
+      "row_id": "O2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.O3": {
+      "scenario": "normal",
+      "row_id": "O3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.O4": {
+      "scenario": "normal",
+      "row_id": "O4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.O5": {
+      "scenario": "normal",
+      "row_id": "O5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.O6": {
+      "scenario": "normal",
+      "row_id": "O6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.O7": {
+      "scenario": "normal",
+      "row_id": "O7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.O8": {
+      "scenario": "normal",
+      "row_id": "O8",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "owner",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.O9": {
+      "scenario": "normal",
+      "row_id": "O9",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "normal.J1": {
+      "scenario": "normal",
+      "row_id": "J1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 15000.0,
+          "cap": 60000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      },
+      "effective_state_by_scope": {
+        "account": "NORMAL",
+        "fund:TQQQ": "NORMAL",
+        "fund:SOXL": "NORMAL",
+        "symbol:TQQQ": "NORMAL",
+        "symbol:SOXL": "NORMAL",
+        "joint": "NORMAL"
+      }
+    },
+    "deposit.L0": {
+      "scenario": "deposit",
+      "row_id": "L0",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 66000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "deposit.L1": {
+      "scenario": "deposit",
+      "row_id": "L1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "deposit.L2": {
+      "scenario": "deposit",
+      "row_id": "L2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.L3": {
+      "scenario": "deposit",
+      "row_id": "L3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "deposit.L4": {
+      "scenario": "deposit",
+      "row_id": "L4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.L5": {
+      "scenario": "deposit",
+      "row_id": "L5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.L6": {
+      "scenario": "deposit",
+      "row_id": "L6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.V1": {
+      "scenario": "deposit",
+      "row_id": "V1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.V2": {
+      "scenario": "deposit",
+      "row_id": "V2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.V3": {
+      "scenario": "deposit",
+      "row_id": "V3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.V4": {
+      "scenario": "deposit",
+      "row_id": "V4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.V5": {
+      "scenario": "deposit",
+      "row_id": "V5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "outputs": {
+          "excess_shortfall": null,
+          "consecutive_sessions_beyond_tolerance": 0,
+          "escalated_to_v1": false,
+          "disposition": "UNRESOLVED-FAIL-CLOSED"
+        }
+      }
+    },
+    "deposit.V6": {
+      "scenario": "deposit",
+      "row_id": "V6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cost_per_unit_exposure": null,
+          "threshold": null,
+          "exceeded": false,
+          "notify": false
+        }
+      }
+    },
+    "deposit.V7": {
+      "scenario": "deposit",
+      "row_id": "V7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "unresolved_fail_closed"
+      }
+    },
+    "deposit.O1": {
+      "scenario": "deposit",
+      "row_id": "O1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.O2": {
+      "scenario": "deposit",
+      "row_id": "O2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.O3": {
+      "scenario": "deposit",
+      "row_id": "O3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.O4": {
+      "scenario": "deposit",
+      "row_id": "O4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.O5": {
+      "scenario": "deposit",
+      "row_id": "O5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
+      }
+    },
+    "deposit.O6": {
+      "scenario": "deposit",
+      "row_id": "O6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.O7": {
+      "scenario": "deposit",
+      "row_id": "O7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.O8": {
+      "scenario": "deposit",
+      "row_id": "O8",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "owner",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.O9": {
+      "scenario": "deposit",
+      "row_id": "O9",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.J1": {
+      "scenario": "deposit",
+      "row_id": "J1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 16500.0,
+          "cap": 66000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "withdrawal.L0": {
+      "scenario": "withdrawal",
+      "row_id": "L0",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 57000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "withdrawal.L1": {
+      "scenario": "withdrawal",
+      "row_id": "L1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "withdrawal.L2": {
+      "scenario": "withdrawal",
+      "row_id": "L2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.L3": {
+      "scenario": "withdrawal",
+      "row_id": "L3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "withdrawal.L4": {
+      "scenario": "withdrawal",
+      "row_id": "L4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.L5": {
+      "scenario": "withdrawal",
+      "row_id": "L5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.L6": {
+      "scenario": "withdrawal",
+      "row_id": "L6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.V1": {
+      "scenario": "withdrawal",
+      "row_id": "V1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.V2": {
+      "scenario": "withdrawal",
+      "row_id": "V2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.V3": {
+      "scenario": "withdrawal",
+      "row_id": "V3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.V4": {
+      "scenario": "withdrawal",
+      "row_id": "V4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.V5": {
+      "scenario": "withdrawal",
+      "row_id": "V5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "outputs": {
+          "excess_shortfall": null,
+          "consecutive_sessions_beyond_tolerance": 0,
+          "escalated_to_v1": false,
+          "disposition": "UNRESOLVED-FAIL-CLOSED"
+        }
+      }
+    },
+    "withdrawal.V6": {
+      "scenario": "withdrawal",
+      "row_id": "V6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cost_per_unit_exposure": null,
+          "threshold": null,
+          "exceeded": false,
+          "notify": false
+        }
+      }
+    },
+    "withdrawal.V7": {
+      "scenario": "withdrawal",
+      "row_id": "V7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "unresolved_fail_closed"
+      }
+    },
+    "withdrawal.O1": {
+      "scenario": "withdrawal",
+      "row_id": "O1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.O2": {
+      "scenario": "withdrawal",
+      "row_id": "O2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.O3": {
+      "scenario": "withdrawal",
+      "row_id": "O3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.O4": {
+      "scenario": "withdrawal",
+      "row_id": "O4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.O5": {
+      "scenario": "withdrawal",
+      "row_id": "O5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
+      }
+    },
+    "withdrawal.O6": {
+      "scenario": "withdrawal",
+      "row_id": "O6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.O7": {
+      "scenario": "withdrawal",
+      "row_id": "O7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.O8": {
+      "scenario": "withdrawal",
+      "row_id": "O8",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "owner",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.O9": {
+      "scenario": "withdrawal",
+      "row_id": "O9",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.J1": {
+      "scenario": "withdrawal",
+      "row_id": "J1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 14250.0,
+          "cap": 57000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "split.L0": {
+      "scenario": "split",
+      "row_id": "L0",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 60000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "split.L1": {
+      "scenario": "split",
+      "row_id": "L1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "split.L2": {
+      "scenario": "split",
+      "row_id": "L2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.L3": {
+      "scenario": "split",
+      "row_id": "L3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "split.L4": {
+      "scenario": "split",
+      "row_id": "L4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.L5": {
+      "scenario": "split",
+      "row_id": "L5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.L6": {
+      "scenario": "split",
+      "row_id": "L6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.V1": {
+      "scenario": "split",
+      "row_id": "V1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.V2": {
+      "scenario": "split",
+      "row_id": "V2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "HALT",
+        "would_have_tripped": true,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "pending_corporate_action_TQQQ"
+      }
+    },
+    "split.V3": {
+      "scenario": "split",
+      "row_id": "V3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.V4": {
+      "scenario": "split",
+      "row_id": "V4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.V5": {
+      "scenario": "split",
+      "row_id": "V5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "outputs": {
+          "excess_shortfall": null,
+          "consecutive_sessions_beyond_tolerance": 0,
+          "escalated_to_v1": false,
+          "disposition": "UNRESOLVED-FAIL-CLOSED"
+        }
+      }
+    },
+    "split.V6": {
+      "scenario": "split",
+      "row_id": "V6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cost_per_unit_exposure": null,
+          "threshold": null,
+          "exceeded": false,
+          "notify": false
+        }
+      }
+    },
+    "split.V7": {
+      "scenario": "split",
+      "row_id": "V7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "unresolved_fail_closed"
+      }
+    },
+    "split.O1": {
+      "scenario": "split",
+      "row_id": "O1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.O2": {
+      "scenario": "split",
+      "row_id": "O2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.O3": {
+      "scenario": "split",
+      "row_id": "O3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.O4": {
+      "scenario": "split",
+      "row_id": "O4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.O5": {
+      "scenario": "split",
+      "row_id": "O5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
+      }
+    },
+    "split.O6": {
+      "scenario": "split",
+      "row_id": "O6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.O7": {
+      "scenario": "split",
+      "row_id": "O7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.O8": {
+      "scenario": "split",
+      "row_id": "O8",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "owner",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.O9": {
+      "scenario": "split",
+      "row_id": "O9",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.J1": {
+      "scenario": "split",
+      "row_id": "J1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 15000.0,
+          "cap": 60000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "reverse_split.L0": {
+      "scenario": "reverse_split",
+      "row_id": "L0",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 60000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "reverse_split.L1": {
+      "scenario": "reverse_split",
+      "row_id": "L1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "reverse_split.L2": {
+      "scenario": "reverse_split",
+      "row_id": "L2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.L3": {
+      "scenario": "reverse_split",
+      "row_id": "L3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "reverse_split.L4": {
+      "scenario": "reverse_split",
+      "row_id": "L4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.L5": {
+      "scenario": "reverse_split",
+      "row_id": "L5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.L6": {
+      "scenario": "reverse_split",
+      "row_id": "L6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.V1": {
+      "scenario": "reverse_split",
+      "row_id": "V1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.V2": {
+      "scenario": "reverse_split",
+      "row_id": "V2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "HALT",
+        "would_have_tripped": true,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "pending_corporate_action_SOXL"
+      }
+    },
+    "reverse_split.V3": {
+      "scenario": "reverse_split",
+      "row_id": "V3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.V4": {
+      "scenario": "reverse_split",
+      "row_id": "V4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.V5": {
+      "scenario": "reverse_split",
+      "row_id": "V5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "outputs": {
+          "excess_shortfall": null,
+          "consecutive_sessions_beyond_tolerance": 0,
+          "escalated_to_v1": false,
+          "disposition": "UNRESOLVED-FAIL-CLOSED"
+        }
+      }
+    },
+    "reverse_split.V6": {
+      "scenario": "reverse_split",
+      "row_id": "V6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cost_per_unit_exposure": null,
+          "threshold": null,
+          "exceeded": false,
+          "notify": false
+        }
+      }
+    },
+    "reverse_split.V7": {
+      "scenario": "reverse_split",
+      "row_id": "V7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "unresolved_fail_closed"
+      }
+    },
+    "reverse_split.O1": {
+      "scenario": "reverse_split",
+      "row_id": "O1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.O2": {
+      "scenario": "reverse_split",
+      "row_id": "O2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.O3": {
+      "scenario": "reverse_split",
+      "row_id": "O3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.O4": {
+      "scenario": "reverse_split",
+      "row_id": "O4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.O5": {
+      "scenario": "reverse_split",
+      "row_id": "O5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
+      }
+    },
+    "reverse_split.O6": {
+      "scenario": "reverse_split",
+      "row_id": "O6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.O7": {
+      "scenario": "reverse_split",
+      "row_id": "O7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.O8": {
+      "scenario": "reverse_split",
+      "row_id": "O8",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "owner",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.O9": {
+      "scenario": "reverse_split",
+      "row_id": "O9",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.J1": {
+      "scenario": "reverse_split",
+      "row_id": "J1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 15000.0,
+          "cap": 60000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "stale.L0": {
+      "scenario": "stale",
+      "row_id": "L0",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 60000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "stale.L1": {
+      "scenario": "stale",
+      "row_id": "L1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "stale.L2": {
+      "scenario": "stale",
+      "row_id": "L2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.L3": {
+      "scenario": "stale",
+      "row_id": "L3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "stale.L4": {
+      "scenario": "stale",
+      "row_id": "L4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.L5": {
+      "scenario": "stale",
+      "row_id": "L5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.L6": {
+      "scenario": "stale",
+      "row_id": "L6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.V1": {
+      "scenario": "stale",
+      "row_id": "V1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.V2": {
+      "scenario": "stale",
+      "row_id": "V2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.V3": {
+      "scenario": "stale",
+      "row_id": "V3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.V4": {
+      "scenario": "stale",
+      "row_id": "V4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.V5": {
+      "scenario": "stale",
+      "row_id": "V5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "outputs": {
+          "excess_shortfall": null,
+          "consecutive_sessions_beyond_tolerance": 0,
+          "escalated_to_v1": false,
+          "disposition": "UNRESOLVED-FAIL-CLOSED"
+        }
+      }
+    },
+    "stale.V6": {
+      "scenario": "stale",
+      "row_id": "V6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cost_per_unit_exposure": null,
+          "threshold": null,
+          "exceeded": false,
+          "notify": false
+        }
+      }
+    },
+    "stale.V7": {
+      "scenario": "stale",
+      "row_id": "V7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "unresolved_fail_closed"
+      }
+    },
+    "stale.O1": {
+      "scenario": "stale",
+      "row_id": "O1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "stale_or_missing_input"
+      }
+    },
+    "stale.O2": {
+      "scenario": "stale",
+      "row_id": "O2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.O3": {
+      "scenario": "stale",
+      "row_id": "O3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.O4": {
+      "scenario": "stale",
+      "row_id": "O4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.O5": {
+      "scenario": "stale",
+      "row_id": "O5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
+      }
+    },
+    "stale.O6": {
+      "scenario": "stale",
+      "row_id": "O6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.O7": {
+      "scenario": "stale",
+      "row_id": "O7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.O8": {
+      "scenario": "stale",
+      "row_id": "O8",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "owner",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.O9": {
+      "scenario": "stale",
+      "row_id": "O9",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.J1": {
+      "scenario": "stale",
+      "row_id": "J1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 15000.0,
+          "cap": 60000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "missing.L0": {
+      "scenario": "missing",
+      "row_id": "L0",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 60000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "missing.L1": {
+      "scenario": "missing",
+      "row_id": "L1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "missing.L2": {
+      "scenario": "missing",
+      "row_id": "L2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.L3": {
+      "scenario": "missing",
+      "row_id": "L3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "missing.L4": {
+      "scenario": "missing",
+      "row_id": "L4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.L5": {
+      "scenario": "missing",
+      "row_id": "L5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.L6": {
+      "scenario": "missing",
+      "row_id": "L6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.V1": {
+      "scenario": "missing",
+      "row_id": "V1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "missing_input",
+        "funds": [
+          "TQQQ",
+          "SOXL"
+        ]
+      }
+    },
+    "missing.V2": {
+      "scenario": "missing",
+      "row_id": "V2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.V3": {
+      "scenario": "missing",
+      "row_id": "V3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.V4": {
+      "scenario": "missing",
+      "row_id": "V4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.V5": {
+      "scenario": "missing",
+      "row_id": "V5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "outputs": {
+          "excess_shortfall": null,
+          "consecutive_sessions_beyond_tolerance": 0,
+          "escalated_to_v1": false,
+          "disposition": "UNRESOLVED-FAIL-CLOSED"
+        }
+      }
+    },
+    "missing.V6": {
+      "scenario": "missing",
+      "row_id": "V6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cost_per_unit_exposure": null,
+          "threshold": null,
+          "exceeded": false,
+          "notify": false
+        }
+      }
+    },
+    "missing.V7": {
+      "scenario": "missing",
+      "row_id": "V7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "unresolved_fail_closed"
+      }
+    },
+    "missing.O1": {
+      "scenario": "missing",
+      "row_id": "O1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NO-NEW-RISK",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "stale_or_missing_input"
+      }
+    },
+    "missing.O2": {
+      "scenario": "missing",
+      "row_id": "O2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.O3": {
+      "scenario": "missing",
+      "row_id": "O3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.O4": {
+      "scenario": "missing",
+      "row_id": "O4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.O5": {
+      "scenario": "missing",
+      "row_id": "O5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
+      }
+    },
+    "missing.O6": {
+      "scenario": "missing",
+      "row_id": "O6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.O7": {
+      "scenario": "missing",
+      "row_id": "O7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.O8": {
+      "scenario": "missing",
+      "row_id": "O8",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "owner",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.O9": {
+      "scenario": "missing",
+      "row_id": "O9",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.J1": {
+      "scenario": "missing",
+      "row_id": "J1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 15000.0,
+          "cap": 60000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "restart.L0": {
+      "scenario": "restart",
+      "row_id": "L0",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 60000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "restart.L1": {
+      "scenario": "restart",
+      "row_id": "L1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "restart.L2": {
+      "scenario": "restart",
+      "row_id": "L2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.L3": {
+      "scenario": "restart",
+      "row_id": "L3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "restart.L4": {
+      "scenario": "restart",
+      "row_id": "L4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.L5": {
+      "scenario": "restart",
+      "row_id": "L5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.L6": {
+      "scenario": "restart",
+      "row_id": "L6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.V1": {
+      "scenario": "restart",
+      "row_id": "V1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.V2": {
+      "scenario": "restart",
+      "row_id": "V2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.V3": {
+      "scenario": "restart",
+      "row_id": "V3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.V4": {
+      "scenario": "restart",
+      "row_id": "V4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.V5": {
+      "scenario": "restart",
+      "row_id": "V5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "outputs": {
+          "excess_shortfall": null,
+          "consecutive_sessions_beyond_tolerance": 0,
+          "escalated_to_v1": false,
+          "disposition": "UNRESOLVED-FAIL-CLOSED"
+        }
+      }
+    },
+    "restart.V6": {
+      "scenario": "restart",
+      "row_id": "V6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cost_per_unit_exposure": null,
+          "threshold": null,
+          "exceeded": false,
+          "notify": false
+        }
+      }
+    },
+    "restart.V7": {
+      "scenario": "restart",
+      "row_id": "V7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "unresolved_fail_closed"
+      }
+    },
+    "restart.O1": {
+      "scenario": "restart",
+      "row_id": "O1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.O2": {
+      "scenario": "restart",
+      "row_id": "O2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.O3": {
+      "scenario": "restart",
+      "row_id": "O3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.O4": {
+      "scenario": "restart",
+      "row_id": "O4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.O5": {
+      "scenario": "restart",
+      "row_id": "O5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
+      }
+    },
+    "restart.O6": {
+      "scenario": "restart",
+      "row_id": "O6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.O7": {
+      "scenario": "restart",
+      "row_id": "O7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.O8": {
+      "scenario": "restart",
+      "row_id": "O8",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "owner",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.O9": {
+      "scenario": "restart",
+      "row_id": "O9",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.J1": {
+      "scenario": "restart",
+      "row_id": "J1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 15000.0,
+          "cap": 60000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "tier_change.L0": {
+      "scenario": "tier_change",
+      "row_id": "L0",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
+        }
+      }
+    },
+    "tier_change.L1": {
+      "scenario": "tier_change",
+      "row_id": "L1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "tier_change.L2": {
+      "scenario": "tier_change",
+      "row_id": "L2",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.L3": {
+      "scenario": "tier_change",
+      "row_id": "L3",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "tier_change.L4": {
+      "scenario": "tier_change",
+      "row_id": "L4",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.L5": {
+      "scenario": "tier_change",
+      "row_id": "L5",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.L6": {
+      "scenario": "tier_change",
+      "row_id": "L6",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.V1": {
+      "scenario": "tier_change",
+      "row_id": "V1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.V2": {
+      "scenario": "tier_change",
+      "row_id": "V2",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.V3": {
+      "scenario": "tier_change",
+      "row_id": "V3",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.V4": {
+      "scenario": "tier_change",
+      "row_id": "V4",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.V5": {
+      "scenario": "tier_change",
+      "row_id": "V5",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "outputs": {
+          "excess_shortfall": null,
+          "consecutive_sessions_beyond_tolerance": 0,
+          "escalated_to_v1": false,
+          "disposition": "UNRESOLVED-FAIL-CLOSED"
+        }
+      }
+    },
+    "tier_change.V6": {
+      "scenario": "tier_change",
+      "row_id": "V6",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cost_per_unit_exposure": null,
+          "threshold": null,
+          "exceeded": false,
+          "notify": false
+        }
+      }
+    },
+    "tier_change.V7": {
+      "scenario": "tier_change",
+      "row_id": "V7",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "unresolved_fail_closed"
+      }
+    },
+    "tier_change.O1": {
+      "scenario": "tier_change",
+      "row_id": "O1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.O2": {
+      "scenario": "tier_change",
+      "row_id": "O2",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.O3": {
+      "scenario": "tier_change",
+      "row_id": "O3",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.O4": {
+      "scenario": "tier_change",
+      "row_id": "O4",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.O5": {
+      "scenario": "tier_change",
+      "row_id": "O5",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
+      }
+    },
+    "tier_change.O6": {
+      "scenario": "tier_change",
+      "row_id": "O6",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.O7": {
+      "scenario": "tier_change",
+      "row_id": "O7",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.O8": {
+      "scenario": "tier_change",
+      "row_id": "O8",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "owner",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.O9": {
+      "scenario": "tier_change",
+      "row_id": "O9",
+      "tier": "conservative",
+      "outcome": {
+        "state": "HALT",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": true,
+        "reason": "unauthorized_change"
+      }
+    },
+    "tier_change.J1": {
+      "scenario": "tier_change",
+      "row_id": "J1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
+        }
+      }
+    },
+    "holiday.L0": {
+      "scenario": "holiday",
+      "row_id": "L0",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 60000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "holiday.L1": {
+      "scenario": "holiday",
+      "row_id": "L1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "holiday.L2": {
+      "scenario": "holiday",
+      "row_id": "L2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.L3": {
+      "scenario": "holiday",
+      "row_id": "L3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "holiday.L4": {
+      "scenario": "holiday",
+      "row_id": "L4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.L5": {
+      "scenario": "holiday",
+      "row_id": "L5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.L6": {
+      "scenario": "holiday",
+      "row_id": "L6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.V1": {
+      "scenario": "holiday",
+      "row_id": "V1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.V2": {
+      "scenario": "holiday",
+      "row_id": "V2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.V3": {
+      "scenario": "holiday",
+      "row_id": "V3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.V4": {
+      "scenario": "holiday",
+      "row_id": "V4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.V5": {
+      "scenario": "holiday",
+      "row_id": "V5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "outputs": {
+          "excess_shortfall": null,
+          "consecutive_sessions_beyond_tolerance": 0,
+          "escalated_to_v1": false,
+          "disposition": "UNRESOLVED-FAIL-CLOSED"
+        }
+      }
+    },
+    "holiday.V6": {
+      "scenario": "holiday",
+      "row_id": "V6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cost_per_unit_exposure": null,
+          "threshold": null,
+          "exceeded": false,
+          "notify": false
+        }
+      }
+    },
+    "holiday.V7": {
+      "scenario": "holiday",
+      "row_id": "V7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "unresolved_fail_closed"
+      }
+    },
+    "holiday.O1": {
+      "scenario": "holiday",
+      "row_id": "O1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.O2": {
+      "scenario": "holiday",
+      "row_id": "O2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "market_closed"
+      }
+    },
+    "holiday.O3": {
+      "scenario": "holiday",
+      "row_id": "O3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.O4": {
+      "scenario": "holiday",
+      "row_id": "O4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.O5": {
+      "scenario": "holiday",
+      "row_id": "O5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
+      }
+    },
+    "holiday.O6": {
+      "scenario": "holiday",
+      "row_id": "O6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.O7": {
+      "scenario": "holiday",
+      "row_id": "O7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.O8": {
+      "scenario": "holiday",
+      "row_id": "O8",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "owner",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.O9": {
+      "scenario": "holiday",
+      "row_id": "O9",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.J1": {
+      "scenario": "holiday",
+      "row_id": "J1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 15000.0,
+          "cap": 60000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "half_day.L0": {
+      "scenario": "half_day",
+      "row_id": "L0",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 60000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "half_day.L1": {
+      "scenario": "half_day",
+      "row_id": "L1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "half_day.L2": {
+      "scenario": "half_day",
+      "row_id": "L2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.L3": {
+      "scenario": "half_day",
+      "row_id": "L3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "half_day.L4": {
+      "scenario": "half_day",
+      "row_id": "L4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.L5": {
+      "scenario": "half_day",
+      "row_id": "L5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.L6": {
+      "scenario": "half_day",
+      "row_id": "L6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.V1": {
+      "scenario": "half_day",
+      "row_id": "V1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.V2": {
+      "scenario": "half_day",
+      "row_id": "V2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.V3": {
+      "scenario": "half_day",
+      "row_id": "V3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.V4": {
+      "scenario": "half_day",
+      "row_id": "V4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.V5": {
+      "scenario": "half_day",
+      "row_id": "V5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "outputs": {
+          "excess_shortfall": null,
+          "consecutive_sessions_beyond_tolerance": 0,
+          "escalated_to_v1": false,
+          "disposition": "UNRESOLVED-FAIL-CLOSED"
+        }
+      }
+    },
+    "half_day.V6": {
+      "scenario": "half_day",
+      "row_id": "V6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "diagnostic",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cost_per_unit_exposure": null,
+          "threshold": null,
+          "exceeded": false,
+          "notify": false
+        }
+      }
+    },
+    "half_day.V7": {
+      "scenario": "half_day",
+      "row_id": "V7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "unresolved_fail_closed"
+      }
+    },
+    "half_day.O1": {
+      "scenario": "half_day",
+      "row_id": "O1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.O2": {
+      "scenario": "half_day",
+      "row_id": "O2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "market_closed"
+      }
+    },
+    "half_day.O3": {
+      "scenario": "half_day",
+      "row_id": "O3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.O4": {
+      "scenario": "half_day",
+      "row_id": "O4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock_or_breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.O5": {
+      "scenario": "half_day",
+      "row_id": "O5",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "unresolved_fail_closed",
+        "rejection_count_this_session": 1
+      }
+    },
+    "half_day.O6": {
+      "scenario": "half_day",
+      "row_id": "O6",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.O7": {
+      "scenario": "half_day",
+      "row_id": "O7",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.O8": {
+      "scenario": "half_day",
+      "row_id": "O8",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "owner",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.O9": {
+      "scenario": "half_day",
+      "row_id": "O9",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.J1": {
+      "scenario": "half_day",
+      "row_id": "J1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 15000.0,
+          "cap": 60000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    }
+  },
+  "tier_repetitions": {
+    "normal.L0.conservative": {
+      "scenario": "normal",
+      "row_id": "L0",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "breached",
+        "outputs": {
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
+        }
+      }
+    },
+    "normal.L0.aggressive": {
+      "scenario": "normal",
+      "row_id": "L0",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 80000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "normal.L1.conservative": {
+      "scenario": "normal",
+      "row_id": "L1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "normal.L1.aggressive": {
+      "scenario": "normal",
+      "row_id": "L1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "normal.L2.conservative": {
+      "scenario": "normal",
+      "row_id": "L2",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "normal.L2.aggressive": {
+      "scenario": "normal",
+      "row_id": "L2",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "normal.L3.conservative": {
+      "scenario": "normal",
+      "row_id": "L3",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "normal.L3.aggressive": {
+      "scenario": "normal",
+      "row_id": "L3",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "normal.L4.conservative": {
+      "scenario": "normal",
+      "row_id": "L4",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "normal.L4.aggressive": {
+      "scenario": "normal",
+      "row_id": "L4",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "normal.J1.conservative": {
+      "scenario": "normal",
+      "row_id": "J1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "joint_cap_exceeded",
+        "outputs": {
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
+        }
+      }
+    },
+    "normal.J1.aggressive": {
+      "scenario": "normal",
+      "row_id": "J1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 35000.0,
+          "cap": 80000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "deposit.L0.conservative": {
+      "scenario": "deposit",
+      "row_id": "L0",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "breached",
+        "outputs": {
+          "cap": 44000.0,
+          "cap_breached": true,
+          "increases_blocked": true
+        }
+      }
+    },
+    "deposit.L0.aggressive": {
+      "scenario": "deposit",
+      "row_id": "L0",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 88000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "deposit.L1.conservative": {
+      "scenario": "deposit",
+      "row_id": "L1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "deposit.L1.aggressive": {
+      "scenario": "deposit",
+      "row_id": "L1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "deposit.L2.conservative": {
+      "scenario": "deposit",
+      "row_id": "L2",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.L2.aggressive": {
+      "scenario": "deposit",
+      "row_id": "L2",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.L3.conservative": {
+      "scenario": "deposit",
+      "row_id": "L3",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "deposit.L3.aggressive": {
+      "scenario": "deposit",
+      "row_id": "L3",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "deposit.L4.conservative": {
+      "scenario": "deposit",
+      "row_id": "L4",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.L4.aggressive": {
+      "scenario": "deposit",
+      "row_id": "L4",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "deposit.J1.conservative": {
+      "scenario": "deposit",
+      "row_id": "J1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "joint_cap_exceeded",
+        "outputs": {
+          "headroom": -5500.0,
+          "cap": 44000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
+        }
+      }
+    },
+    "deposit.J1.aggressive": {
+      "scenario": "deposit",
+      "row_id": "J1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 38500.0,
+          "cap": 88000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "withdrawal.L0.conservative": {
+      "scenario": "withdrawal",
+      "row_id": "L0",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "breached",
+        "outputs": {
+          "cap": 38000.0,
+          "cap_breached": true,
+          "increases_blocked": true
+        }
+      }
+    },
+    "withdrawal.L0.aggressive": {
+      "scenario": "withdrawal",
+      "row_id": "L0",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 76000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "withdrawal.L1.conservative": {
+      "scenario": "withdrawal",
+      "row_id": "L1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "withdrawal.L1.aggressive": {
+      "scenario": "withdrawal",
+      "row_id": "L1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "withdrawal.L2.conservative": {
+      "scenario": "withdrawal",
+      "row_id": "L2",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.L2.aggressive": {
+      "scenario": "withdrawal",
+      "row_id": "L2",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.L3.conservative": {
+      "scenario": "withdrawal",
+      "row_id": "L3",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "withdrawal.L3.aggressive": {
+      "scenario": "withdrawal",
+      "row_id": "L3",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "withdrawal.L4.conservative": {
+      "scenario": "withdrawal",
+      "row_id": "L4",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.L4.aggressive": {
+      "scenario": "withdrawal",
+      "row_id": "L4",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "withdrawal.J1.conservative": {
+      "scenario": "withdrawal",
+      "row_id": "J1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "joint_cap_exceeded",
+        "outputs": {
+          "headroom": -4750.0,
+          "cap": 38000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
+        }
+      }
+    },
+    "withdrawal.J1.aggressive": {
+      "scenario": "withdrawal",
+      "row_id": "J1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 33250.0,
+          "cap": 76000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "split.L0.conservative": {
+      "scenario": "split",
+      "row_id": "L0",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "breached",
+        "outputs": {
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
+        }
+      }
+    },
+    "split.L0.aggressive": {
+      "scenario": "split",
+      "row_id": "L0",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 80000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "split.L1.conservative": {
+      "scenario": "split",
+      "row_id": "L1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "split.L1.aggressive": {
+      "scenario": "split",
+      "row_id": "L1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "split.L2.conservative": {
+      "scenario": "split",
+      "row_id": "L2",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.L2.aggressive": {
+      "scenario": "split",
+      "row_id": "L2",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.L3.conservative": {
+      "scenario": "split",
+      "row_id": "L3",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "split.L3.aggressive": {
+      "scenario": "split",
+      "row_id": "L3",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "split.L4.conservative": {
+      "scenario": "split",
+      "row_id": "L4",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.L4.aggressive": {
+      "scenario": "split",
+      "row_id": "L4",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "split.J1.conservative": {
+      "scenario": "split",
+      "row_id": "J1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "joint_cap_exceeded",
+        "outputs": {
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
+        }
+      }
+    },
+    "split.J1.aggressive": {
+      "scenario": "split",
+      "row_id": "J1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 35000.0,
+          "cap": 80000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "reverse_split.L0.conservative": {
+      "scenario": "reverse_split",
+      "row_id": "L0",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "breached",
+        "outputs": {
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
+        }
+      }
+    },
+    "reverse_split.L0.aggressive": {
+      "scenario": "reverse_split",
+      "row_id": "L0",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 80000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "reverse_split.L1.conservative": {
+      "scenario": "reverse_split",
+      "row_id": "L1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "reverse_split.L1.aggressive": {
+      "scenario": "reverse_split",
+      "row_id": "L1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "reverse_split.L2.conservative": {
+      "scenario": "reverse_split",
+      "row_id": "L2",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.L2.aggressive": {
+      "scenario": "reverse_split",
+      "row_id": "L2",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.L3.conservative": {
+      "scenario": "reverse_split",
+      "row_id": "L3",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "reverse_split.L3.aggressive": {
+      "scenario": "reverse_split",
+      "row_id": "L3",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "reverse_split.L4.conservative": {
+      "scenario": "reverse_split",
+      "row_id": "L4",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.L4.aggressive": {
+      "scenario": "reverse_split",
+      "row_id": "L4",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "reverse_split.J1.conservative": {
+      "scenario": "reverse_split",
+      "row_id": "J1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "joint_cap_exceeded",
+        "outputs": {
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
+        }
+      }
+    },
+    "reverse_split.J1.aggressive": {
+      "scenario": "reverse_split",
+      "row_id": "J1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 35000.0,
+          "cap": 80000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "stale.L0.conservative": {
+      "scenario": "stale",
+      "row_id": "L0",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "breached",
+        "outputs": {
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
+        }
+      }
+    },
+    "stale.L0.aggressive": {
+      "scenario": "stale",
+      "row_id": "L0",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 80000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "stale.L1.conservative": {
+      "scenario": "stale",
+      "row_id": "L1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "stale.L1.aggressive": {
+      "scenario": "stale",
+      "row_id": "L1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "stale.L2.conservative": {
+      "scenario": "stale",
+      "row_id": "L2",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.L2.aggressive": {
+      "scenario": "stale",
+      "row_id": "L2",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.L3.conservative": {
+      "scenario": "stale",
+      "row_id": "L3",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "stale.L3.aggressive": {
+      "scenario": "stale",
+      "row_id": "L3",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "stale.L4.conservative": {
+      "scenario": "stale",
+      "row_id": "L4",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.L4.aggressive": {
+      "scenario": "stale",
+      "row_id": "L4",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "stale.J1.conservative": {
+      "scenario": "stale",
+      "row_id": "J1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "joint_cap_exceeded",
+        "outputs": {
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
+        }
+      }
+    },
+    "stale.J1.aggressive": {
+      "scenario": "stale",
+      "row_id": "J1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 35000.0,
+          "cap": 80000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "missing.L0.conservative": {
+      "scenario": "missing",
+      "row_id": "L0",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "breached",
+        "outputs": {
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
+        }
+      }
+    },
+    "missing.L0.aggressive": {
+      "scenario": "missing",
+      "row_id": "L0",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 80000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "missing.L1.conservative": {
+      "scenario": "missing",
+      "row_id": "L1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "missing.L1.aggressive": {
+      "scenario": "missing",
+      "row_id": "L1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "missing.L2.conservative": {
+      "scenario": "missing",
+      "row_id": "L2",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.L2.aggressive": {
+      "scenario": "missing",
+      "row_id": "L2",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.L3.conservative": {
+      "scenario": "missing",
+      "row_id": "L3",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "missing.L3.aggressive": {
+      "scenario": "missing",
+      "row_id": "L3",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "missing.L4.conservative": {
+      "scenario": "missing",
+      "row_id": "L4",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.L4.aggressive": {
+      "scenario": "missing",
+      "row_id": "L4",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "missing.J1.conservative": {
+      "scenario": "missing",
+      "row_id": "J1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "joint_cap_exceeded",
+        "outputs": {
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
+        }
+      }
+    },
+    "missing.J1.aggressive": {
+      "scenario": "missing",
+      "row_id": "J1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 35000.0,
+          "cap": 80000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "restart.L0.conservative": {
+      "scenario": "restart",
+      "row_id": "L0",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "breached",
+        "outputs": {
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
+        }
+      }
+    },
+    "restart.L0.aggressive": {
+      "scenario": "restart",
+      "row_id": "L0",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 80000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "restart.L1.conservative": {
+      "scenario": "restart",
+      "row_id": "L1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "restart.L1.aggressive": {
+      "scenario": "restart",
+      "row_id": "L1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "restart.L2.conservative": {
+      "scenario": "restart",
+      "row_id": "L2",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.L2.aggressive": {
+      "scenario": "restart",
+      "row_id": "L2",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.L3.conservative": {
+      "scenario": "restart",
+      "row_id": "L3",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "restart.L3.aggressive": {
+      "scenario": "restart",
+      "row_id": "L3",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "restart.L4.conservative": {
+      "scenario": "restart",
+      "row_id": "L4",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.L4.aggressive": {
+      "scenario": "restart",
+      "row_id": "L4",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "restart.J1.conservative": {
+      "scenario": "restart",
+      "row_id": "J1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "joint_cap_exceeded",
+        "outputs": {
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
+        }
+      }
+    },
+    "restart.J1.aggressive": {
+      "scenario": "restart",
+      "row_id": "J1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 35000.0,
+          "cap": 80000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "tier_change.L0.balanced": {
+      "scenario": "tier_change",
+      "row_id": "L0",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 60000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "tier_change.L0.aggressive": {
+      "scenario": "tier_change",
+      "row_id": "L0",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 80000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "tier_change.L1.balanced": {
+      "scenario": "tier_change",
+      "row_id": "L1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "tier_change.L1.aggressive": {
+      "scenario": "tier_change",
+      "row_id": "L1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "tier_change.L2.balanced": {
+      "scenario": "tier_change",
+      "row_id": "L2",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.L2.aggressive": {
+      "scenario": "tier_change",
+      "row_id": "L2",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.L3.balanced": {
+      "scenario": "tier_change",
+      "row_id": "L3",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "tier_change.L3.aggressive": {
+      "scenario": "tier_change",
+      "row_id": "L3",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "tier_change.L4.balanced": {
+      "scenario": "tier_change",
+      "row_id": "L4",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.L4.aggressive": {
+      "scenario": "tier_change",
+      "row_id": "L4",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "tier_change.J1.balanced": {
+      "scenario": "tier_change",
+      "row_id": "J1",
+      "tier": "balanced",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 15000.0,
+          "cap": 60000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "tier_change.J1.aggressive": {
+      "scenario": "tier_change",
+      "row_id": "J1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 35000.0,
+          "cap": 80000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "holiday.L0.conservative": {
+      "scenario": "holiday",
+      "row_id": "L0",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "breached",
+        "outputs": {
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
+        }
+      }
+    },
+    "holiday.L0.aggressive": {
+      "scenario": "holiday",
+      "row_id": "L0",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 80000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "holiday.L1.conservative": {
+      "scenario": "holiday",
+      "row_id": "L1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "holiday.L1.aggressive": {
+      "scenario": "holiday",
+      "row_id": "L1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "holiday.L2.conservative": {
+      "scenario": "holiday",
+      "row_id": "L2",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.L2.aggressive": {
+      "scenario": "holiday",
+      "row_id": "L2",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.L3.conservative": {
+      "scenario": "holiday",
+      "row_id": "L3",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "holiday.L3.aggressive": {
+      "scenario": "holiday",
+      "row_id": "L3",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "holiday.L4.conservative": {
+      "scenario": "holiday",
+      "row_id": "L4",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.L4.aggressive": {
+      "scenario": "holiday",
+      "row_id": "L4",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "holiday.J1.conservative": {
+      "scenario": "holiday",
+      "row_id": "J1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "joint_cap_exceeded",
+        "outputs": {
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
+        }
+      }
+    },
+    "holiday.J1.aggressive": {
+      "scenario": "holiday",
+      "row_id": "J1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 35000.0,
+          "cap": 80000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    },
+    "half_day.L0.conservative": {
+      "scenario": "half_day",
+      "row_id": "L0",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "breached",
+        "outputs": {
+          "cap": 40000.0,
+          "cap_breached": true,
+          "increases_blocked": true
+        }
+      }
+    },
+    "half_day.L0.aggressive": {
+      "scenario": "half_day",
+      "row_id": "L0",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cap": 80000.0,
+          "cap_breached": false,
+          "increases_blocked": false
+        }
+      }
+    },
+    "half_day.L1.conservative": {
+      "scenario": "half_day",
+      "row_id": "L1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "half_day.L1.aggressive": {
+      "scenario": "half_day",
+      "row_id": "L1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "interlock",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "locked_against_loosening": false,
+          "notify": false
+        }
+      }
+    },
+    "half_day.L2.conservative": {
+      "scenario": "half_day",
+      "row_id": "L2",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.L2.aggressive": {
+      "scenario": "half_day",
+      "row_id": "L2",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.L3.conservative": {
+      "scenario": "half_day",
+      "row_id": "L3",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "half_day.L3.aggressive": {
+      "scenario": "half_day",
+      "row_id": "L3",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "cooling_off_days_remaining": 0,
+          "locked_flat": false,
+          "loss_record_cleared": false
+        }
+      }
+    },
+    "half_day.L4.conservative": {
+      "scenario": "half_day",
+      "row_id": "L4",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.L4.aggressive": {
+      "scenario": "half_day",
+      "row_id": "L4",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "breaker",
+        "latched": false,
+        "reason": "none"
+      }
+    },
+    "half_day.J1.conservative": {
+      "scenario": "half_day",
+      "row_id": "J1",
+      "tier": "conservative",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": true,
+        "kind": "limit",
+        "latched": false,
+        "reason": "joint_cap_exceeded",
+        "outputs": {
+          "headroom": -5000.0,
+          "cap": 40000.0,
+          "above_cap": true,
+          "above_trim_threshold": true
+        }
+      }
+    },
+    "half_day.J1.aggressive": {
+      "scenario": "half_day",
+      "row_id": "J1",
+      "tier": "aggressive",
+      "outcome": {
+        "state": "NORMAL",
+        "would_have_tripped": false,
+        "kind": "limit",
+        "latched": false,
+        "reason": "none",
+        "outputs": {
+          "headroom": 35000.0,
+          "cap": 80000.0,
+          "above_cap": false,
+          "above_trim_threshold": false
+        }
+      }
+    }
+  }
+}
