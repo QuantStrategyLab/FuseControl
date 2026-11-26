@@ -44,7 +44,7 @@ only veto. `gate_engine_inputs` runs the gate and writes its result into every
 engine input that `V7` and `O2` read. Orders are eligible only inside the core regular
 session (09:30–16:00 ET, 13:00 ET on half days). Pre-market, after-hours, the
 20:00–21:00 ET maintenance pause and the US 23/5 overnight window (21:00–04:00
-ET, from 2026-12-06) never are. Activity from 21:00 ET is attributed to the next
+ET, from 2026-12-06) never are. Activity from 20:00 ET (the trade-date boundary IBKR also uses) is attributed to the next
 trading day. Calendar files are accepted only when their SHA-256 matches a pin
 in `PINNED_CALENDARS`, and dates outside a pinned calendar fail closed. The
 gate does not modify the digest-pinned engine package.

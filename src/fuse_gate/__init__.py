@@ -26,7 +26,8 @@ Rules (US 23/5 isolation, effective 2026-12-06):
 * The 23/5 overnight window runs 21:00-04:00 ET from 2026-12-06 21:00 ET
   onward, leading into the next trading day; 20:00-21:00 ET is the venue
   maintenance pause and is ``closed``.
-* Activity at or after 21:00 ET is attributed to the next trading day
+* Activity at or after 20:00 ET (the trade-date boundary; IBKR dates
+  20:00-24:00 ET fills to the next day) is attributed to the next trading day
   (``T+1``), so reconciliation can keep the core-session EOD snapshot apart
   from overnight activity.
 * Calendar data is trusted only as a whole published file whose SHA-256 is
@@ -85,7 +86,9 @@ _OVERNIGHT_START = time(21, 0)
 # US 23/5 overnight trading takes effect with the session opening Sunday 2026-12-06 21:00 ET.
 _OVERNIGHT_EFFECTIVE_LOCAL = datetime(2026, 12, 6, 21, 0)
 _PRE_MARKET_START = time(4, 0)
-_NEXT_DAY_ATTRIBUTION_START = time(21, 0)
+# Trade-date boundary: platform-config `trade_date_boundary` and IBKR both date
+# fills from 20:00 ET to the next day, so reconciliation attributes from 20:00.
+_NEXT_DAY_ATTRIBUTION_START = time(20, 0)
 _SESSION_STATES = frozenset({"regular", "half_day", "closed", "unscheduled_closure"})
 # XNYS core-session bounds by session state (New York local time).
 _CORE_OPEN_LOCAL = time(9, 30)
@@ -434,10 +437,10 @@ def pre_trade_gate(timestamp_utc: str, calendar: TrustedCalendar, exchange_statu
 
     calendar_status = _calendar_status(parsed, ts)
     local_t = ts.astimezone(_NY).time()
-    if parsed["is_trading_day"] and local_t < _OVERNIGHT_START:
+    if parsed["is_trading_day"] and local_t < _NEXT_DAY_ATTRIBUTION_START:
         activity_trade_date = parsed["trade_date"].isoformat()
     else:
-        # From 21:00 ET, and at any time on a non-trading day, activity clears
+        # From 20:00 ET, and at any time on a non-trading day, activity clears
         # on the next trading day.
         nxt = _successor_session(calendar, parsed["trade_date"])
         activity_trade_date = nxt["trade_date"].isoformat() if nxt is not None else None
