@@ -198,7 +198,9 @@ class TestPreTradeGate(unittest.TestCase):
         self.assertEqual(holiday["engine_inputs"]["session_calendar_status"], "holiday")
         weekend = gate("2026-12-05T15:00:00Z", exchange="closed")
         self.assertEqual(weekend["engine_inputs"]["session_calendar_status"], "closed")
-        self.assertIsNone(weekend["activity_trade_date"])
+        # Activity on a non-trading day clears on the next trading day.
+        self.assertEqual(weekend["activity_trade_date"], "2026-12-07")
+        self.assertEqual(holiday["activity_trade_date"], "2026-12-28")
 
     def test_unscheduled_closure_maps_to_market_closed(self):
         closure = edited("2026-12-07", session_state="unscheduled_closure", is_trading_day=False, blocks_orders=True,
@@ -207,6 +209,17 @@ class TestPreTradeGate(unittest.TestCase):
         d = gate("2026-12-07T15:00:00Z", exchange="market_closed", calendar=calendar_with(**{"2026-12-07": closure}))
         self.assertFalse(d["orders_allowed"])
         self.assertEqual(d["engine_inputs"]["session_calendar_status"], "market_closed")
+
+    def test_published_earlier_cutoff_is_honoured(self):
+        # A registered cutoff before the close (C-SA-22 rule 2) is carried by the record itself.
+        early = edited("2026-12-07", cutoff_local="15:00", order_cutoff_utc="2026-12-07T20:00:00.000Z",
+                       order_window={"start_utc": "2026-12-07T14:30:00.000Z", "end_utc": "2026-12-07T20:00:00.000Z", "half_open": True})
+        cal = calendar_with(**{"2026-12-07": early})
+        self.assertTrue(gate("2026-12-07T19:59:00Z", calendar=cal)["orders_allowed"])
+        late = gate("2026-12-07T20:30:00Z", calendar=cal)
+        self.assertFalse(late["orders_allowed"])
+        self.assertEqual(late["reason"], "past_order_cutoff")
+        self.assertEqual(late["engine_inputs"]["session_time"], "outside_regular")
 
     def test_trading_day_that_blocks_orders_is_inconsistent(self):
         # csa22: trading days never block orders; such a record is rejected outright.
@@ -328,9 +341,11 @@ class TestEngineAgreement(unittest.TestCase):
 
     def _run(self, ts, exchange="open", calendar=CAL, vi=None):
         inputs, decision = gate_engine_inputs(copy.deepcopy(vi if vi is not None else self.normal_vi), ts, calendar, exchange)
+        # Evaluate at the gate's own instant and New York session date.
+        session = decision["trade_date"] or ts[:10]
         rows, _, _ = engine.evaluate(
             "fuse-eval-spec/v1", "test-hash", "registered_policy_hash_v1",
-            "2026-01-05", "2026-01-05T16:00:00Z", "shadow", inputs, {}, [])
+            session, ts, "shadow", inputs, {}, [])
         return rows, decision, inputs
 
     def test_rows_trip_independently_as_expected(self):

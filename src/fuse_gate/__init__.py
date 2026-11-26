@@ -434,13 +434,13 @@ def pre_trade_gate(timestamp_utc: str, calendar: TrustedCalendar, exchange_statu
 
     calendar_status = _calendar_status(parsed, ts)
     local_t = ts.astimezone(_NY).time()
-    if local_t >= _OVERNIGHT_START:
-        nxt = _successor_session(calendar, parsed["trade_date"])
-        activity_trade_date = nxt["trade_date"].isoformat() if nxt is not None else None
-    elif parsed["is_trading_day"]:
+    if parsed["is_trading_day"] and local_t < _OVERNIGHT_START:
         activity_trade_date = parsed["trade_date"].isoformat()
     else:
-        activity_trade_date = None
+        # From 21:00 ET, and at any time on a non-trading day, activity clears
+        # on the next trading day.
+        nxt = _successor_session(calendar, parsed["trade_date"])
+        activity_trade_date = nxt["trade_date"].isoformat() if nxt is not None else None
 
     exchange_token = _token(exchange_status, ENGINE_EXCHANGE_STATUSES)
     if exchange_token is None:
