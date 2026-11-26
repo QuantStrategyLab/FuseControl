@@ -22,7 +22,7 @@ from src.fuse_gate import (  # noqa: E402
     EXTENDED_OVERNIGHT_OPEN,
     PRE_MARKET_EXTENDED,
     GateInputError,
-    apply_gate_decision,
+    gate_engine_inputs,
     classify_venue_window,
     load_trusted_calendar,
     pre_trade_gate,
@@ -180,7 +180,8 @@ class TestPreTradeGate(unittest.TestCase):
                 self.assertFalse(d["orders_allowed"])
                 self.assertEqual(d["reason"], "outside_core_session")
                 self.assertEqual(d["engine_inputs"]["session_time"], "outside_regular")
-                self.assertEqual(d["engine_inputs"]["session_calendar_status"], "closed")
+                # Day-level calendar status: the trading day is still a trading day.
+                self.assertEqual(d["engine_inputs"]["session_calendar_status"], "open")
 
     def test_half_day_open_before_cutoff_and_cutoff_after(self):
         before = gate("2026-12-24T17:00:00Z")
@@ -207,11 +208,10 @@ class TestPreTradeGate(unittest.TestCase):
         self.assertFalse(d["orders_allowed"])
         self.assertEqual(d["engine_inputs"]["session_calendar_status"], "market_closed")
 
-    def test_calendar_block_on_trading_day_reaches_o2(self):
-        d = gate("2026-12-07T15:00:00Z", calendar=calendar_with(**{"2026-12-07": edited("2026-12-07", blocks_orders=True)}))
-        self.assertFalse(d["orders_allowed"])
-        self.assertEqual(d["reason"], "calendar_blocks_orders")
-        self.assertEqual(d["engine_inputs"]["session_calendar_status"], "market_closed")
+    def test_trading_day_that_blocks_orders_is_inconsistent(self):
+        # csa22: trading days never block orders; such a record is rejected outright.
+        with self.assertRaises(GateInputError):
+            validate_session(edited("2026-12-07", blocks_orders=True), D)
 
     def test_empty_order_window_is_valid_and_allows_nothing(self):
         # Codex P2 (round 3): a cutoff at the open is a valid session with no order window.
@@ -316,7 +316,7 @@ class TestPreTradeGate(unittest.TestCase):
 
 
 class TestEngineAgreement(unittest.TestCase):
-    """Gate decisions drive the pinned engine, through evaluate(), to the expected V7/O2 verdicts."""
+    """Gate results drive the pinned engine, through evaluate(), to the expected verdicts."""
 
     @classmethod
     def setUpClass(cls):
@@ -326,80 +326,75 @@ class TestEngineAgreement(unittest.TestCase):
         # (as the other engine tests do) so V7 isolates the session check.
         cls.normal_vi["v7_spread_width"] = 0.02
 
-    def _rows(self, decision, vi=None):
-        inputs = apply_gate_decision(copy.deepcopy(vi if vi is not None else self.normal_vi), decision)
+    def _run(self, ts, exchange="open", calendar=CAL, vi=None):
+        inputs, decision = gate_engine_inputs(copy.deepcopy(vi if vi is not None else self.normal_vi), ts, calendar, exchange)
         rows, _, _ = engine.evaluate(
             "fuse-eval-spec/v1", "test-hash", "registered_policy_hash_v1",
             "2026-01-05", "2026-01-05T16:00:00Z", "shadow", inputs, {}, [])
-        return rows
-
-    def test_baseline_scenario_is_clean_in_core_session(self):
-        rows = self._rows(gate("2026-12-07T15:00:00Z"))
-        self.assertFalse(rows["V7"]["would_have_tripped"])
-        self.assertFalse(rows["O2"]["would_have_tripped"])
+        return rows, decision, inputs
 
     def test_rows_trip_independently_as_expected(self):
-        blocked = calendar_with(**{"2026-12-07": edited("2026-12-07", blocks_orders=True)})
-        # (ts, exchange, calendar, expect V7 trip, expect O2 trip)
+        # (ts, exchange, expect V7 trip, expect O2 trip)
         probes = [
-            ("2026-12-07T15:00:00Z", "open", CAL, False, False),
-            ("2026-12-07T21:30:00Z", "open", CAL, True, True),
-            ("2026-12-08T02:30:00Z", "open", CAL, True, True),
-            ("2026-12-24T17:00:00Z", "open", CAL, False, False),
-            ("2026-12-24T18:30:00Z", "open", CAL, True, True),
-            ("2026-12-25T15:00:00Z", "holiday", CAL, True, True),
-            ("2026-12-07T15:00:00Z", "closed", CAL, True, True),
-            ("2026-12-07T15:00:00Z", None, CAL, True, True),
-            ("2026-12-07T15:00:00Z", "open", blocked, True, True),
-            ("2027-01-04T15:00:00Z", "open", CAL, True, True),
+            ("2026-12-07T15:00:00Z", "open", False, False),    # core session
+            ("2026-12-07T21:30:00Z", "open", True, False),     # after hours: V7 blocks, day still a trading day
+            ("2026-12-08T02:30:00Z", "open", True, False),     # 23/5 overnight
+            ("2026-12-07T12:00:00Z", "open", True, False),     # pre-market
+            ("2026-12-24T17:00:00Z", "open", False, False),    # half day before 13:00 ET
+            ("2026-12-24T18:30:00Z", "open", True, True),      # half day past cutoff: O2 trips too
+            ("2026-12-25T15:00:00Z", "holiday", True, True),
+            ("2026-12-07T15:00:00Z", "closed", True, True),    # venue veto on a scheduled day
+            ("2026-12-07T15:00:00Z", None, True, True),
+            ("2027-01-04T15:00:00Z", "open", True, True),      # outside pinned coverage
         ]
-        for ts, exchange, calendar, v7, o2 in probes:
+        for ts, exchange, v7, o2 in probes:
             with self.subTest(ts=ts, exchange=exchange):
-                d = gate(ts, exchange=exchange, calendar=calendar)
-                rows = self._rows(d)
+                rows, d, _ = self._run(ts, exchange)
                 self.assertEqual(rows["V7"]["would_have_tripped"], v7, "V7")
                 self.assertEqual(rows["O2"]["would_have_tripped"], o2, "O2")
                 self.assertEqual(d["orders_allowed"], not (v7 or o2))
 
+    def test_end_of_day_evaluation_still_runs_daily_breakers(self):
+        # Codex P1 (round 5): the order cutoff must not mark the trading day closed for V1 and friends.
+        vi = copy.deepcopy(self.normal_vi)
+        sym = next(iter(vi["funds"]))
+        vi["funds"][sym]["fund_return"] = 0.25  # far outside the fund's tracking tolerance
+        before_close, _, _ = self._run("2026-12-07T20:59:59Z", vi=vi)
+        at_close, d, inputs = self._run("2026-12-07T21:00:00Z", vi=vi)
+        self.assertTrue(before_close["V1"]["would_have_tripped"])
+        self.assertEqual(at_close["V1"]["would_have_tripped"], before_close["V1"]["would_have_tripped"])
+        self.assertEqual(at_close["V1"]["state"], before_close["V1"]["state"])
+        self.assertEqual(inputs["session_calendar_status"], "open")
+        self.assertFalse(d["orders_allowed"])
+        self.assertTrue(at_close["V7"]["would_have_tripped"])
+
     def test_stale_regular_tokens_in_every_v7_source_are_overwritten(self):
-        # Codex P1 (round 4): funds, quotes and symbols all carry the gate's token.
         vi = copy.deepcopy(self.normal_vi)
         quote = {"quote_staleness": 0.05, "spread_width": 0.0001, "trading_pause": False, "session_time": "regular"}
         for sym in vi["funds"]:
             vi["funds"][sym]["session_time"] = "regular"
         vi["quotes"] = {sym: dict(quote) for sym in vi["funds"]}
         vi["symbols"] = {sym: dict(quote) for sym in vi["funds"]}
-        after_hours = gate("2026-12-07T22:00:00Z")
-        applied = apply_gate_decision(vi, after_hours)
+        rows, _, applied = self._run("2026-12-07T22:00:00Z", vi=vi)
         for source in ("funds", "quotes", "symbols"):
             for sym, entry in applied[source].items():
                 with self.subTest(source=source, sym=sym):
                     self.assertEqual(entry["session_time"], "outside_regular")
-        self.assertTrue(self._rows(after_hours, vi)["V7"]["would_have_tripped"])
+        self.assertTrue(rows["V7"]["would_have_tripped"])
         self.assertEqual(vi["funds"][next(iter(vi["funds"]))]["session_time"], "regular", "input not mutated")
 
-    def test_malformed_or_contradictory_decisions_fail_closed(self):
-        # Codex P2 (round 4): only an affirmative, consistent decision yields `regular`.
-        good = gate("2026-12-07T15:00:00Z")
-        contradictory = copy.deepcopy(good)
-        contradictory["orders_allowed"] = False
-        forged = copy.deepcopy(gate("2026-12-07T22:00:00Z"))
-        forged["engine_inputs"]["session_time"] = "regular"
-        for label, decision in (
-            ("contradictory", contradictory),
-            ("forged_token", forged),
-            ("engine_inputs_list", dict(good, engine_inputs=["regular"])),
-            ("no_version", {k: v for k, v in good.items() if k != "gate_version"}),
-            ("not_a_mapping", ["regular"]),
-            ("none", None),
-        ):
-            with self.subTest(label=label):
-                applied = apply_gate_decision(self.normal_vi, decision)
-                for entry in applied["funds"].values():
-                    self.assertEqual(entry["session_time"], "outside_regular")
-                rows = self._rows(decision)
-                self.assertTrue(rows["V7"]["would_have_tripped"] or rows["O2"]["would_have_tripped"])
-        self.assertEqual(apply_gate_decision(None, good)["session_calendar_status"], "open")
+    def test_only_the_loader_built_calendar_is_accepted(self):
+        # Codex P2 (round 5): a subclass cannot stand in for the pinned calendar.
+        with self.assertRaises(TypeError):
+            type("Fake", (fuse_gate.TrustedCalendar,), {})
+        class Lookalike:
+            versions = ("csa22-v2",)
+            def session(self, day):
+                return CAL.session(day)
+        rows, d, inputs = self._run("2026-12-07T15:00:00Z", calendar=Lookalike())
+        self.assertEqual(d["reason"], "calendar_untrusted")
+        self.assertIsNone(inputs["session_calendar_status"])
+        self.assertTrue(rows["V7"]["would_have_tripped"] and rows["O2"]["would_have_tripped"])
 
 
 if __name__ == "__main__":

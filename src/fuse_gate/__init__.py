@@ -13,10 +13,16 @@ Rules (US 23/5 isolation, effective 2026-12-06):
   order_cutoff_utc)`` of an XNYS trading day (09:30-16:00 ET, 13:00 ET on a
   half day). Pre-market, after-hours and the 23/5 overnight window never
   allow orders.
-* ``O2`` receives ``open`` only inside that window. A half day reports
-  ``half_day_cutoff`` once its cutoff has passed, a closed day reports
-  ``closed`` or ``holiday``, and a calendar order block reports
-  ``market_closed``.
+* The engine reads ``session_calendar_status`` as a *day-level* fact: it also
+  tells V1, L4 and other daily breakers whether a trading session occurred.
+  The gate therefore reports ``open`` for the whole of a trading day (a half
+  day reports ``half_day_cutoff`` once its cutoff has passed, which O2 trips
+  on without marking the day closed), and ``closed``, ``holiday`` or
+  ``market_closed`` only for non-trading days. Time-of-day order blocking is
+  carried by V7's ``session_time``, never by the calendar status, so an
+  end-of-day evaluation still processes the day's breakers.
+* ``exchange_status`` must likewise be the venue's day-level status for the
+  trade date, observed independently of the calendar; it can only veto.
 * The 23/5 overnight window runs 21:00-04:00 ET from 2026-12-06 21:00 ET
   onward, leading into the next trading day; 20:00-21:00 ET is the venue
   maintenance pause and is ``closed``.
@@ -179,6 +185,9 @@ def validate_session(session: Any, trusted_spec_digest: Any) -> dict:
         raise GateInputError("session_flags_invalid")
     if is_trading_day != (state in ("regular", "half_day")):
         raise GateInputError("session_state_inconsistent")
+    # csa22: trading days never block orders and non-trading days always do.
+    if blocks_orders == is_trading_day:
+        raise GateInputError("session_flags_inconsistent")
     parsed = {
         "trade_date": trade_date,
         "session_state": state,
@@ -191,8 +200,6 @@ def validate_session(session: Any, trusted_spec_digest: Any) -> dict:
         "order_cutoff_utc": None,
     }
     if not is_trading_day:
-        if not blocks_orders:
-            raise GateInputError("session_flags_inconsistent")
         for key in ("open_utc", "close_utc", "order_cutoff_utc", "order_window", "open_local", "close_local", "cutoff_local"):
             if session.get(key) is not None:
                 raise GateInputError("session_times_on_closed_day")
@@ -234,6 +241,9 @@ class TrustedCalendar:
     """XNYS sessions loaded only from pinned, byte-verified calendar files."""
 
     __slots__ = ("_sessions", "_versions")
+
+    def __init_subclass__(cls, **kwargs):
+        raise TypeError("TrustedCalendar cannot be subclassed")
 
     def __init__(self, sessions: Mapping[date, dict], versions: Iterable[str], _token: object = None):
         if _token is not _CONSTRUCT:
@@ -362,7 +372,7 @@ def _classify(ts: datetime, parsed: dict, calendar: TrustedCalendar) -> str:
 
 
 def _resolve(timestamp_utc: Any, calendar: Any) -> tuple:
-    if not isinstance(calendar, TrustedCalendar):
+    if type(calendar) is not TrustedCalendar:
         raise GateInputError("calendar_untrusted")
     ts = _parse_utc(timestamp_utc, "timestamp")
     parsed = calendar.session(ts.astimezone(_NY).date())
@@ -382,14 +392,10 @@ def _calendar_status(parsed: dict, ts: datetime) -> str:
         if parsed["session_state"] == "unscheduled_closure":
             return "market_closed"
         return "holiday" if parsed["trade_date"].weekday() < 5 else "closed"
-    if parsed["blocks_orders"]:
-        # An explicit calendar veto on a trading day must reach O2 by itself.
-        return "market_closed"
-    if parsed["open_utc"] <= ts < parsed["order_cutoff_utc"]:
-        return "open"
+    # Day-level: a trading day stays ``open`` before and after its core window.
     if parsed["session_state"] == "half_day" and ts >= parsed["order_cutoff_utc"]:
         return "half_day_cutoff"
-    return "closed"
+    return "open"
 
 
 def _closed_decision(reason: str, timestamp_utc: Any, exchange_status: Any) -> dict:
@@ -443,7 +449,7 @@ def pre_trade_gate(timestamp_utc: str, calendar: TrustedCalendar, exchange_statu
         reason = "calendar_blocks_orders"
     elif window != CORE_SESSION_OPEN:
         reason = "outside_core_session"
-    elif calendar_status != "open":
+    elif not ts < parsed["order_cutoff_utc"]:
         reason = "past_order_cutoff"
     elif exchange_token != "open":
         reason = "exchange_not_open"
@@ -470,58 +476,41 @@ def pre_trade_gate(timestamp_utc: str, calendar: TrustedCalendar, exchange_statu
     }
 
 
-def _decision_engine_inputs(decision: Any) -> tuple:
-    """Return (session_time, calendar_status, exchange_status) from a decision.
+def gate_engine_inputs(
+    validated_inputs: Any,
+    timestamp_utc: str,
+    calendar: TrustedCalendar,
+    exchange_status: Any,
+) -> tuple:
+    """Run the gate and return ``(engine_inputs, decision)``.
 
-    ``regular`` is emitted only for an affirmative, internally consistent
-    decision; anything else yields ``outside_regular`` and missing O2 tokens.
+    The decision is computed here from the trusted calendar; no caller-supplied
+    decision is ever applied. O2 reads ``session_calendar_status`` and
+    ``exchange_status`` at the top level. V7 reads ``session_time`` per symbol
+    from ``funds``, then ``quotes``, then ``symbols``; the gate's token
+    overwrites every symbol in all three, so no caller-supplied value survives.
+    ``validated_inputs`` is not mutated.
     """
-    if not isinstance(decision, Mapping) or decision.get("gate_version") != GATE_VERSION:
-        return "outside_regular", None, None
-    engine_inputs = decision.get("engine_inputs")
-    if not isinstance(engine_inputs, Mapping):
-        return "outside_regular", None, None
-    calendar_status = _token(engine_inputs.get("session_calendar_status"), ENGINE_EXCHANGE_STATUSES)
-    exchange_status = _token(engine_inputs.get("exchange_status"), ENGINE_EXCHANGE_STATUSES)
-    allowed = (
-        decision.get("orders_allowed") is True
-        and decision.get("reason") == "none"
-        and engine_inputs.get("session_time") == "regular"
-        and calendar_status == "open"
-        and exchange_status == "open"
-    )
-    return ("regular" if allowed else "outside_regular"), calendar_status, exchange_status
-
-
-def apply_gate_decision(validated_inputs: Any, decision: Any) -> dict:
-    """Return a copy of engine ``validated_inputs`` carrying the gate's session inputs.
-
-    O2 reads ``session_calendar_status`` and ``exchange_status`` at the top
-    level. V7 reads ``session_time`` per symbol from ``funds``, then
-    ``quotes``, then ``symbols``; the gate's token overwrites every symbol in
-    all three, so no caller-supplied value survives. Inconsistent or
-    malformed decisions apply ``outside_regular`` and drop the O2 tokens, so
-    both rows fail closed.
-    """
-    session_time, calendar_status, exchange_status = _decision_engine_inputs(decision)
+    decision = pre_trade_gate(timestamp_utc, calendar, exchange_status)
+    tokens = decision["engine_inputs"]
     out = dict(validated_inputs) if isinstance(validated_inputs, Mapping) else {}
-    out["session_calendar_status"] = calendar_status
-    out["exchange_status"] = exchange_status
+    out["session_calendar_status"] = tokens["session_calendar_status"]
+    out["exchange_status"] = tokens["exchange_status"]
     for source in ("funds", "quotes", "symbols"):
         entries = out.get(source)
         if isinstance(entries, Mapping):
             out[source] = {
-                symbol: ({**dict(entry), "session_time": session_time} if isinstance(entry, Mapping) else entry)
+                symbol: ({**dict(entry), "session_time": tokens["session_time"]} if isinstance(entry, Mapping) else entry)
                 for symbol, entry in entries.items()
             }
-    return out
+    return out, decision
 
 
 __all__ = [
     "AFTER_HOURS_EXTENDED",
     "PINNED_CALENDARS",
     "TrustedCalendar",
-    "apply_gate_decision",
+    "gate_engine_inputs",
     "load_trusted_calendar",
     "CLOSED",
     "CORE_SESSION_OPEN",
