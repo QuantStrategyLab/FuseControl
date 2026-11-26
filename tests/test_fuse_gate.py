@@ -251,7 +251,10 @@ class TestPreTradeGate(unittest.TestCase):
         self.assertEqual(d["trade_date"], "2026-12-04")
         self.assertEqual(d["activity_trade_date"], "2026-12-07")
         self.assertFalse(d["orders_allowed"])
-        self.assertEqual(gate("2026-12-05T01:59:00Z")["activity_trade_date"], "2026-12-04")  # 20:59 ET stays on T
+        # The trade-date boundary is 20:00 ET (IBKR dates 20:00-24:00 fills to the next day).
+        self.assertEqual(gate("2026-12-05T00:59:00Z")["activity_trade_date"], "2026-12-04")  # 19:59 ET stays on T
+        self.assertEqual(gate("2026-12-05T01:00:00Z")["activity_trade_date"], "2026-12-07")  # 20:00 ET -> next trading day
+        self.assertEqual(gate("2026-12-05T01:30:00Z")["activity_trade_date"], "2026-12-07")  # 20:30 ET, venue pause
         self.assertEqual(gate("2026-12-07T02:00:00Z")["activity_trade_date"], "2026-12-07")  # Sun 21:00 ET
         self.assertEqual(gate("2026-11-27T02:00:00Z")["activity_trade_date"], "2026-11-27")  # Thanksgiving 21:00 ET
 
