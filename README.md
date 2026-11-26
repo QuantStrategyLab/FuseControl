@@ -36,9 +36,12 @@ frozen into the acceptance battery before implementation.
 
 ## Pre-trade session gate (C-FUSE-GATE)
 
-`src/fuse_gate/` sits in front of the engine and derives its session inputs
-(`V7` `session_time`, `O2` calendar and exchange status) from a timestamp and a
-published XNYS calendar. Orders are eligible only inside the core regular
+`src/fuse_gate/` sits in front of the engine. From a timestamp and a published
+XNYS calendar it derives `V7` `session_time` and the `O2` calendar status. The
+`O2` exchange status must be observed separately from the venue; it can only
+veto, so an observed closure blocks orders even on a scheduled trading day.
+`apply_gate_decision` writes these values into every engine input that `V7` and
+`O2` read. Orders are eligible only inside the core regular
 session (09:30–16:00 ET, 13:00 ET on half days). Pre-market, after-hours, the
 20:00–21:00 ET maintenance pause and the US 23/5 overnight window (21:00–04:00
 ET, from 2026-12-06) never are. Activity from 21:00 ET is attributed to the next

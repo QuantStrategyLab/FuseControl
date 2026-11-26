@@ -268,12 +268,13 @@ def load_trusted_calendar(documents: Mapping[str, bytes]) -> TrustedCalendar:
         pin = PINNED_CALENDARS.get(version) if isinstance(version, str) else None
         if pin is None:
             raise GateInputError("calendar_version_not_pinned")
-        if not isinstance(raw, (bytes, bytearray)):
+        # Only immutable bytes: the object hashed is the object parsed.
+        if type(raw) is not bytes:
             raise GateInputError("calendar_document_not_bytes")
-        if hashlib.sha256(bytes(raw)).hexdigest() != pin["expected_sha256"]:
+        if hashlib.sha256(raw).hexdigest() != pin["expected_sha256"]:
             raise GateInputError("calendar_document_digest_mismatch")
         try:
-            doc = json.loads(bytes(raw))
+            doc = json.loads(raw)
         except ValueError as exc:
             raise GateInputError("calendar_document_invalid") from exc
         if (
@@ -291,7 +292,13 @@ def load_trusted_calendar(documents: Mapping[str, bytes]) -> TrustedCalendar:
             raise GateInputError("calendar_document_incomplete")
         for key, record in doc["sessions"].items():
             parsed = validate_session(record, pin["spec_digest"])
-            if parsed["trade_date"].isoformat() != key or record.get("calendar_version") != version:
+            if (
+                parsed["trade_date"].isoformat() != key
+                or record.get("calendar_version") != version
+                or not start <= parsed["trade_date"] <= end
+                or record.get("coverage_start_date") != doc["coverage_start_date"]
+                or record.get("coverage_end_date") != doc["coverage_end_date"]
+            ):
                 raise GateInputError("calendar_document_invalid")
             if parsed["trade_date"] in sessions:
                 raise GateInputError("calendar_coverage_overlap")
@@ -463,30 +470,58 @@ def pre_trade_gate(timestamp_utc: str, calendar: TrustedCalendar, exchange_statu
     }
 
 
-def apply_session_inputs(quotes: Any, decision: Mapping[str, Any]) -> dict:
-    """Return per-symbol V7 quote inputs carrying the gate's ``session_time``.
+def _decision_engine_inputs(decision: Any) -> tuple:
+    """Return (session_time, calendar_status, exchange_status) from a decision.
 
-    The engine reads ``session_time`` from each symbol's quote mapping. The
-    gate's value overwrites any caller-supplied one; a malformed quote
-    mapping is dropped, so the engine reports that symbol's input missing.
+    ``regular`` is emitted only for an affirmative, internally consistent
+    decision; anything else yields ``outside_regular`` and missing O2 tokens.
     """
-    session_time = (decision.get("engine_inputs") or {}).get("session_time") if isinstance(decision, Mapping) else None
-    if session_time != "regular":
-        session_time = "outside_regular"
-    if not isinstance(quotes, Mapping):
-        return {}
-    return {
-        symbol: {**dict(quote), "session_time": session_time}
-        for symbol, quote in quotes.items()
-        if isinstance(symbol, str) and isinstance(quote, Mapping)
-    }
+    if not isinstance(decision, Mapping) or decision.get("gate_version") != GATE_VERSION:
+        return "outside_regular", None, None
+    engine_inputs = decision.get("engine_inputs")
+    if not isinstance(engine_inputs, Mapping):
+        return "outside_regular", None, None
+    calendar_status = _token(engine_inputs.get("session_calendar_status"), ENGINE_EXCHANGE_STATUSES)
+    exchange_status = _token(engine_inputs.get("exchange_status"), ENGINE_EXCHANGE_STATUSES)
+    allowed = (
+        decision.get("orders_allowed") is True
+        and decision.get("reason") == "none"
+        and engine_inputs.get("session_time") == "regular"
+        and calendar_status == "open"
+        and exchange_status == "open"
+    )
+    return ("regular" if allowed else "outside_regular"), calendar_status, exchange_status
+
+
+def apply_gate_decision(validated_inputs: Any, decision: Any) -> dict:
+    """Return a copy of engine ``validated_inputs`` carrying the gate's session inputs.
+
+    O2 reads ``session_calendar_status`` and ``exchange_status`` at the top
+    level. V7 reads ``session_time`` per symbol from ``funds``, then
+    ``quotes``, then ``symbols``; the gate's token overwrites every symbol in
+    all three, so no caller-supplied value survives. Inconsistent or
+    malformed decisions apply ``outside_regular`` and drop the O2 tokens, so
+    both rows fail closed.
+    """
+    session_time, calendar_status, exchange_status = _decision_engine_inputs(decision)
+    out = dict(validated_inputs) if isinstance(validated_inputs, Mapping) else {}
+    out["session_calendar_status"] = calendar_status
+    out["exchange_status"] = exchange_status
+    for source in ("funds", "quotes", "symbols"):
+        entries = out.get(source)
+        if isinstance(entries, Mapping):
+            out[source] = {
+                symbol: ({**dict(entry), "session_time": session_time} if isinstance(entry, Mapping) else entry)
+                for symbol, entry in entries.items()
+            }
+    return out
 
 
 __all__ = [
     "AFTER_HOURS_EXTENDED",
     "PINNED_CALENDARS",
     "TrustedCalendar",
-    "apply_session_inputs",
+    "apply_gate_decision",
     "load_trusted_calendar",
     "CLOSED",
     "CORE_SESSION_OPEN",

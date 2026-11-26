@@ -22,13 +22,13 @@ from src.fuse_gate import (  # noqa: E402
     EXTENDED_OVERNIGHT_OPEN,
     PRE_MARKET_EXTENDED,
     GateInputError,
-    apply_session_inputs,
+    apply_gate_decision,
     classify_venue_window,
     load_trusted_calendar,
     pre_trade_gate,
     validate_session,
 )
-from src.fuse_engine import rows_ops, rows_vehicle  # noqa: E402
+from src.fuse_engine import evaluator as engine  # noqa: E402
 
 RAW = (repo_root / "tests" / "fixtures" / "csa22-v2-expected-2026.json").read_bytes()
 DOC = json.loads(RAW)
@@ -74,12 +74,30 @@ class TestTrustedCalendar(unittest.TestCase):
             ("one_byte", {"csa22-v2": RAW.replace(b"16:00", b"16:01", 1)}),
             ("unpinned_version", {"csa22-v9": RAW}),
             ("text_not_bytes", {"csa22-v2": RAW.decode()}),
+            # Codex P1 (round 4): a mutable buffer could change between hashing and parsing.
+            ("bytearray", {"csa22-v2": bytearray(RAW)}),
+            ("memoryview", {"csa22-v2": memoryview(RAW)}),
             ("empty", {}),
             ("not_a_mapping", [RAW]),
         ):
             with self.subTest(label=label):
                 with self.assertRaises(GateInputError):
                     load_trusted_calendar(documents)
+
+    def test_coverage_binding_is_checked_per_record(self):
+        # Codex P2 (round 4): records must carry the document's coverage, and keys must fall inside it.
+        import hashlib
+        doc = json.loads(RAW)
+        doc["sessions"]["2026-06-01"]["coverage_end_date"] = "2027-12-31"
+        raw = json.dumps(doc).encode()
+        pins = {"csa22-v2": dict(fuse_gate.PINNED_CALENDARS["csa22-v2"], expected_sha256=hashlib.sha256(raw).hexdigest())}
+        original = fuse_gate.PINNED_CALENDARS
+        fuse_gate.PINNED_CALENDARS = pins
+        try:
+            with self.assertRaises(GateInputError):
+                load_trusted_calendar({"csa22-v2": raw})
+        finally:
+            fuse_gate.PINNED_CALENDARS = original
 
     def test_gate_rejects_anything_but_a_trusted_calendar(self):
         for calendar in (DOC, DOC["sessions"], None, {"csa22-v2": RAW}):
@@ -298,19 +316,27 @@ class TestPreTradeGate(unittest.TestCase):
 
 
 class TestEngineAgreement(unittest.TestCase):
-    """The gate's engine inputs drive the pinned engine rows to the expected verdicts."""
+    """Gate decisions drive the pinned engine, through evaluate(), to the expected V7/O2 verdicts."""
 
-    QUOTE = {"quote_staleness": 0.05, "spread_width": 0.0001, "trading_pause": False}
+    @classmethod
+    def setUpClass(cls):
+        cls.normal_vi = json.loads((repo_root / "goldens" / "scenarios.json").read_text(encoding="utf-8"))[
+            "scenarios"]["normal"]["inputs"]["validated_inputs"]
+        # The spread-width threshold is an unresolved spec parameter; supply it explicitly
+        # (as the other engine tests do) so V7 isolates the session check.
+        cls.normal_vi["v7_spread_width"] = 0.02
 
-    def _v7_trips(self, decision):
-        # Codex P2 (round 3): route the gate's session_time through the per-symbol quote inputs.
-        quotes = apply_session_inputs({"TQQQ": dict(self.QUOTE, session_time="regular")}, decision)
-        inputs = dict(quotes["TQQQ"], v7_spread_width=0.01)
-        return rows_vehicle.evaluate_V7(inputs, None, None, "TQQQ")["would_have_tripped"]
+    def _rows(self, decision, vi=None):
+        inputs = apply_gate_decision(copy.deepcopy(vi if vi is not None else self.normal_vi), decision)
+        rows, _, _ = engine.evaluate(
+            "fuse-eval-spec/v1", "test-hash", "registered_policy_hash_v1",
+            "2026-01-05", "2026-01-05T16:00:00Z", "shadow", inputs, {}, [])
+        return rows
 
-    def _o2_trips(self, engine_inputs):
-        return rows_ops.evaluate_O2({"session_calendar_status": engine_inputs["session_calendar_status"],
-                                     "exchange_status": engine_inputs["exchange_status"]}, None, None)["would_have_tripped"]
+    def test_baseline_scenario_is_clean_in_core_session(self):
+        rows = self._rows(gate("2026-12-07T15:00:00Z"))
+        self.assertFalse(rows["V7"]["would_have_tripped"])
+        self.assertFalse(rows["O2"]["would_have_tripped"])
 
     def test_rows_trip_independently_as_expected(self):
         blocked = calendar_with(**{"2026-12-07": edited("2026-12-07", blocks_orders=True)})
@@ -330,19 +356,50 @@ class TestEngineAgreement(unittest.TestCase):
         for ts, exchange, calendar, v7, o2 in probes:
             with self.subTest(ts=ts, exchange=exchange):
                 d = gate(ts, exchange=exchange, calendar=calendar)
-                self.assertEqual(self._v7_trips(d), v7, "V7")
-                self.assertEqual(self._o2_trips(d["engine_inputs"]), o2, "O2")
+                rows = self._rows(d)
+                self.assertEqual(rows["V7"]["would_have_tripped"], v7, "V7")
+                self.assertEqual(rows["O2"]["would_have_tripped"], o2, "O2")
                 self.assertEqual(d["orders_allowed"], not (v7 or o2))
 
-    def test_apply_session_inputs_overwrites_and_drops_malformed(self):
-        allowed = gate("2026-12-07T15:00:00Z")
-        out = apply_session_inputs({"TQQQ": dict(self.QUOTE, session_time="outside_regular"), "BAD": "x", 7: {}}, allowed)
-        self.assertEqual(set(out), {"TQQQ"})
-        self.assertEqual(out["TQQQ"]["session_time"], "regular")
-        blocked = gate("2026-12-07T22:00:00Z")
-        self.assertEqual(apply_session_inputs({"TQQQ": dict(self.QUOTE, session_time="regular")}, blocked)["TQQQ"]["session_time"], "outside_regular")
-        self.assertEqual(apply_session_inputs(None, allowed), {})
-        self.assertEqual(apply_session_inputs({"TQQQ": dict(self.QUOTE)}, {"engine_inputs": {"session_time": "REGULAR"}})["TQQQ"]["session_time"], "outside_regular")
+    def test_stale_regular_tokens_in_every_v7_source_are_overwritten(self):
+        # Codex P1 (round 4): funds, quotes and symbols all carry the gate's token.
+        vi = copy.deepcopy(self.normal_vi)
+        quote = {"quote_staleness": 0.05, "spread_width": 0.0001, "trading_pause": False, "session_time": "regular"}
+        for sym in vi["funds"]:
+            vi["funds"][sym]["session_time"] = "regular"
+        vi["quotes"] = {sym: dict(quote) for sym in vi["funds"]}
+        vi["symbols"] = {sym: dict(quote) for sym in vi["funds"]}
+        after_hours = gate("2026-12-07T22:00:00Z")
+        applied = apply_gate_decision(vi, after_hours)
+        for source in ("funds", "quotes", "symbols"):
+            for sym, entry in applied[source].items():
+                with self.subTest(source=source, sym=sym):
+                    self.assertEqual(entry["session_time"], "outside_regular")
+        self.assertTrue(self._rows(after_hours, vi)["V7"]["would_have_tripped"])
+        self.assertEqual(vi["funds"][next(iter(vi["funds"]))]["session_time"], "regular", "input not mutated")
+
+    def test_malformed_or_contradictory_decisions_fail_closed(self):
+        # Codex P2 (round 4): only an affirmative, consistent decision yields `regular`.
+        good = gate("2026-12-07T15:00:00Z")
+        contradictory = copy.deepcopy(good)
+        contradictory["orders_allowed"] = False
+        forged = copy.deepcopy(gate("2026-12-07T22:00:00Z"))
+        forged["engine_inputs"]["session_time"] = "regular"
+        for label, decision in (
+            ("contradictory", contradictory),
+            ("forged_token", forged),
+            ("engine_inputs_list", dict(good, engine_inputs=["regular"])),
+            ("no_version", {k: v for k, v in good.items() if k != "gate_version"}),
+            ("not_a_mapping", ["regular"]),
+            ("none", None),
+        ):
+            with self.subTest(label=label):
+                applied = apply_gate_decision(self.normal_vi, decision)
+                for entry in applied["funds"].values():
+                    self.assertEqual(entry["session_time"], "outside_regular")
+                rows = self._rows(decision)
+                self.assertTrue(rows["V7"]["would_have_tripped"] or rows["O2"]["would_have_tripped"])
+        self.assertEqual(apply_gate_decision(None, good)["session_calendar_status"], "open")
 
 
 if __name__ == "__main__":
