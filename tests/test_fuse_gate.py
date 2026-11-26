@@ -415,5 +415,36 @@ class TestEngineAgreement(unittest.TestCase):
         self.assertTrue(rows["V7"]["would_have_tripped"] and rows["O2"]["would_have_tripped"])
 
 
+class TestCsa22V3Pin(unittest.TestCase):
+    def test_csa22_v3_expected_2027_loads_and_gates_sessions(self):
+        v3_raw = (repo_root / "tests" / "fixtures" / "csa22-v3-expected-2027.json").read_bytes()
+        cal_v3 = load_trusted_calendar({"csa22-v3": v3_raw})
+        self.assertEqual(cal_v3.versions, ("csa22-v3",))
+
+        # Regular trading day in 2027 (Mon 2027-01-04 EST)
+        reg = gate("2027-01-04T15:00:00Z", calendar=cal_v3)
+        self.assertTrue(reg["orders_allowed"])
+        self.assertEqual(reg["calendar_version"], "csa22-v3")
+        self.assertEqual(reg["activity_trade_date"], "2027-01-04")
+        self.assertEqual(reg["spec_digest"], fuse_gate.PINNED_CALENDARS["csa22-v3"]["spec_digest"])
+
+        # Observed 2027 holidays (Juneteenth 2027-06-18, July 4th 2027-07-05, Christmas 2027-12-24)
+        for ts in ("2027-06-18T15:00:00Z", "2027-07-05T15:00:00Z", "2027-12-24T15:00:00Z"):
+            hol = gate(ts, calendar=cal_v3)
+            self.assertFalse(hol["orders_allowed"], ts)
+
+        # Single 2027 early close: 2027-11-26 13:00 ET (18:00Z)
+        before_hc = gate("2027-11-26T17:59:59Z", calendar=cal_v3)
+        at_hc = gate("2027-11-26T18:00:00Z", calendar=cal_v3)
+        self.assertTrue(before_hc["orders_allowed"])
+        self.assertFalse(at_hc["orders_allowed"])
+
+        # Combined v2 + v3 bundle loads cleanly
+        both = load_trusted_calendar({"csa22-v2": RAW, "csa22-v3": v3_raw})
+        self.assertEqual(set(both.versions), {"csa22-v2", "csa22-v3"})
+        self.assertTrue(gate("2026-12-07T15:00:00Z", calendar=both)["orders_allowed"])
+        self.assertTrue(gate("2027-01-04T15:00:00Z", calendar=both)["orders_allowed"])
+
+
 if __name__ == "__main__":
     unittest.main()

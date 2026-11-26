@@ -79,6 +79,11 @@ PINNED_CALENDARS = MappingProxyType({
         "expected_file": "expected-2026.json",
         "expected_sha256": "d3145792a7e5aabe5d0745aa266263930f0bf37c88e6cf3b317009bcdb54bb07",
     }),
+    "csa22-v3": MappingProxyType({
+        "spec_digest": "416f8eff74a1962b4432e90f10f50da043e7e54a18ce30c3d79f26a5ea268654",
+        "expected_file": "expected-2027.json",
+        "expected_sha256": "a2006c4c0c967f7026a6a49bad99022ed81fcc30e8ce1b9e2e3f91e8822a0d1b",
+    }),
 })
 
 _MAINTENANCE_START = time(20, 0)
